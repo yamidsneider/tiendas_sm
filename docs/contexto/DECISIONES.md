@@ -86,6 +86,16 @@ había dicho «junto a `iniciar_tienda.py`». *Datos de ejemplo:* `--datos-de-ej
 *Desviación declarada:* las pruebas de `iniciar_tienda.py` y `datos_de_ejemplo.py` se escribieron después del código.
 *Pendiente:* medir E-01 (venta de 5 productos en menos de 60 s) con personas reales; pantallas de productos, clientes y abonos.
 
+**Escenarios de calidad E-02, E-03 y E-05 (tarea 6, ADR-02, noviembre de 2026).** `tests/test_escenarios_calidad.py`:
+E-02, 20 procesos que mueren con `os._exit(3)` a mitad de la transacción sin dejar nada a medias (`integrity_check = ok`);
+E-03, con 1.000 productos `listar()` y una venta de 5 líneas (medido en el equipo de desarrollo: unos 5 ms y 1 ms; límites 2 s y 1 s);
+E-05, entradas − salidas = cantidad actual y toda unidad vendida con su `SALIDA_VENTA`. El archivo tarda unos 2 s.
+
+**Hallazgo pendiente de numerar (deuda técnica):** `movimientos_inventario` no guarda el número de la venta, y en Windows dos ventas
+seguidas pueden quedar con la misma fecha y hora. Por eso no se puede probar venta por venta qué movimiento le corresponde; E-05 se
+comprueba por producto. *Recomendación (no aprobada):* agregar `id_venta` al movimiento de venta. Se registrará con el número TD que
+corresponda en las fichas.
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
