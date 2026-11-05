@@ -52,5 +52,42 @@ python medir_cobertura.py --minimo 90
 ```
 `ruff` y `coverage` no vienen con Python: se instalan con `pip install ruff==0.16.9 coverage==7.13.4` (de preferencia en un entorno virtual).
 
+## Entrega continua por GitHub Releases (FPI-27, ADR-11)
+TIENDAS S.M es de escritorio (ADR-03): «producción» es la versión marcada como **Latest** en GitHub Releases, que es la que descarga
+la tienda. Archivo: `.github/workflows/deploy.yml`. Solo usa el `GITHUB_TOKEN` automático: ningún secreto ni servicio externo.
+
+**Flujo al publicar una etiqueta `vX.Y.Z`:** `verificar` (pruebas y cobertura sobre el commit de la etiqueta) → `publicar` (espera la
+**aprobación** del environment `produccion`; arma `tiendas_sm-vX.Y.Z.zip` con su `.sha256` y lo publica como *prerelease*) →
+`healthcheck` (descarga lo publicado y ejecuta `scripts/healthcheck_paquete.py`: integridad SHA-256, contenido y una venta de humo con
+su movimiento `SALIDA_VENTA`, sin abrir Tkinter) → `promover` a **Latest** si todo salió bien, o **rollback automático** si el
+healthcheck falló (la versión queda como «RETIRADA» y la anterior sigue siendo Latest).
+
+**Preparar una sola vez (en GitHub):** *Settings → Environments → New environment* `produccion` → *Required reviewers*: tu usuario.
+
+**Publicar una versión** (desde `main` actualizado):
+```
+git switch main
+git pull
+git tag v0.1.0
+git push origin v0.1.0
+```
+En *Actions → CD* aprueba el job `publicar`. Guarda el enlace de la ejecución y el de la página `…/releases/tag/v0.1.0`.
+
+**Rollback manual** (un fallo descubierto después de promover): *Actions → CD → Run workflow*, con `version_mala` (por ejemplo `v0.1.1`) y
+`version_estable` (por ejemplo `v0.1.0`). También pide la aprobación de `produccion`. La estable vuelve a ser Latest y la mala queda
+como «RETIRADA».
+
+**Probar el healthcheck en el computador:**
+```
+git archive --format=zip -o t.zip HEAD tiendas_sm
+python scripts/healthcheck_paquete.py --paquete t.zip
+```
+Debe terminar en `HEALTHCHECK OK` (código 0). Con un `.zip` dañado o una suma que no coincide termina con código 1.
+
+**Opciones de `gh` comprobadas** en el manual oficial (cli.github.com, 2026-11-05): `--verify-tag`, `--prerelease`, `--latest`,
+`--pattern`, `--dir`, `--title`, `--notes`, `-R/--repo` y `gh release view --json/-q` (sin etiqueta muestra la última versión).
+**`--prerelease=false` no aparece escrita así** en la página de `gh release edit`; la misma página usa `--draft=false`, que es el mismo
+mecanismo, pero se confirmará en la primera ejecución real.
+
 ## Regresión
 `python correr_regresion.py <archivos que cambiaron>` elige las pruebas que se relacionan con el cambio. El pipeline siempre corre la suite completa.

@@ -34,9 +34,11 @@ tiendas_sm/          dominio.py, servicios.py, puertos.py, repositorios.py, base
                      presentador.py (lógica de la pantalla, sin Tkinter), datos_de_ejemplo.py (ficticios)
 interfaz_tk/         ventana_punto_de_venta.py (solo dibuja; no cuenta en la cobertura) · iniciar_tienda.py abre la app
 tests/               test_comportamiento, test_unitarias_dobles, test_caja_negra, test_integracion_incremental, test_defectos_corregidos,
-                     test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_interfaz_tk (se salta sin pantalla), test_escenarios_calidad, test_migracion_esquema, test_medir_cobertura
+                     test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_interfaz_tk (se salta sin pantalla), test_escenarios_calidad, test_migracion_esquema, test_medir_cobertura, test_healthcheck_paquete
+scripts/             healthcheck_paquete.py (revisa el .zip publicado; lo usa el CD)
 docs/                CI.md, FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACORA_IA.md, HOJA_DE_RUTA_IS2.md, contexto/, referencia/
 .github/workflows/ci.yml   pipeline de 3 jobs (FPI-25): linter -> test (3.12 y 3.13) -> analysis (cobertura ≥ 90 %, SonarCloud)
+.github/workflows/deploy.yml   entrega continua por GitHub Releases con healthcheck y rollback (FPI-27)
 medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresion.py · calcular_metricas.py · demo_en_vivo.py
 ```
 
@@ -45,12 +47,12 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (160 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (164 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 98 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
 python iniciar_tienda.py --datos-de-ejemplo      # abre el punto de venta (datos en %LOCALAPPDATA%\TIENDAS_SM)
-ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests iniciar_tienda.py   # job linter (ruff==0.16.9)
+ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests scripts iniciar_tienda.py   # job linter (ruff==0.16.9)
 ```
 
 ## Arquitectura (resumen)
@@ -68,7 +70,7 @@ ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-com
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 160 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07 y TD-14 corregidos; pipeline de la Guía 9.
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 164 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07 y TD-14 corregidos; pipeline de la Guía 9 y entrega continua de la Guía 11.
 - **Pendiente, en este orden de prioridad:**
   1. **Interfaz Tkinter:** punto de venta hecho; faltan medir E-01 con personas y las demás pantallas
      (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).

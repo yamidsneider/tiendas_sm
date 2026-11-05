@@ -24,7 +24,7 @@ Desde esta carpeta:
 
     python -m unittest discover -s tests -v
 
-Resultado esperado: 160 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
+Resultado esperado: 164 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
 allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla.
 
 ## Estructura
@@ -55,6 +55,8 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
       test_escenarios_calidad.py      Escenarios E-02 (fallos), E-03 (desempeño) y E-05 (trazabilidad)
       test_migracion_esquema.py       Abrir una base vieja sin perder datos (columnas nuevas de ventas)
       test_medir_cobertura.py         TD-05: el medidor de cobertura no falla con líneas None (Python 3.13)
+      test_healthcheck_paquete.py     Healthcheck del paquete publicado (CD)
+    scripts/healthcheck_paquete.py  Revisa el .zip publicado en GitHub Releases (FPI-27)
     medir_calidad.py      Funciones largas, números mágicos y código muerto (FPI-12)
     medir_complejidad.py  Complejidad ciclomática V(G) por función (FPI-14)
     medir_cobertura.py    Cobertura de líneas con el módulo trace de Python; con --minimo 90 falla si baja (FPI-14/15)
@@ -62,6 +64,7 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
     calcular_metricas.py  Métricas reales de Git/GitHub para la retrospectiva (FPI-16)
     correr_regresion.py   Selecciona y corre las pruebas de regresión según los archivos que cambiaron (FPI-15)
     .github/workflows/ci.yml  Pipeline de CI de 3 jobs: linter, test (3.12 y 3.13) y analysis (FPI-15, FPI-25)
+    .github/workflows/deploy.yml  Entrega continua por GitHub Releases con healthcheck y rollback (FPI-27)
     docs/                 CI.md, informes de defecto BUG-01 y BUG-02, BITACORA_IA.md y HOJA_DE_RUTA_IS2.md
     evidencia_fpi12/      Código v1 (antes de refactorizar), resultados de pruebas y métricas antes/después
     evidencia_fpi14/      Caja negra antes y después del arreglo, complejidad ciclomática y cobertura
