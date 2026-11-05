@@ -41,8 +41,7 @@ class EstadoCuenta(str, Enum):
 
 class Producto:
     def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0):
-        if nombre is None or nombre.strip() == "":
-            raise ValueError("El nombre es obligatorio")
+        exigir_texto_obligatorio(nombre, "El nombre es obligatorio")
         if precio_compra < 0 or precio_venta < 0:
             raise ValueError("Los precios no pueden ser negativos")
         self.id_producto = id_producto
