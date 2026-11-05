@@ -25,7 +25,15 @@
 - Existencias sin `Lote` en el MVP (DT-01): `Existencia` se liga directamente al producto.
 - Los abonos son una tabla simple (DT-03), no el modelo Pago/AplicacionPago del modelo de 29 entidades.
 - `guardar_transaccion` recibe también las existencias para que descontar el inventario sea parte de la misma transacción.
-- Los repositorios de productos y clientes son clases concretas; solo `RepositorioDeVentas` es una abstracción.
+- ~~Los repositorios de productos y clientes son clases concretas; solo `RepositorioDeVentas` es una abstracción.~~
+  **Reemplazada (noviembre de 2026) por ADR-04, «hexagonal ligero», pedida por la Guía 4 de IS II (FPI-20).** El documento ADR-04 no está
+  en este repositorio; se siguió el texto de la tarea entregado por el desarrollador. *Cambio:* `tiendas_sm/puertos.py` (solo importa `abc`)
+  tiene `RepositorioDeVentas` (movido sin cambios, más `contar_ventas()`), `PuertoDeProductos` y `PuertoDeClientes`; los repositorios SQLite
+  heredan de ellos y `repositorios.py` reexporta `RepositorioDeVentas`. *Causa:* que el núcleo sea dueño de sus contratos y no dependa de
+  SQLite, vigilado por `tests/test_arquitectura.py`. *Impacto:* `puertos.py` (nuevo), `repositorios.py`, `aplicacion.py`
+  (`numero_de_ventas()` ya no tiene SQL). No cambió ninguna firma pública ni comportamiento; las pruebas anteriores pasan sin modificarse.
+  Se mantiene la idea de no crear una interfaz por cada clase: solo hay puertos para la persistencia.
+  *Orden:* la Guía 4 la ponía como primera tarea; aquí se hizo después de la venta de contado y de DT-09.
 - **Venta de contado (UC-02, noviembre de 2026).** Firma `registrar_venta_de_contado(lineas, recibido)`, sin el parámetro
   `forma_de_pago` que propone el DDS: hoy la única forma de pago aprobada es efectivo (transferencia y pago mixto son CR-02),
   y el DAD aclara que esos nombres son contratos de referencia. Si se aprueba CR-02, se agrega el parámetro.
