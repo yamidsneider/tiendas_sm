@@ -1,9 +1,10 @@
 from datetime import datetime
 from enum import Enum
 
-from tiendas_sm.validaciones import exigir_mayor_a_cero
+from tiendas_sm.validaciones import exigir_mayor_a_cero, exigir_texto_obligatorio
 
 PLAZO_POR_DEFECTO_DIAS = 30
+PLAZO_MINIMO_DIAS = 1   # UC-05 del DDS: el plazo de crédito es de al menos un día
 
 
 class StockInsuficiente(Exception):
@@ -40,8 +41,7 @@ class EstadoCuenta(str, Enum):
 
 class Producto:
     def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0):
-        if nombre is None or nombre.strip() == "":
-            raise ValueError("El nombre es obligatorio")
+        exigir_texto_obligatorio(nombre, "El nombre es obligatorio")
         if precio_compra < 0 or precio_venta < 0:
             raise ValueError("Los precios no pueden ser negativos")
         self.id_producto = id_producto
@@ -78,6 +78,11 @@ class Existencia:
 
 class Cliente:
     def __init__(self, id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias):
+        exigir_texto_obligatorio(nombres, "El nombre es obligatorio")
+        if limite_credito < 0:
+            raise ValueError("El límite de crédito no puede ser negativo")
+        if plazo_credito_dias < PLAZO_MINIMO_DIAS:
+            raise ValueError(f"El plazo de crédito debe ser de al menos {PLAZO_MINIMO_DIAS} día")
         self.id_cliente = id_cliente
         self.nombres = nombres
         self.credito_habilitado = credito_habilitado
