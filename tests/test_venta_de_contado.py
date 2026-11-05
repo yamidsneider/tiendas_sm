@@ -27,8 +27,8 @@ class PruebasDeVentaDeContado(unittest.TestCase):
     def vender(self, lineas, recibido):
         return self.app.ventas.registrar_venta_de_contado(lineas, recibido)
 
-    def contar(self, tabla):
-        return self.app.conexion.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()[0]
+    def contar_cuentas(self):
+        return self.app.conexion.execute("SELECT COUNT(*) FROM cuentas_por_cobrar").fetchone()[0]
 
     def test_ca06_total_e_inventario_de_venta_con_dos_productos(self):
         venta = self.vender([(self.a.id_producto, 2), (self.b.id_producto, 1)], 10000)
@@ -66,7 +66,7 @@ class PruebasDeVentaDeContado(unittest.TestCase):
     def test_no_crea_cuenta_por_cobrar_ni_pide_cliente(self):
         venta = self.vender([(self.a.id_producto, 1)], 2500)
         self.assertIsNone(venta.id_cliente)
-        self.assertEqual(self.contar("cuentas_por_cobrar"), 0)
+        self.assertEqual(self.contar_cuentas(), 0)
 
     def test_guarda_tipo_forma_de_pago_y_valor_recibido(self):
         venta = self.vender([(self.a.id_producto, 1)], 3000)
