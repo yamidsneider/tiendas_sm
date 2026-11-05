@@ -5,7 +5,7 @@
 | --- | --- | --- | --- | --- |
 | RF-01 | Registrar, consultar y actualizar productos | Must | HU-01, HU-02 | Programado |
 | RF-02 | Precio de compra y de venta de cada producto | Must | HU-01 | Programado |
-| RF-03 | Controlar la cantidad disponible | Must | HU-03 | Programado |
+| RF-03 | Controlar la cantidad disponible | Must | HU-03 | Programado (el stock mínimo se registra y valida, TD-04) |
 | RF-04 | Entradas y salidas de inventario | Must | HU-03 | **Parcial** (entradas y salidas por venta sí, TD-01; salida manual por confirmar, H-1) |
 | RF-05 | Registrar ventas | Must | HU-04, CU-01, CU-02 | Programado (a crédito y de contado en efectivo; transferencia y mixto son CR-02) |
 | RF-06 | Descontar del inventario lo vendido | Must | HU-04 | Programado |
