@@ -7,7 +7,6 @@ E-05  Trazabilidad: entradas − salidas = cantidad actual, y toda venta tiene s
 Solo biblioteca estándar. Las bases de E-02 se crean en una carpeta temporal que se borra al terminar.
 Datos ficticios.
 """
-import os
 import sqlite3
 import subprocess
 import sys
@@ -58,15 +57,17 @@ class PruebaE02ToleranciaAFallos(unittest.TestCase):
             app.conexion.close()
 
             for _ in range(INTENTOS_CON_FALLA):
-                proceso = subprocess.run(
+                # S603: se ejecuta el mismo Python con un script fijo de esta prueba; no entra nada del usuario.
+                proceso = subprocess.run(  # noqa: S603
                     [sys.executable, "-c", SCRIPT_QUE_MUERE_A_MITAD, ruta, str(cliente.id_cliente),
                      str(producto.id_producto)], cwd=RAIZ_DEL_PROYECTO, capture_output=True, text=True, timeout=60)
                 self.assertEqual(proceso.returncode, CODIGO_DE_SALIDA_SIMULADO, proceso.stderr)
 
             conexion = sqlite3.connect(ruta)
             try:
-                contar = lambda tabla: conexion.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()[0]
-                self.assertEqual((contar("ventas"), contar("detalles_venta"), contar("cuentas_por_cobrar")), (0, 0, 0))
+                filas = conexion.execute("SELECT (SELECT COUNT(*) FROM ventas), (SELECT COUNT(*) FROM detalles_venta), "
+                                         "(SELECT COUNT(*) FROM cuentas_por_cobrar)").fetchone()
+                self.assertEqual(tuple(filas), (0, 0, 0))
                 existencia = conexion.execute("SELECT cantidad_actual FROM existencias WHERE id_producto=?",
                                               (producto.id_producto,)).fetchone()[0]
                 self.assertEqual(existencia, EXISTENCIA_INICIAL)

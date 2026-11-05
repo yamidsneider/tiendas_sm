@@ -1,5 +1,7 @@
-# Integración Continua de TIENDAS S.M: se ejecuta en cada Pull Request hacia main y en cada push a main.
-# No usa secretos ni tokens: solo lee el código del repositorio.
+# TIENDAS S.M — Pipeline de Integración Continua con Quality Gates (FPI-25, ADR-09)
+# Se ejecuta en cada Pull Request hacia main y en cada push a main.
+# Tres jobs encadenados: linter -> test -> analysis. Si uno falla, el pipeline queda en rojo
+# y, con la regla de protección de main, el PR no se puede fusionar.
 name: CI
 
 on:
@@ -9,51 +11,103 @@ on:
     branches: [main]
 
 permissions:
-  contents: read            # el pipeline solo necesita leer el repositorio
+  contents: read            # el token automático solo puede leer el repositorio
+
+# TD-07: ruff y coverage con versión exacta (comprobadas en PyPI el 2026-11-05) y cada action fijada por el SHA real
+# de su etiqueta (comprobado con git ls-remote el 2026-11-05). Dependabot (.github/dependabot.yml) propone las nuevas.
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true  # si subes otro commit a la misma rama, cancela la ejecución anterior
+  cancel-in-progress: true
 
 jobs:
-  pruebas:
-    name: pruebas (Python ${{ matrix.python }})
+  # 1) LINTER — Quality Gate de análisis estático (bloqueante)
+  linter:
+    name: linter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Instalar ruff (versión fija)
+        run: python -m pip install ruff==0.16.9
+      - name: Errores reales, seguridad (reglas S) y complejidad ciclomática <= 10
+        run: >
+          ruff check --select E9,F63,F7,F82,F401,F841,S,C901
+          --config "lint.mccabe.max-complexity = 10"
+          tiendas_sm interfaz_tk tests iniciar_tienda.py
+
+  # 2) TEST — suite de regresión completa en dos versiones de Python (bloqueante)
+  test:
+    name: test (Python ${{ matrix.python }})
+    needs: linter
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
-      fail-fast: false           # si falla una versión, igual se ve el resultado de la otra
+      fail-fast: false
       matrix:
-        python: ["3.12", "3.13"] # TD-07: comprobar que todo funciona en las dos versiones (TD-05 era de 3.13)
+        python: ["3.12", "3.13"]
     steps:
-      # TD-07: las actions siguen fijadas por etiqueta (@v4, @v5). Fijarlas por SHA exige comprobar el SHA real
-      # en GitHub; no se hizo para no inventarlo. Dependabot (.github/dependabot.yml) avisa cuando haya versiones nuevas.
-      - name: Descargar el código
-        uses: actions/checkout@v4
-
-      - name: Preparar Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python }}
-
-      # 1) BUILD: el proyecto solo usa la biblioteca estándar, así que "construir" es comprobar que
-      #    todo el código compila y que la aplicación se puede armar.
-      - name: Build (compilar e importar)
+      - name: Build (compilar y armar la aplicación)
         run: |
           python -m compileall -q tiendas_sm interfaz_tk tests iniciar_tienda.py
           python -c "from tiendas_sm.aplicacion import Aplicacion; Aplicacion()"
-
-      # 2) LINT: solo reglas que detectan errores reales (sintaxis, nombres sin definir,
-      #    importaciones y variables sin usar). No se discute el estilo.
-      - name: Lint (ruff)
-        run: |
-          python -m pip install --upgrade pip ruff
-          ruff check --select E9,F63,F7,F82,F401,F841 tiendas_sm interfaz_tk tests iniciar_tienda.py
-
-      # 3) TEST: toda la suite (unitarias, caja negra, integración, flujo completo y regresión de defectos).
-      #    Las pruebas de la ventana (tests/test_interfaz_tk.py) se SALTAN aquí: el runner no tiene pantalla.
-      - name: Test (suite completa)
+      # Las 5 pruebas de la ventana (tests/test_interfaz_tk.py) se SALTAN aquí: el runner no tiene pantalla.
+      - name: Suite completa (unitarias, integración, aceptación y regresión)
         run: python -m unittest discover -s tests -v
 
-      # 4) COBERTURA: falla si baja del 90 % de líneas.
-      - name: Cobertura mínima del 90 %
+  # 3) ANALYSIS — Quality Gate de cobertura (bloqueante) y SonarCloud
+  analysis:
+    name: analysis
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0     # SonarCloud necesita el historial para calcular el «código nuevo»
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Quality Gate de cobertura (falla si baja de 90 %)
         run: python medir_cobertura.py --minimo 90
+      - name: Reporte de cobertura para SonarCloud (coverage.xml)
+        run: |
+          python -m pip install coverage==7.13.4
+          python -m coverage run --source=tiendas_sm -m unittest discover -s tests
+          python -m coverage xml -o coverage.xml
+      - name: SonarCloud — análisis y espera del Quality Gate
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7
+        env:
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.sources=tiendas_sm
+            -Dsonar.tests=tests
+            -Dsonar.python.version=3.12
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.qualitygate.wait=true
+      - name: Artefacto inmutable (solo en main) — código fuente etiquetado con el SHA del commit
+        if: ${{ github.event_name == 'push' }}
+        run: git archive --format=zip -o "tiendas_sm-${{ github.sha }}.zip" HEAD tiendas_sm
+      - name: Publicar el artefacto; nunca se reconstruye, siempre se descarga el mismo .zip
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: tiendas_sm-${{ github.sha }}
+          path: tiendas_sm-${{ github.sha }}.zip
+          retention-days: 90
+      - name: Aviso si SonarCloud aún no está configurado
+        if: ${{ env.SONAR_TOKEN == '' }}
+        run: echo "::warning::SONAR_TOKEN no configurado; el Quality Gate de SonarCloud no se ejecutó (los de ruff, pruebas y cobertura sí)."
