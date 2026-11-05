@@ -120,6 +120,13 @@ el workflow en GitHub (no hay `gh` ni push); `--prerelease=false` no aparece esc
 *Excepciones de ruff:* S603 en los `subprocess` del healthcheck y de sus pruebas, con la razón al lado (el mismo Python con un script
 fijo). Es una excepción por línea, no se desactivó la regla.
 
+**DevSecOps (tarea 12, FPI-28, ADR-12, noviembre de 2026).** `.github/workflows/ci-security.yml` (Semgrep y Trivy), `.trivyignore`
+(sin exclusiones) y `ruff.toml` con las excepciones justificadas. Versiones comprobadas: `semgrep==1.183.0` (PyPI), `trivy-action`
+v0.36.0 por SHA y Trivy v0.76.2 (publicada, Latest; lejos de v0.69.4–v0.69.6, CVE-2026-33634). *Hallazgo:* en la prueba del gate,
+Semgrep (`p/python`, `p/security-audit`) **no detecta** una consulta `sqlite3` armada con f-string; la detecta ruff S608.
+*Recomendación (no aprobada):* agregar una regla propia de Semgrep para ese patrón, o dejar constancia de que la barrera es ruff.
+*No verificado en local:* Trivy (requiere descargar su ejecutable).
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.

@@ -28,7 +28,8 @@ El job `analysis` sigue en 3.12.
 ## Lo que hay que hacer en GitHub (no se puede hacer desde el código)
 1. **Fusionar** el PR cuando los cuatro checks estén en verde y **guardar el enlace de la ejecución** (pestaña *Actions*): es la evidencia de la FPI-25.
 2. **Regla de `main`** (*Settings → Branches* o *Rules → Rulesets*): exigir Pull Request y los checks
-   **`linter`**, **`test (Python 3.12)`**, **`test (Python 3.13)`** y **`analysis`**; quitar el check viejo `pruebas`; no permitir saltarla.
+   **`linter`**, **`test (Python 3.12)`**, **`test (Python 3.13)`**, **`analysis`**, **`sast (Semgrep)`** y **`sca (Trivy)`**;
+   quitar el check viejo `pruebas`; no permitir saltarla.
    Los nombres aparecen en la lista después de la primera ejecución del pipeline.
 3. *Settings → Code security*: activar **Secret scanning** y **Push protection**.
 4. **SonarCloud** (cuando se quiera activar esa capa): crear la organización y el proyecto desde GitHub, desactivar *Automatic Analysis*,
@@ -51,6 +52,39 @@ python -m unittest discover -s tests -v
 python medir_cobertura.py --minimo 90
 ```
 `ruff` y `coverage` no vienen con Python: se instalan con `pip install ruff==0.16.9 coverage==7.13.4` (de preferencia en un entorno virtual).
+
+## Seguridad en el pipeline: Semgrep y Trivy (FPI-28, ADR-12)
+Archivo: `.github/workflows/ci-security.yml`. Corre en cada PR hacia `main`, en cada push a `main`, **cada lunes** (aparecen CVE nuevos
+aunque el código no cambie) y a mano (*Run workflow*). Dos checks nuevos que hay que exigir en la regla de `main`:
+
+| Check | Qué hace | Falla si… |
+| --- | --- | --- |
+| `sast (Semgrep)` | `semgrep==1.183.0` con `p/python` y `p/security-audit` sobre `tiendas_sm`, `interfaz_tk` e `iniciar_tienda.py` | hay un hallazgo de severidad ERROR |
+| `sca (Trivy)` | `trivy-action` v0.36.0 (fijada por SHA) con **Trivy v0.76.2**: vulnerabilidades de dependencias, secretos y configuración del repositorio | hay un hallazgo ALTO o CRÍTICO sin excepción justificada |
+
+- **CVE-2026-33634:** en marzo de 2026 se comprometieron etiquetas de `trivy-action` y Trivy v0.69.4 era malicioso. Por eso la action va
+  fijada por SHA y la versión de Trivy es explícita; **nunca v0.69.4, v0.69.5 ni v0.69.6**. Sin `version`, la action instalaría v0.70.0.
+- Los reportes (`reporte-semgrep-…` y `reporte-trivy-…`) quedan como **artefactos privados del repositorio** por 30 días; no se envían
+  a ningún sitio público (`--metrics off` en Semgrep).
+- **Resultado en local (2026-11-05):** Semgrep, 0 hallazgos en 13 archivos con 65 reglas (código 0), sin filtro de severidad también 0;
+  no marca el `ALTER TABLE` de `base_de_datos.py`. Trivy **no se ejecutó en local** (habría que descargar su ejecutable); su primera
+  ejecución será la del CI.
+- **Prueba del gate** (rama `prueba/gate-seguridad-no-fusionar`, que **no se fusiona**): se agregó a propósito
+  `conexion.execute(f"SELECT * FROM clientes WHERE nombres = '{nombre}'")`. **ruff S608 la detecta** (código 1: el job `linter` queda en
+  rojo). **Semgrep no la detecta** en ninguna severidad: sus reglas `p/python` y `p/security-audit` no reconocen ese patrón de `sqlite3`.
+  Para inyección SQL en este proyecto, la barrera real es ruff S608.
+
+### Regla de excepciones de seguridad (quién, por qué y cuándo se revisa)
+- **Dónde:** `ruff.toml` (por archivo), `# noqa: <regla>` en la línea, `# nosemgrep: <regla> — motivo` o `.trivyignore`.
+- **Quién:** cada excepción la aprueba el desarrollador responsable (Yamid Merchan) en el PR que la introduce; la IA no puede aprobarlas.
+- **Por qué:** al lado de cada excepción va el motivo concreto (por ejemplo, «ejecuta el mismo Python con un script fijo»).
+  Una excepción sin motivo no se acepta.
+- **Cuándo se revisa:** en cada cambio del archivo afectado y, como mínimo, al cerrar cada semestre; en `.trivyignore`, además, con
+  una fecha de revisión en la propia línea.
+- **Excepciones vigentes:** `ruff.toml`: `calcular_metricas.py` (S603) y `correr_regresion.py` (S603 y S607), herramientas del
+  desarrollador que no viajan en el `.zip` (hoy ruff solo marca S607 en `correr_regresion.py`; S603 queda por si se agrega otra
+  llamada). `# noqa: S603` en `tests/test_escenarios_calidad.py`, `tests/test_healthcheck_paquete.py` y `scripts/healthcheck_paquete.py`.
+  `.trivyignore`: ninguna.
 
 ## Entrega continua por GitHub Releases (FPI-27, ADR-11)
 TIENDAS S.M es de escritorio (ADR-03): «producción» es la versión marcada como **Latest** en GitHub Releases, que es la que descarga

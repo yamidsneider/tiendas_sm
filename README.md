@@ -65,6 +65,8 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
     correr_regresion.py   Selecciona y corre las pruebas de regresión según los archivos que cambiaron (FPI-15)
     .github/workflows/ci.yml  Pipeline de CI de 3 jobs: linter, test (3.12 y 3.13) y analysis (FPI-15, FPI-25)
     .github/workflows/deploy.yml  Entrega continua por GitHub Releases con healthcheck y rollback (FPI-27)
+    .github/workflows/ci-security.yml  Seguridad: Semgrep (SAST) y Trivy (SCA y secretos) (FPI-28)
+    ruff.toml · .trivyignore  Excepciones de seguridad justificadas
     docs/                 CI.md, informes de defecto BUG-01 y BUG-02, BITACORA_IA.md y HOJA_DE_RUTA_IS2.md
     evidencia_fpi12/      Código v1 (antes de refactorizar), resultados de pruebas y métricas antes/después
     evidencia_fpi14/      Caja negra antes y después del arreglo, complejidad ciclomática y cobertura

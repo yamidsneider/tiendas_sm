@@ -39,6 +39,7 @@ scripts/             healthcheck_paquete.py (revisa el .zip publicado; lo usa el
 docs/                CI.md, FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACORA_IA.md, HOJA_DE_RUTA_IS2.md, contexto/, referencia/
 .github/workflows/ci.yml   pipeline de 3 jobs (FPI-25): linter -> test (3.12 y 3.13) -> analysis (cobertura ≥ 90 %, SonarCloud)
 .github/workflows/deploy.yml   entrega continua por GitHub Releases con healthcheck y rollback (FPI-27)
+.github/workflows/ci-security.yml   Semgrep (SAST) y Trivy (SCA, secretos) (FPI-28) · ruff.toml y .trivyignore: excepciones justificadas
 medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresion.py · calcular_metricas.py · demo_en_vivo.py
 ```
 
@@ -70,7 +71,7 @@ ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-com
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 164 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07 y TD-14 corregidos; pipeline de la Guía 9 y entrega continua de la Guía 11.
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 164 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07 y TD-14 corregidos; pipeline de la Guía 9, entrega continua de la Guía 11 y seguridad de la Guía 12.
 - **Pendiente, en este orden de prioridad:**
   1. **Interfaz Tkinter:** punto de venta hecho; faltan medir E-01 con personas y las demás pantallas
      (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).
