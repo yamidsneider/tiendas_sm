@@ -89,7 +89,8 @@ class RepositorioDeVentas(ABC):
 
     @abstractmethod
     def guardar_transaccion(self, venta, cuenta, existencias):
-        """Guarda venta, detalles, cuenta y existencias: todo o nada (RNF-04)."""
+        """Guarda venta, detalles, cuenta y existencias: todo o nada (RNF-04).
+        En una venta de contado, 'cuenta' es None (no hay deuda)."""
 
     @abstractmethod
     def cuentas_del_cliente(self, id_cliente):
@@ -112,13 +113,17 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
         with self.conexion:
             self._insertar_venta(venta)
             self._insertar_detalles(venta)
-            self._insertar_cuenta(venta, cuenta)
+            if cuenta is not None:
+                self._insertar_cuenta(venta, cuenta)
             self._actualizar_existencias(existencias)
 
     def _insertar_venta(self, venta):
+        forma_pago = venta.forma_pago.value if venta.forma_pago else None
         cursor = self.conexion.execute(
-            "INSERT INTO ventas (id_cliente, fecha, estado, total) VALUES (?,?,?,?)",
-            (venta.id_cliente, venta.fecha.isoformat(), venta.estado.value, venta.total))
+            "INSERT INTO ventas (id_cliente, fecha, estado, total, tipo, forma_pago, valor_recibido) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (venta.id_cliente, venta.fecha.isoformat(), venta.estado.value, venta.total,
+             venta.tipo.value, forma_pago, venta.valor_recibido))
         venta.id_venta = cursor.lastrowid
 
     def _insertar_detalles(self, venta):

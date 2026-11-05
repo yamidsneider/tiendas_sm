@@ -14,6 +14,19 @@ class CreditoNoPermitido(Exception):
     pass
 
 
+class EfectivoInsuficiente(Exception):
+    pass
+
+
+class TipoVenta(str, Enum):
+    CONTADO = "CONTADO"
+    CREDITO = "CREDITO"
+
+
+class FormaDePago(str, Enum):
+    EFECTIVO = "EFECTIVO"   # transferencia y pago mixto son ampliación CR-02 (sin aprobar)
+
+
 class EstadoVenta(str, Enum):
     ABIERTA = "ABIERTA"
     CONFIRMADA = "CONFIRMADA"
@@ -90,9 +103,12 @@ class DetalleVenta:
 
 
 class Venta:
-    def __init__(self, id_cliente=None):
+    def __init__(self, id_cliente=None, tipo=TipoVenta.CREDITO):
         self.id_venta = None
         self.id_cliente = id_cliente
+        self.tipo = tipo
+        self.forma_pago = None       # solo se llena en las ventas de contado
+        self.valor_recibido = None
         self.fecha = datetime.now()
         self.estado = EstadoVenta.ABIERTA
         self.detalles = []
@@ -106,6 +122,16 @@ class Venta:
     def calcular_total(self):
         self.total = sum(detalle.subtotal() for detalle in self.detalles)
         return self.total
+
+    def registrar_pago_en_efectivo(self, recibido):
+        total = self.calcular_total()
+        if recibido < total:
+            raise EfectivoInsuficiente(f"El efectivo recibido ({recibido}) no alcanza para el total, que es {total}")
+        self.forma_pago = FormaDePago.EFECTIVO
+        self.valor_recibido = recibido
+
+    def calcular_cambio(self):
+        return self.valor_recibido - self.total
 
     def confirmar(self):
         if not self.detalles:

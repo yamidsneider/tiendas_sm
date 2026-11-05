@@ -2,7 +2,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 
 from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente,
-                                CreditoNoPermitido, PLAZO_POR_DEFECTO_DIAS)
+                                CreditoNoPermitido, TipoVenta, PLAZO_POR_DEFECTO_DIAS)
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
 
@@ -107,12 +107,21 @@ class ServicioDeVentas:
 
     def registrar_venta_a_credito(self, id_cliente, lineas):
         cliente = self._obtener_cliente(id_cliente)
-        venta, pedido = self._armar_venta(cliente, lineas)
+        venta, pedido = self._armar_venta(Venta(cliente.id_cliente, TipoVenta.CREDITO), lineas)
         self._validar_credito(cliente, venta.calcular_total())
         existencias = self._descontar_existencias(pedido)
         venta.confirmar()
         cuenta = self.control_credito.crear_cuenta(venta, cliente.plazo_credito_dias)
         self.repo_ventas.guardar_transaccion(venta, cuenta, existencias)
+        return venta
+
+    def registrar_venta_de_contado(self, lineas, recibido):
+        """UC-02: mismas validaciones de existencias que CU-01, pero sin cliente ni cuenta por cobrar."""
+        venta, pedido = self._armar_venta(Venta(tipo=TipoVenta.CONTADO), lineas)
+        venta.registrar_pago_en_efectivo(recibido)
+        existencias = self._descontar_existencias(pedido)
+        venta.confirmar()
+        self.repo_ventas.guardar_transaccion(venta, None, existencias)
         return venta
 
     def _obtener_cliente(self, id_cliente):
@@ -127,9 +136,8 @@ class ServicioDeVentas:
             raise ValueError("El producto no existe")
         return producto
 
-    def _armar_venta(self, cliente, lineas):
-        """Crea la venta y valida el stock. 'pedido' guarda, por producto, el total pedido."""
-        venta = Venta(cliente.id_cliente)
+    def _armar_venta(self, venta, lineas):
+        """Llena la venta y valida el stock. 'pedido' guarda, por producto, el total pedido."""
         pedido = {}
         for linea in map(LineaDeVenta._make, lineas):
             producto = self._obtener_producto(linea.id_producto)
