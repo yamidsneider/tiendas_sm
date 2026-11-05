@@ -24,7 +24,7 @@ Desde esta carpeta:
 
     python -m unittest discover -s tests -v
 
-Resultado esperado: 157 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
+Resultado esperado: 160 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
 allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla.
 
 ## Estructura
@@ -54,6 +54,7 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
       test_interfaz_tk.py             Pruebas de humo de la ventana (se saltan sin pantalla)
       test_escenarios_calidad.py      Escenarios E-02 (fallos), E-03 (desempeño) y E-05 (trazabilidad)
       test_migracion_esquema.py       Abrir una base vieja sin perder datos (columnas nuevas de ventas)
+      test_medir_cobertura.py         TD-05: el medidor de cobertura no falla con líneas None (Python 3.13)
     medir_calidad.py      Funciones largas, números mágicos y código muerto (FPI-12)
     medir_complejidad.py  Complejidad ciclomática V(G) por función (FPI-14)
     medir_cobertura.py    Cobertura de líneas con el módulo trace de Python; con --minimo 90 falla si baja (FPI-14/15)

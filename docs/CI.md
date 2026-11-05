@@ -9,6 +9,16 @@ Archivo del pipeline: `.github/workflows/ci.yml` (GitHub Actions). Se ejecuta en
 | Test | `python -m unittest discover -s tests -v` | falla cualquier prueba |
 | Cobertura | `python medir_cobertura.py --minimo 90` | la cobertura de líneas baja de 90 % |
 
+## Versiones de Python y dependencias del CI (TD-05 y TD-07)
+- El job corre con una **matriz de Python 3.12 y 3.13**: aparecen dos chequeos, `pruebas (Python 3.12)` y `pruebas (Python 3.13)`.
+  En las reglas de `main` hay que exigir **los dos** (el nombre del chequeo cambió; antes era solo `pruebas`).
+- `medir_cobertura.py` ignora los números de línea `None` que entrega `trace` en Python 3.13 (TD-05). En el equipo de desarrollo
+  solo hay Python 3.12: el arreglo se probó simulando esa entrada; la primera prueba real en 3.13 será la del CI.
+- **ruff sigue sin versión fija:** la tarea pedía fijarlo a la versión instalada, pero en el equipo de desarrollo no hay ruff instalado.
+  Cuando se instale, se fija con `pip install ruff==<versión>`.
+- **Las actions siguen por etiqueta** (`@v4`, `@v5`): fijarlas por SHA exige comprobar el SHA real en GitHub, y no se inventa.
+- `.github/dependabot.yml` revisa cada semana las actions y abre un PR si hay versiones nuevas.
+
 ## Pruebas de la interfaz en el CI
 - `interfaz_tk/` e `iniciar_tienda.py` se compilan y pasan por `ruff` igual que el resto.
 - `tests/test_interfaz_tk.py` necesita pantalla. El runner de GitHub (Linux) no la tiene, así que esas 5 pruebas
@@ -19,7 +29,7 @@ Archivo del pipeline: `.github/workflows/ci.yml` (GitHub Actions). Se ejecuta en
 ## Que el pipeline bloquee la fusión (hay que configurarlo en GitHub)
 *Settings → Rules → Rulesets* (o *Branches → Branch protection rules*) sobre `main`:
 1. Activar **Require status checks to pass before merging**.
-2. Elegir el chequeo **pruebas** (nombre del job). Aparece en la lista después de la primera ejecución del pipeline.
+2. Elegir los chequeos **pruebas (Python 3.12)** y **pruebas (Python 3.13)**. Aparece en la lista después de la primera ejecución del pipeline.
 3. Activar **Require branches to be up to date before merging**.
 Con eso, un Pull Request con pruebas en rojo no se puede fusionar.
 

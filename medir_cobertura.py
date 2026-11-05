@@ -10,8 +10,13 @@ from pathlib import Path
 PAQUETE = Path("tiendas_sm").resolve()
 
 
+def lineas_validas(numeros):
+    """TD-05: en Python 3.13 trace puede entregar None como número de línea; se descartan junto con la 0."""
+    return {numero for numero in numeros if numero}
+
+
 def lineas_ejecutables(ruta):
-    return set(trace._find_executable_linenos(str(ruta))) - {0}
+    return lineas_validas(trace._find_executable_linenos(str(ruta)))
 
 
 def main(minimo=None):
@@ -26,7 +31,7 @@ def main(minimo=None):
     print(f"Pruebas ejecutadas: {resultado.testsRun} | fallos: {len(resultado.failures)} | errores: {len(resultado.errors)}")
     contadas = {}
     for (archivo, linea), veces in seguimiento.results().counts.items():
-        contadas.setdefault(Path(archivo).resolve(), set()).add(linea)
+        contadas.setdefault(Path(archivo).resolve(), set()).update(lineas_validas([linea]))
     total = cubiertas = 0
     print(f"{'archivo':24}{'ejecutables':>12}{'cubiertas':>11}{'%':>7}  líneas sin cubrir")
     for ruta in sorted(PAQUETE.glob("*.py")):
