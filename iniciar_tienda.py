@@ -31,11 +31,21 @@ def abrir_aplicacion(ruta, con_datos_de_ejemplo):
     return app, con_datos_de_ejemplo and cargar_datos_de_ejemplo(app)
 
 
+def usar_escala_de_windows():
+    """En Windows con escala de pantalla (125 %, 150 %…) evita que la ventana se vea borrosa."""
+    try:
+        import ctypes
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except (ImportError, AttributeError, OSError):
+        pass                                                  # otro sistema operativo: no hace falta
+
+
 def main(argumentos):
     import tkinter as tk                                      # se importa aquí para que las pruebas no lo necesiten
     from interfaz_tk.ventana_punto_de_venta import VentanaPuntoDeVenta
     from tiendas_sm.presentador import PresentadorPuntoDeVenta
 
+    usar_escala_de_windows()
     ruta = ruta_de_datos()
     app, cargo_ejemplo = abrir_aplicacion(ruta, OPCION_DATOS_DE_EJEMPLO in argumentos)
     print(f"Base de datos: {ruta}")

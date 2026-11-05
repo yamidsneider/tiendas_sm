@@ -4,6 +4,7 @@ Solo dibuja y reenvía: cada botón o tecla llama a un método del presentador y
 Atajos: F2 buscar, Enter agregar, F9 cobrar de contado, F4 vender a crédito, Supr quitar, Esc cerrar diálogo.
 """
 import tkinter as tk
+from tkinter import font as tkfont
 from tkinter import ttk
 
 from tiendas_sm.presentador import formato_pesos
@@ -14,6 +15,8 @@ FUENTE_TOTAL = ("Segoe UI", 28, "bold")
 FUENTE_NORMAL = ("Segoe UI", 11)
 COLOR_ERROR, COLOR_OK = "#b00020", "#1b5e20"
 CANTIDAD_INICIAL = "1"
+ESPACIO_EXTRA_DE_FILA = 8                       # píxeles sobre el alto de la letra, para que no se corten la g ni la p
+ANCHO_COLUMNA_PRODUCTO, ANCHO_COLUMNA = 220, 95
 
 
 class VentanaPuntoDeVenta:
@@ -31,10 +34,12 @@ class VentanaPuntoDeVenta:
 
     # ------------------------------------------------------------------ construcción
     def _construir(self):
+        alto_de_letra = tkfont.Font(font=FUENTE_NORMAL).metrics("linespace")
+        ttk.Style(self.raiz).configure("Treeview", font=FUENTE_NORMAL, rowheight=alto_de_letra + ESPACIO_EXTRA_DE_FILA)
         izquierda = ttk.Frame(self.raiz, padding=12)
         derecha = ttk.Frame(self.raiz, padding=12)
+        derecha.pack(side="right", fill="y")             # primero el panel de cobro: así nunca queda aplastado
         izquierda.pack(side="left", fill="both", expand=True)
-        derecha.pack(side="right", fill="y")
         self._construir_busqueda(izquierda)
         self._construir_carrito(izquierda)
         self._construir_panel_de_cobro(derecha)
@@ -44,21 +49,21 @@ class VentanaPuntoDeVenta:
         fila.pack(fill="x")
         ttk.Label(fila, text="Buscar producto (F2):", font=FUENTE_NORMAL).pack(side="left")
         self.texto_busqueda = tk.StringVar()
-        self.campo_busqueda = ttk.Entry(fila, textvariable=self.texto_busqueda, width=34, font=FUENTE_NORMAL)
+        self.campo_busqueda = ttk.Entry(fila, textvariable=self.texto_busqueda, width=18, font=FUENTE_NORMAL)
         self.campo_busqueda.pack(side="left", padx=6)
         ttk.Label(fila, text="Cantidad:", font=FUENTE_NORMAL).pack(side="left")
         self.cantidad = tk.StringVar(value=CANTIDAD_INICIAL)
         self.campo_cantidad = ttk.Entry(fila, textvariable=self.cantidad, width=5, font=FUENTE_NORMAL)
         self.campo_cantidad.pack(side="left", padx=6)
-        ttk.Button(fila, text="Agregar (Enter)", command=self.agregar_seleccionado).pack(side="left")
-        self.resultados = self._tabla(padre, "Resultados", ("Producto", "Precio", "Disponibles"), alto=5)
+        ttk.Button(fila, text="Agregar", command=self.agregar_seleccionado).pack(side="left")
+        self.mensaje = ttk.Label(padre, text="", font=FUENTE_NORMAL)       # arriba, para que siempre se vea
+        self.mensaje.pack(fill="x", pady=(8, 0))
+        self.resultados = self._tabla(padre, "Resultados", ("Producto", "Precio", "Disponibles"), alto=4)
         self.texto_busqueda.trace_add("write", lambda *_: self.actualizar_resultados())
 
     def _construir_carrito(self, padre):
         self.carrito = self._tabla(padre, "Venta en curso", ("Producto", "Precio", "Cantidad", "Importe", "Disponibles"),
-                                   alto=10)
-        self.mensaje = ttk.Label(padre, text="", font=FUENTE_NORMAL)
-        self.mensaje.pack(fill="x", pady=(8, 0))
+                                   alto=7)
 
     def _tabla(self, padre, titulo, columnas, alto):
         marco = ttk.LabelFrame(padre, text=titulo, padding=6)
@@ -66,7 +71,9 @@ class VentanaPuntoDeVenta:
         tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=alto, selectmode="browse")
         for columna in columnas:
             tabla.heading(columna, text=columna)
-            tabla.column(columna, anchor="w" if columna == "Producto" else "e", width=260 if columna == "Producto" else 110)
+            es_producto = columna == "Producto"
+            tabla.column(columna, anchor="w" if es_producto else "e",
+                         width=ANCHO_COLUMNA_PRODUCTO if es_producto else ANCHO_COLUMNA)
         tabla.pack(fill="both", expand=True)
         return tabla
 
@@ -102,7 +109,7 @@ class VentanaPuntoDeVenta:
         self.resultados.delete(*self.resultados.get_children())
         for fila in self.pv.buscar(self.texto_busqueda.get()):
             self.resultados.insert("", "end", iid=str(fila.id_producto),
-                                   values=(fila.nombre, formato_pesos(fila.precio), f"Disponibles: {fila.disponibles}"))
+                                   values=(fila.nombre, formato_pesos(fila.precio), fila.disponibles))
 
     def agregar_seleccionado(self):
         """Agrega el resultado elegido o, si no hay uno elegido, el primero de la lista."""
@@ -133,7 +140,7 @@ class VentanaPuntoDeVenta:
         for linea in self.pv.lineas():
             self.carrito.insert("", "end", iid=str(linea.id_producto),
                                 values=(linea.nombre, formato_pesos(linea.precio), linea.cantidad,
-                                        formato_pesos(linea.importe), f"Disponibles: {linea.disponibles}"))
+                                        formato_pesos(linea.importe), linea.disponibles))
         self.etiqueta_total.config(text=formato_pesos(self.pv.total()))
         self.etiqueta_resumen.config(text=self.pv.resumen())
         estado = "normal" if self.pv.carrito else "disabled"     # DAD §10.2: no se cobra una venta vacía
