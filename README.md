@@ -61,7 +61,7 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
     demo_en_vivo.py       Demostración narrada del flujo crítico (FPI-16): python demo_en_vivo.py
     calcular_metricas.py  Métricas reales de Git/GitHub para la retrospectiva (FPI-16)
     correr_regresion.py   Selecciona y corre las pruebas de regresión según los archivos que cambiaron (FPI-15)
-    .github/workflows/ci.yml  Pipeline de CI (Build, Lint, Test y cobertura) (FPI-15)
+    .github/workflows/ci.yml  Pipeline de CI de 3 jobs: linter, test (3.12 y 3.13) y analysis (FPI-15, FPI-25)
     docs/                 CI.md, informes de defecto BUG-01 y BUG-02, BITACORA_IA.md y HOJA_DE_RUTA_IS2.md
     evidencia_fpi12/      Código v1 (antes de refactorizar), resultados de pruebas y métricas antes/después
     evidencia_fpi14/      Caja negra antes y después del arreglo, complejidad ciclomática y cobertura

@@ -101,8 +101,16 @@ corresponda en las fichas.
 
 **TD-05 y TD-07 (noviembre de 2026).** *TD-05 (pagada):* `medir_cobertura.py` descarta los números de línea `None` que entrega
 `trace` en Python 3.13 (`lineas_validas`); prueba en `test_medir_cobertura.py` que simula esa entrada. En 3.12 el resultado no cambió
-(606 de 617 líneas). *TD-07 (parcial):* matriz 3.12 y 3.13 en el CI y Dependabot semanal para las actions. **Falta:** fijar `ruff` a una
-versión exacta (no hay ruff instalado en el equipo de desarrollo) y fijar las actions por SHA (requiere comprobarlo en GitHub).
+(606 de 617 líneas). *TD-07 (pagada con la FPI-25):* matriz 3.12 y 3.13, Dependabot semanal, `ruff==0.16.9` y `coverage==7.13.4`
+comprobadas en PyPI y actions fijadas por el SHA real de su etiqueta (`git ls-remote`, con autorización del desarrollador).
+
+**Pipeline de la Guía 9 (FPI-25, ADR-09, noviembre de 2026).** `ci.yml` pasa de un job a tres encadenados: `linter` (ruff con
+seguridad `S` y complejidad `C901` ≤ 10), `test` en 3.12 y 3.13, y `analysis` (cobertura ≥ 90 %, SonarCloud si hay `SONAR_TOKEN`,
+artefacto `.zip` en `main`). Se partió de `salidas/ci_propuesto.yml`, agregando `interfaz_tk` e `iniciar_tienda.py` al lint y al build.
+*Hallazgos al ejecutar ruff por primera vez:* un `import os` sin usar en `test_escenarios_calidad.py` (el CI anterior habría quedado
+en rojo) y dos consultas SQL con f-string en pruebas (S608), corregidas con consultas fijas; el `subprocess` de E-02 (S603) queda con
+una excepción justificada. *No verificado en local:* Python 3.13 y SonarCloud (sin token). Los checks de `main` cambian a `linter`,
+`test (Python 3.12)`, `test (Python 3.13)` y `analysis` (ver `docs/CI.md`).
 
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
