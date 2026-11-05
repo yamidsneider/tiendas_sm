@@ -154,7 +154,8 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
 
     def _a_cuenta(self, fila):
         cuenta = CuentaPorCobrar(fila["id_cuenta"], fila["id_venta"], fila["id_cliente"],
-                                 fila["monto_credito_original"], fila["fecha_apertura"], fila["fecha_vencimiento"])
+                                 fila["monto_credito_original"], datetime.fromisoformat(fila["fecha_apertura"]),
+                                 datetime.fromisoformat(fila["fecha_vencimiento"]))  # TD-14: se guardan como texto ISO
         cuenta.estado = EstadoCuenta(fila["estado"])
         abonos = self.conexion.execute(
             "SELECT valor FROM abonos WHERE id_cuenta=? ORDER BY id_abono", (cuenta.id_cuenta,)).fetchall()
