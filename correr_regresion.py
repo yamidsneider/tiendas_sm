@@ -20,6 +20,7 @@ PRUEBAS = {
     "comportamiento": "tests.test_comportamiento",
     "caja_negra": "tests.test_caja_negra",
     "defectos": "tests.test_defectos_corregidos",
+    "contado": "tests.test_venta_de_contado",
 }
 TODAS = list(PRUEBAS.values())
 
@@ -27,10 +28,10 @@ TODAS = list(PRUEBAS.values())
 MAPA = {
     "tiendas_sm/validaciones.py": TODAS,                      # lo usan casi todas las clases del dominio
     "tiendas_sm/dominio.py": TODAS,                           # base de todo el sistema
-    "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos")],
-    "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos")],
+    "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado")],
+    "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
-    "tiendas_sm/aplicacion.py": [PRUEBAS[k] for k in ("comportamiento", "caja_negra", "defectos")],
+    "tiendas_sm/aplicacion.py": [PRUEBAS[k] for k in ("comportamiento", "caja_negra", "defectos", "contado")],
 }
 DOCUMENTACION = ("README.md", "docs/", ".github/", "evidencia_")
 
