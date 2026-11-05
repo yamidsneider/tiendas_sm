@@ -7,10 +7,11 @@ BUG-01  Ids que no existen provocan AttributeError en lugar de un mensaje claro 
 BUG-02  El vencimiento del crédito ignora el plazo del cliente (siempre 30 días)  (antes DT-02)
 DT-09   El cliente se guarda con nombre vacío, límite negativo o plazo menor a 1 día (UC-05 del DDS)
 TD-01   Las ventas descuentan existencias sin registrar su movimiento de inventario (RF-04, RN-07, RNF-10, E-05)
+TD-14   Las fechas de una cuenta leída desde SQLite llegan como texto y no como datetime
 """
 import sqlite3
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 from tiendas_sm.aplicacion import Aplicacion
@@ -186,6 +187,39 @@ class PruebasTd01MovimientoDeVenta(unittest.TestCase):
                     "COALESCE(SUM(CASE WHEN tipo='SALIDA_VENTA' THEN cantidad END), 0) "
                     "FROM movimientos_inventario WHERE id_producto=?", (producto.id_producto,)).fetchone()
                 self.assertEqual(entradas - salidas, self.app.cantidad_en_inventario(producto.id_producto))
+
+
+class PruebasTd14FechasDeLaCuenta(unittest.TestCase):
+    """Una cuenta leída de la base debe traer sus fechas como datetime, iguales a las guardadas."""
+
+    PLAZO_DIAS = 15
+
+    def setUp(self):
+        self.app = Aplicacion()
+        producto = self.app.productos.registrar_producto("Producto A", 1500, 2500, 10)
+        cliente = self.app.clientes.registrar_cliente("Cliente de prueba", True, 100000,
+                                                      plazo_credito_dias=self.PLAZO_DIAS)
+        self.app.ventas.registrar_venta_a_credito(cliente.id_cliente, [(producto.id_producto, 2)])
+        self.id_cliente = cliente.id_cliente
+
+    def fechas_guardadas(self, id_cuenta):
+        fila = self.app.conexion.execute(
+            "SELECT fecha_apertura, fecha_vencimiento FROM cuentas_por_cobrar WHERE id_cuenta=?", (id_cuenta,)).fetchone()
+        return datetime.fromisoformat(fila[0]), datetime.fromisoformat(fila[1])
+
+    def revisar(self, cuenta):
+        self.assertIsInstance(cuenta.fecha_apertura, datetime)
+        self.assertIsInstance(cuenta.fecha_vencimiento, datetime)
+        self.assertEqual((cuenta.fecha_apertura, cuenta.fecha_vencimiento), self.fechas_guardadas(cuenta.id_cuenta))
+        self.assertEqual(cuenta.fecha_vencimiento - cuenta.fecha_apertura, timedelta(days=self.PLAZO_DIAS))
+
+    def test_las_fechas_leidas_con_cuentas_del_cliente_son_datetime(self):
+        cuenta, = self.app.credito.cuentas_del_cliente(self.id_cliente)
+        self.revisar(cuenta)
+
+    def test_las_fechas_leidas_con_obtener_cuenta_son_datetime(self):
+        cuenta, = self.app.credito.cuentas_del_cliente(self.id_cliente)
+        self.revisar(self.app.repo_ventas.obtener_cuenta(cuenta.id_cuenta))
 
 
 if __name__ == "__main__":
