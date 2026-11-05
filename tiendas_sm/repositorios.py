@@ -177,3 +177,8 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                                   (cuenta.id_cuenta, valor, _ahora()))
             self.conexion.execute("UPDATE cuentas_por_cobrar SET estado=? WHERE id_cuenta=?",
                                   (cuenta.estado.value, cuenta.id_cuenta))
+
+
+def buscar_cliente_inseguro(conexion, nombre):
+    """PRUEBA DEL GATE (FPI-28): consulta armada con f-string a propósito. Esta rama NO se fusiona."""
+    return conexion.execute(f"SELECT * FROM clientes WHERE nombres = '{nombre}'").fetchall()
