@@ -53,7 +53,7 @@ secretos en YAML, etc.) ilustran riesgos reales, pero no fueron salidas obtenida
   mensajes de tareas preparados para las fichas FPI-17 a FPI-24 (tareas 1 a 8).
 - **Trabajo hecho con la IA:** venta de contado (UC-02), DT-09, puertos del núcleo (ADR-04, Guía 4), TD-01, TD-04, TD-14, listar clientes,
   interfaz Tkinter del punto de venta (tarea 8), escenarios E-02/E-03/E-05, migración de `ventas`, TD-05 y TD-07 (parcial), y la evidencia
-  TDD de la FPI-24. En total, 56 commits después del commit inicial (contando los 14 merges), en 14 ramas fusionadas en `main` con *merge commit*.
+  TDD de la FPI-24. En total, 56 commits después del commit inicial (contando los 13 merges), en 13 ramas fusionadas en `main` con *merge commit*.
 - **Forma de trabajo:** la IA proponía un plan, el desarrollador lo aprobaba o lo ajustaba, y después se escribía primero la prueba que
   fallaba. Al final de esta etapa el desarrollador pidió que la IA continuara sin aprobar cada paso (interfaz, tareas 5, 6 y 7).
 - **Tamaño actual:** 901 líneas en `tiendas_sm/`, 343 en la interfaz (`interfaz_tk/` e `iniciar_tienda.py`) y 1.658 en `tests/`.
