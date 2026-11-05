@@ -1,0 +1,18 @@
+=== PASO 1: BUILD ===
+compileall: OK
+Aplicacion(): OK
+
+=== PASO 2: LINT ===
+(ruff no está instalado en este entorno sin internet; comprobación equivalente con ast:)
+sin hallazgos (sintaxis, importaciones y variables sin usar)
+
+=== PASO 3: TEST ===
+----------------------------------------------------------------------
+Ran 77 tests in 0.074s
+
+OK
+
+=== PASO 4: COBERTURA (mínimo 90 %) ===
+validaciones.py                    3          3   100%  
+
+TOTAL: 377/381 líneas = 99.0% de cobertura de líneas

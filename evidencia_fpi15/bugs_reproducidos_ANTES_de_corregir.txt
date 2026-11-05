@@ -1,0 +1,87 @@
+EEEEEEFF.
+======================================================================
+ERROR: test_abonar_a_una_cuenta_inexistente_da_un_mensaje_claro (tests.test_defectos_corregidos.PruebasBug01IdsInexistentes.test_abonar_a_una_cuenta_inexistente_da_un_mensaje_claro)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 33, in test_abonar_a_una_cuenta_inexistente_da_un_mensaje_claro
+    self.app.credito.registrar_abono(999, 100)
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 86, in registrar_abono
+    cuenta.aplicar_pago(monto)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'aplicar_pago'
+
+======================================================================
+ERROR: test_actualizar_el_precio_de_un_producto_inexistente_da_un_mensaje_claro (tests.test_defectos_corregidos.PruebasBug01IdsInexistentes.test_actualizar_el_precio_de_un_producto_inexistente_da_un_mensaje_claro)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 28, in test_actualizar_el_precio_de_un_producto_inexistente_da_un_mensaje_claro
+    self.app.productos.actualizar_precio(999, 100)
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 29, in actualizar_precio
+    producto.actualizar_precio(nuevo_precio)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'actualizar_precio'
+
+======================================================================
+ERROR: test_el_error_no_deja_movimientos_a_medias (tests.test_defectos_corregidos.PruebasBug01IdsInexistentes.test_el_error_no_deja_movimientos_a_medias)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 38, in test_el_error_no_deja_movimientos_a_medias
+    self.app.productos.registrar_entrada(999, 5)
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 35, in registrar_entrada
+    existencia.aumentar(cantidad)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'aumentar'
+
+======================================================================
+ERROR: test_entrada_a_un_producto_inexistente_da_un_mensaje_claro (tests.test_defectos_corregidos.PruebasBug01IdsInexistentes.test_entrada_a_un_producto_inexistente_da_un_mensaje_claro)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 23, in test_entrada_a_un_producto_inexistente_da_un_mensaje_claro
+    self.app.productos.registrar_entrada(999, 5)
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 35, in registrar_entrada
+    existencia.aumentar(cantidad)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'aumentar'
+
+======================================================================
+ERROR: test_unitaria_sin_base_de_datos_cuenta_inexistente (tests.test_defectos_corregidos.PruebasBug01IdsInexistentes.test_unitaria_sin_base_de_datos_cuenta_inexistente)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 53, in test_unitaria_sin_base_de_datos_cuenta_inexistente
+    ControlCredito(repo).registrar_abono(1, 100)
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 86, in registrar_abono
+    cuenta.aplicar_pago(monto)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'aplicar_pago'
+
+======================================================================
+ERROR: test_unitaria_sin_base_de_datos_existencia_inexistente (tests.test_defectos_corregidos.PruebasBug01IdsInexistentes.test_unitaria_sin_base_de_datos_existencia_inexistente)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 46, in test_unitaria_sin_base_de_datos_existencia_inexistente
+    ServicioDeProductos(repo).registrar_entrada(1, 5)
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 35, in registrar_entrada
+    existencia.aumentar(cantidad)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'aumentar'
+
+======================================================================
+FAIL: test_cliente_con_plazo_de_15_dias (tests.test_defectos_corregidos.PruebasBug02PlazoDelCredito.test_cliente_con_plazo_de_15_dias)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 75, in test_cliente_con_plazo_de_15_dias
+    self.assertEqual(self.dias_de_plazo(15), 15)
+AssertionError: 30 != 15
+
+======================================================================
+FAIL: test_cliente_con_plazo_de_45_dias (tests.test_defectos_corregidos.PruebasBug02PlazoDelCredito.test_cliente_con_plazo_de_45_dias)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_defectos_corregidos.py", line 78, in test_cliente_con_plazo_de_45_dias
+    self.assertEqual(self.dias_de_plazo(45), 45)
+AssertionError: 30 != 45
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.008s
+
+FAILED (failures=2, errors=6)

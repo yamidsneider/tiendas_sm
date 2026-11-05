@@ -1,0 +1,10 @@
+Pruebas ejecutadas: 68 | fallos: 0 | errores: 0
+archivo                  ejecutables  cubiertas      %  líneas sin cubrir
+aplicacion.py                     20         20   100%  
+base_de_datos.py                   8          8   100%  
+dominio.py                       105        104    99%  [116]
+repositorios.py                  129        125    97%  [53, 96, 100, 104]
+servicios.py                     110        110   100%  
+validaciones.py                    3          3   100%  
+
+TOTAL: 370/375 líneas = 98.7% de cobertura de líneas

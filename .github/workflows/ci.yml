@@ -1,0 +1,52 @@
+# Integración Continua de TIENDAS S.M: se ejecuta en cada Pull Request hacia main y en cada push a main.
+# No usa secretos ni tokens: solo lee el código del repositorio.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read            # el pipeline solo necesita leer el repositorio
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true  # si subes otro commit a la misma rama, cancela la ejecución anterior
+
+jobs:
+  pruebas:
+    name: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 1) BUILD: el proyecto solo usa la biblioteca estándar, así que "construir" es comprobar que
+      #    todo el código compila y que la aplicación se puede armar.
+      - name: Build (compilar e importar)
+        run: |
+          python -m compileall -q tiendas_sm tests
+          python -c "from tiendas_sm.aplicacion import Aplicacion; Aplicacion()"
+
+      # 2) LINT: solo reglas que detectan errores reales (sintaxis, nombres sin definir,
+      #    importaciones y variables sin usar). No se discute el estilo.
+      - name: Lint (ruff)
+        run: |
+          python -m pip install --upgrade pip ruff
+          ruff check --select E9,F63,F7,F82,F401,F841 tiendas_sm tests
+
+      # 3) TEST: toda la suite (unitarias, caja negra, integración, flujo completo y regresión de defectos).
+      - name: Test (suite completa)
+        run: python -m unittest discover -s tests -v
+
+      # 4) COBERTURA: falla si baja del 90 % de líneas.
+      - name: Cobertura mínima del 90 %
+        run: python medir_cobertura.py --minimo 90

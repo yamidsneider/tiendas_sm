@@ -1,0 +1,70 @@
+..E..E......................................F.....FF..F......................
+======================================================================
+ERROR: test_cn03_abono_mayor_al_saldo_muestra_el_saldo (test_caja_negra.PruebasDeCajaNegra.test_cn03_abono_mayor_al_saldo_muestra_el_saldo)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_caja_negra.py", line 51, in test_cn03_abono_mayor_al_saldo_muestra_el_saldo
+    self.vender([(a.id_producto, 10)])                      # deuda de 50.000
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/g15/proyecto/tests/test_caja_negra.py", line 32, in vender
+    return self.app.ventas.registrar_venta_a_credito(self.cliente.id_cliente, lineas)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 111, in registrar_venta_a_credito
+    self._validar_credito(cliente, venta.calcular_total())
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 146, in _validar_credito
+    raise CreditoNoPermitido(f"El cliente no puede comprar a crédito por {total}")
+tiendas_sm.dominio.CreditoNoPermitido: El cliente no puede comprar a crédito por 50000
+
+======================================================================
+ERROR: test_cn06_valores_limite_del_credito (test_caja_negra.PruebasDeCajaNegra.test_cn06_valores_limite_del_credito)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_caja_negra.py", line 76, in test_cn06_valores_limite_del_credito
+    self.vender([(a.id_producto, 10)])                      # exactamente 50.000 = límite: se permite
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/g15/proyecto/tests/test_caja_negra.py", line 32, in vender
+    return self.app.ventas.registrar_venta_a_credito(self.cliente.id_cliente, lineas)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 111, in registrar_venta_a_credito
+    self._validar_credito(cliente, venta.calcular_total())
+  File "/home/claude/g15/proyecto/tiendas_sm/servicios.py", line 146, in _validar_credito
+    raise CreditoNoPermitido(f"El cliente no puede comprar a crédito por {total}")
+tiendas_sm.dominio.CreditoNoPermitido: El cliente no puede comprar a crédito por 50000
+
+======================================================================
+FAIL: test_cliente_sin_deudas_tiene_saldo_cero (test_integracion_incremental.PruebasNivel3.test_cliente_sin_deudas_tiene_saldo_cero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_integracion_incremental.py", line 77, in test_cliente_sin_deudas_tiene_saldo_cero
+    self.assertTrue(self.control_credito.puede_comprar_a_credito(cliente, 50000))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_el_limite_exacto_es_valido_y_un_peso_mas_no (test_unitarias_dobles.PruebasDeCliente.test_el_limite_exacto_es_valido_y_un_peso_mas_no)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_unitarias_dobles.py", line 106, in test_el_limite_exacto_es_valido_y_un_peso_mas_no
+    self.assertTrue(cliente().puede_endeudarse(30000, saldo_pendiente=20000))   # 20.000 + 30.000 = 50.000
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_puede_endeudarse_dentro_del_limite (test_unitarias_dobles.PruebasDeCliente.test_puede_endeudarse_dentro_del_limite)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_unitarias_dobles.py", line 103, in test_puede_endeudarse_dentro_del_limite
+    self.assertTrue(cliente().puede_endeudarse(30000, saldo_pendiente=20000))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_la_deuda_previa_consume_el_limite (test_unitarias_dobles.PruebasDeControlCreditoConStub.test_la_deuda_previa_consume_el_limite)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/claude/g15/proyecto/tests/test_unitarias_dobles.py", line 152, in test_la_deuda_previa_consume_el_limite
+    self.assertTrue(control.puede_comprar_a_credito(cliente(), 30000))
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 77 tests in 0.056s
+
+FAILED (failures=4, errors=2)

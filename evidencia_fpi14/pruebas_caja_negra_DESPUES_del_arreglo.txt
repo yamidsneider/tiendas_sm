@@ -1,0 +1,13 @@
+test_cn01_total_e_inventario_de_la_venta_de_dos_productos (tests.test_caja_negra.PruebasDeCajaNegra.test_cn01_total_e_inventario_de_la_venta_de_dos_productos) ... ok
+test_cn02_stock_insuficiente_informa_cuantas_unidades_hay (tests.test_caja_negra.PruebasDeCajaNegra.test_cn02_stock_insuficiente_informa_cuantas_unidades_hay) ... ok
+test_cn03_abono_mayor_al_saldo_muestra_el_saldo (tests.test_caja_negra.PruebasDeCajaNegra.test_cn03_abono_mayor_al_saldo_muestra_el_saldo) ... ok
+test_cn04_entrada_de_cantidad_cero_o_negativa (tests.test_caja_negra.PruebasDeCajaNegra.test_cn04_entrada_de_cantidad_cero_o_negativa) ... ok
+test_cn05_producto_sin_nombre_o_con_precio_negativo (tests.test_caja_negra.PruebasDeCajaNegra.test_cn05_producto_sin_nombre_o_con_precio_negativo) ... ok
+test_cn06_valores_limite_del_credito (tests.test_caja_negra.PruebasDeCajaNegra.test_cn06_valores_limite_del_credito) ... ok
+test_cn07_valores_limite_del_stock (tests.test_caja_negra.PruebasDeCajaNegra.test_cn07_valores_limite_del_stock) ... ok
+test_cn08_las_ventas_anteriores_no_cambian_al_subir_el_precio (tests.test_caja_negra.PruebasDeCajaNegra.test_cn08_las_ventas_anteriores_no_cambian_al_subir_el_precio) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.006s
+
+OK

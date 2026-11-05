@@ -1,0 +1,6 @@
+ V(G)  archivo             función
+    5  dominio.py          __init__
+    3  servicios.py        _armar_venta
+    3  dominio.py          aplicar_pago
+
+funciones: 76 | promedio V(G): 1.39 | máximo: 5
