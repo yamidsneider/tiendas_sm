@@ -80,4 +80,6 @@ ampliar el sistema (CR-02).
 - Requisitos, historias, criterios Gherkin y prioridades: `docs/contexto/REQUISITOS.md`
 - Decisiones por fase (FPI-01 a FPI-16): `docs/contexto/DECISIONES.md`
 - Qué falta y cómo empezar: `docs/contexto/ESTADO_Y_PENDIENTES.md`
+- Documentos formales (texto convertido de los Word): `docs/contexto/ERS_TIENDAS_SM.md`, `DAD_TIENDAS_SM.md` y `DDS_TIENDAS_SM.md`.
+  Describen más alcance que el MVP codificado; si no coinciden con el código, manda el código y las 16 fichas.
 - Auditoría de uso de IA: `docs/BITACORA_IA.md` · Hoja de ruta: `docs/HOJA_DE_RUTA_IS2.md`
