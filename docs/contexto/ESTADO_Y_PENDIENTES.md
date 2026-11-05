@@ -1,16 +1,16 @@
 # Estado actual y por dónde seguir
 
 ## Qué existe y funciona
-Lógica de negocio en Python con SQLite: productos, entradas de mercancía, clientes, venta **a crédito** con validación de stock y de límite,
+Lógica de negocio en Python con SQLite: productos, entradas de mercancía, clientes, venta **a crédito** con validación de stock y de límite, venta **de contado** en efectivo con cálculo del cambio (UC-02),
 descuento automático del inventario, cuenta por cobrar con el plazo del cliente, abonos y saldo, y el guardado "todo o nada".
-77 pruebas en verde (unitarias con dobles, caja negra, integración, flujo completo y regresión de defectos), cobertura ≈ 99 %, CI configurado.
+93 pruebas en verde (unitarias con dobles, caja negra, integración, flujo completo, venta de contado y regresión de defectos), cobertura ≈ 99 %, CI configurado.
 **No hay interfaz de usuario todavía** (la demo `demo_en_vivo.py` es por consola).
 
 ## Qué falta (en orden de prioridad)
 1. **Interfaz de escritorio con Tkinter.** Replicar los flujos del prototipo `docs/referencia/tiendas_sm_dashboard.html` (punto de venta, productos, existencias,
    clientes, créditos y abonos, alertas). Reglas: la interfaz **solo llama a los servicios** (`Aplicacion`); la lógica de negocio no se duplica en la pantalla.
    Mostrar siempre los mensajes de error del dominio tal como llegan (ya dicen cuántas unidades hay o cuál es el saldo).
-2. **Venta de contado** (RF-05): reutilizar el armado de venta y el descuento de inventario, sin cuenta por cobrar. Con pruebas primero.
+2. ~~Venta de contado~~ — **hecha** en la rama `feature/venta-de-contado` (efectivo; transferencia y mixto son CR-02).
 3. **Validación con el propietario** de las reglas pendientes (lista en `CLAUDE.md`).
 4. Acceso con usuario y contraseña (CR-01) — solo si se aprueba.
 5. Lotes y vencimientos, y alertas (RF-10 a RF-13) — Should/Could Have; implica quitar la deuda DT-01.

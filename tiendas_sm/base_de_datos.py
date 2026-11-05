@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS clientes (
 CREATE TABLE IF NOT EXISTS ventas (
     id_venta INTEGER PRIMARY KEY AUTOINCREMENT,
     id_cliente INTEGER REFERENCES clientes(id_cliente),
-    fecha TEXT NOT NULL, estado TEXT NOT NULL, total INTEGER NOT NULL);
+    fecha TEXT NOT NULL, estado TEXT NOT NULL, total INTEGER NOT NULL,
+    tipo TEXT NOT NULL, forma_pago TEXT, valor_recibido INTEGER);
 CREATE TABLE IF NOT EXISTS detalles_venta (
     id_detalle INTEGER PRIMARY KEY AUTOINCREMENT,
     id_venta INTEGER NOT NULL REFERENCES ventas(id_venta),
