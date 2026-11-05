@@ -9,6 +9,13 @@ Archivo del pipeline: `.github/workflows/ci.yml` (GitHub Actions). Se ejecuta en
 | Test | `python -m unittest discover -s tests -v` | falla cualquier prueba |
 | Cobertura | `python medir_cobertura.py --minimo 90` | la cobertura de líneas baja de 90 % |
 
+## Pruebas de la interfaz en el CI
+- `interfaz_tk/` e `iniciar_tienda.py` se compilan y pasan por `ruff` igual que el resto.
+- `tests/test_interfaz_tk.py` necesita pantalla. El runner de GitHub (Linux) no la tiene, así que esas 5 pruebas
+  **se saltan** (`skipped`): en el CI no cuentan como aprobadas. Se ejecutan en el computador del desarrollador.
+- La lógica de la pantalla está en `tiendas_sm/presentador.py` y sí se prueba en el CI (`tests/test_presentador.py`).
+  Por eso `interfaz_tk/` no entra en la cobertura y el presentador sí.
+
 ## Que el pipeline bloquee la fusión (hay que configurarlo en GitHub)
 *Settings → Rules → Rulesets* (o *Branches → Branch protection rules*) sobre `main`:
 1. Activar **Require status checks to pass before merging**.

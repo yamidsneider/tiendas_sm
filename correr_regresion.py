@@ -22,6 +22,9 @@ PRUEBAS = {
     "defectos": "tests.test_defectos_corregidos",
     "contado": "tests.test_venta_de_contado",
     "arquitectura": "tests.test_arquitectura",
+    "presentador": "tests.test_presentador",
+    "arranque": "tests.test_iniciar_tienda",
+    "ventana": "tests.test_interfaz_tk",
 }
 TODAS = list(PRUEBAS.values())
 
@@ -33,6 +36,10 @@ MAPA = {
     "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
     "tiendas_sm/puertos.py": TODAS,                           # contratos que usan servicios y repositorios
+    "tiendas_sm/presentador.py": [PRUEBAS[k] for k in ("presentador", "ventana")],
+    "tiendas_sm/datos_de_ejemplo.py": [PRUEBAS["arranque"]],
+    "interfaz_tk/ventana_punto_de_venta.py": [PRUEBAS["ventana"]],
+    "iniciar_tienda.py": [PRUEBAS["arranque"]],
     "tiendas_sm/aplicacion.py": [PRUEBAS[k] for k in ("comportamiento", "caja_negra", "defectos", "contado")],
 }
 DOCUMENTACION = ("README.md", "docs/", ".github/", "evidencia_")

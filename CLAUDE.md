@@ -21,7 +21,7 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
 8. Pregunta cuando una decisión dependa del propietario de la tienda (ver «Pendientes por confirmar»). **No asumas la respuesta.**
 
 ## Stack y decisiones técnicas
-- **Python 3** (solo biblioteca estándar) · **SQLite** · interfaz de **escritorio con Tkinter** (aún no construida) · pruebas con **unittest**.
+- **Python 3** (solo biblioteca estándar) · **SQLite** · interfaz de **escritorio con Tkinter** (primera versión: punto de venta) · pruebas con **unittest**.
 - Dinero: **enteros en pesos colombianos** (sin centavos ni `float`).
 - Reglas de diseño: Clean Code, SOLID **selectivo** con «hexagonal ligero» (ADR-04): los contratos de persistencia viven en `puertos.py`
   (`RepositorioDeVentas`, `PuertoDeProductos`, `PuertoDeClientes`, con `obtener`, `guardar` y `listar`) y el núcleo no importa SQLite (`test_arquitectura`); no se crea un puerto por cada clase,
@@ -30,9 +30,11 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
 
 ## Estructura del repositorio
 ```
-tiendas_sm/          dominio.py, servicios.py, puertos.py, repositorios.py, base_de_datos.py, validaciones.py, aplicacion.py
+tiendas_sm/          dominio.py, servicios.py, puertos.py, repositorios.py, base_de_datos.py, validaciones.py, aplicacion.py,
+                     presentador.py (lógica de la pantalla, sin Tkinter), datos_de_ejemplo.py (ficticios)
+interfaz_tk/         ventana_punto_de_venta.py (solo dibuja; no cuenta en la cobertura) · iniciar_tienda.py abre la app
 tests/               test_comportamiento, test_unitarias_dobles, test_caja_negra, test_integracion_incremental, test_defectos_corregidos,
-                     test_venta_de_contado, test_arquitectura
+                     test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_interfaz_tk (se salta sin pantalla)
 docs/                CI.md, FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACORA_IA.md, HOJA_DE_RUTA_IS2.md, contexto/, referencia/
 .github/workflows/ci.yml   pipeline: Build, Lint, Test, cobertura mínima 90 %
 medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresion.py · calcular_metricas.py · demo_en_vivo.py
@@ -43,10 +45,11 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (113 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (148 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 99 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
+python iniciar_tienda.py --datos-de-ejemplo      # abre el punto de venta (datos en %LOCALAPPDATA%\TIENDAS_SM)
 ruff check --select E9,F63,F7,F82,F401,F841 tiendas_sm tests   # lint que usa el CI (si ruff está instalado)
 ```
 
@@ -65,9 +68,10 @@ ruff check --select E9,F63,F7,F82,F401,F841 tiendas_sm tests   # lint que usa el
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 113 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04 y TD-14 corregidos.
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 148 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04 y TD-14 corregidos.
 - **Pendiente, en este orden de prioridad:**
-  1. **Interfaz Tkinter** (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).
+  1. **Interfaz Tkinter:** punto de venta hecho; faltan medir E-01 con personas y las demás pantallas
+     (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).
   2. ~~Venta de contado~~ (hecha: UC-02, solo efectivo).
   3. **Validar las reglas con el propietario** de una tienda real.
   4. Acceso con usuario/contraseña (RNF-03, CR-01 aplazada).
