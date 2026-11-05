@@ -148,6 +148,9 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
         cuenta.abonos = [abono["valor"] for abono in abonos]
         return cuenta
 
+    def contar_ventas(self):
+        return self.conexion.execute("SELECT COUNT(*) FROM ventas").fetchone()[0]
+
     def guardar_abono(self, cuenta, valor):
         with self.conexion:
             self.conexion.execute("INSERT INTO abonos (id_cuenta, valor, fecha) VALUES (?,?,?)",

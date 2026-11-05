@@ -27,6 +27,10 @@ class RepositorioDeVentas(ABC):
     def guardar_abono(self, cuenta, valor):
         ...
 
+    @abstractmethod
+    def contar_ventas(self):
+        """Número de ventas guardadas (lo usa Aplicacion.numero_de_ventas)."""
+
 
 class PuertoDeProductos(ABC):
     """Lo que el núcleo necesita para productos y existencias."""
