@@ -1,14 +1,17 @@
-from abc import ABC, abstractmethod
 from datetime import datetime
 
 from tiendas_sm.dominio import Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta
+from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, RepositorioDeVentas
+
+# RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
+__all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes"]
 
 
 def _ahora():
     return datetime.now().isoformat()
 
 
-class RepositorioDeProductos:
+class RepositorioDeProductos(PuertoDeProductos):
     def __init__(self, conexion):
         self.conexion = conexion
 
@@ -62,7 +65,7 @@ class RepositorioDeProductos:
                 (existencia.id_producto, tipo_movimiento, cantidad, _ahora()))
 
 
-class RepositorioDeClientes:
+class RepositorioDeClientes(PuertoDeClientes):
     def __init__(self, conexion):
         self.conexion = conexion
 
@@ -82,27 +85,6 @@ class RepositorioDeClientes:
             return None
         return Cliente(fila["id_cliente"], fila["nombres"], bool(fila["credito_habilitado"]),
                        fila["limite_credito"], fila["plazo_credito_dias"])
-
-
-class RepositorioDeVentas(ABC):
-    """Abstracción de la FPI-11: los servicios dependen de esta interfaz, no de SQLite."""
-
-    @abstractmethod
-    def guardar_transaccion(self, venta, cuenta, existencias):
-        """Guarda venta, detalles, cuenta y existencias: todo o nada (RNF-04).
-        En una venta de contado, 'cuenta' es None (no hay deuda)."""
-
-    @abstractmethod
-    def cuentas_del_cliente(self, id_cliente):
-        ...
-
-    @abstractmethod
-    def obtener_cuenta(self, id_cuenta):
-        ...
-
-    @abstractmethod
-    def guardar_abono(self, cuenta, valor):
-        ...
 
 
 class RepositorioDeVentasSqlite(RepositorioDeVentas):
@@ -165,6 +147,9 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
             "SELECT valor FROM abonos WHERE id_cuenta=? ORDER BY id_abono", (cuenta.id_cuenta,)).fetchall()
         cuenta.abonos = [abono["valor"] for abono in abonos]
         return cuenta
+
+    def contar_ventas(self):
+        return self.conexion.execute("SELECT COUNT(*) FROM ventas").fetchone()[0]
 
     def guardar_abono(self, cuenta, valor):
         with self.conexion:

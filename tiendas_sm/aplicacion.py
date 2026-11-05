@@ -12,16 +12,16 @@ class Aplicacion:
         self.conexion = base.conexion
         self.repo_productos = RepositorioDeProductos(self.conexion)
         repo_clientes = RepositorioDeClientes(self.conexion)
-        repo_ventas = RepositorioDeVentasSqlite(self.conexion)
+        self.repo_ventas = RepositorioDeVentasSqlite(self.conexion)
         control_inventario = ControlInventario(self.repo_productos)
-        self.credito = ControlCredito(repo_ventas)
+        self.credito = ControlCredito(self.repo_ventas)
         self.productos = ServicioDeProductos(self.repo_productos)
         self.clientes = ServicioDeClientes(repo_clientes)
-        self.ventas = ServicioDeVentas(self.repo_productos, repo_clientes, repo_ventas,
+        self.ventas = ServicioDeVentas(self.repo_productos, repo_clientes, self.repo_ventas,
                                        control_inventario, self.credito)
 
     def cantidad_en_inventario(self, id_producto):
         return self.repo_productos.obtener_existencia(id_producto).cantidad_actual
 
     def numero_de_ventas(self):
-        return self.conexion.execute("SELECT COUNT(*) FROM ventas").fetchone()[0]
+        return self.repo_ventas.contar_ventas()

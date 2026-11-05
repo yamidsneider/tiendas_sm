@@ -21,6 +21,7 @@ PRUEBAS = {
     "caja_negra": "tests.test_caja_negra",
     "defectos": "tests.test_defectos_corregidos",
     "contado": "tests.test_venta_de_contado",
+    "arquitectura": "tests.test_arquitectura",
 }
 TODAS = list(PRUEBAS.values())
 
@@ -31,6 +32,7 @@ MAPA = {
     "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado")],
     "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
+    "tiendas_sm/puertos.py": TODAS,                           # contratos que usan servicios y repositorios
     "tiendas_sm/aplicacion.py": [PRUEBAS[k] for k in ("comportamiento", "caja_negra", "defectos", "contado")],
 }
 DOCUMENTACION = ("README.md", "docs/", ".github/", "evidencia_")
