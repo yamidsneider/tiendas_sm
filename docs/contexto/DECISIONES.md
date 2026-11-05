@@ -39,4 +39,11 @@
 
 ## Deuda técnica
 DT-01 existencias sin lotes (abierta) · DT-03 abonos simples (abierta) · DT-04 cobertura medida, faltan pruebas de interfaz (parcial) · DT-05 constructores con muchos parámetros (aceptada) ·
-DT-08 `Venta.anular()` sin historia (abierta) · **pagadas:** DT-02 → BUG-02, DT-06 → BUG-01, DT-07 (mensajes con cantidades).
+DT-08 `Venta.anular()` sin historia (abierta) · **pagadas:** DT-02 → BUG-02, DT-06 → BUG-01, DT-07 (mensajes con cantidades),
+DT-09 (cliente sin validar).
+
+**DT-09 (noviembre de 2026).** *Hallazgo:* `Cliente` se guardaba con nombre vacío, límite negativo o plazo menor a 1 día; con nombre `None`
+SQLite lanzaba `IntegrityError` en vez de un mensaje claro. *Regla:* UC-05 del DDS (nombre obligatorio, límite no negativo, plazo de al menos
+un día). *Corrección:* en el dominio (`Cliente.__init__`), no en la pantalla; prueba primero en `test_defectos_corregidos.py`.
+*Impacto:* `dominio.py` y `validaciones.py` (`exigir_texto_obligatorio`, que ahora también usa `Producto`). Los datos adicionales del
+cliente y el control de duplicados siguen pendientes con el propietario.
