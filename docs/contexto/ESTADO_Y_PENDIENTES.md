@@ -3,11 +3,13 @@
 ## Qué existe y funciona
 Lógica de negocio en Python con SQLite: productos, entradas de mercancía, clientes, venta **a crédito** con validación de stock y de límite, venta **de contado** en efectivo con cálculo del cambio (UC-02),
 descuento automático del inventario, cuenta por cobrar con el plazo del cliente, abonos y saldo, y el guardado "todo o nada".
-113 pruebas en verde (unitarias con dobles, caja negra, integración, flujo completo, venta de contado y regresión de defectos), cobertura ≈ 99 %, CI configurado.
-**No hay interfaz de usuario todavía** (la demo `demo_en_vivo.py` es por consola).
+148 pruebas en verde (unitarias con dobles, caja negra, integración, flujo completo, venta de contado, regresión de defectos,
+arquitectura, presentador y ventana), cobertura ≈ 98 %, CI configurado (las 5 pruebas de la ventana se saltan en el CI: no hay pantalla).
+**Primera versión de la interfaz Tkinter:** solo el punto de venta (`python iniciar_tienda.py`), con venta de contado y a crédito.
 
 ## Qué falta (en orden de prioridad)
-1. **Interfaz de escritorio con Tkinter.** Replicar los flujos del prototipo `docs/referencia/tiendas_sm_dashboard.html` (punto de venta, productos, existencias,
+1. **Interfaz de escritorio con Tkinter** — primera versión hecha (punto de venta, tarea 8). **Falta:** medir E-01/RNF-01 a mano con personas
+   y las demás pantallas. Replicar los flujos del prototipo `docs/referencia/tiendas_sm_dashboard.html` (punto de venta, productos, existencias,
    clientes, créditos y abonos, alertas). Reglas: la interfaz **solo llama a los servicios** (`Aplicacion`); la lógica de negocio no se duplica en la pantalla.
    Mostrar siempre los mensajes de error del dominio tal como llegan (ya dicen cuántas unidades hay o cuál es el saldo).
 2. ~~Venta de contado~~ — **hecha** en la rama `feature/venta-de-contado` (efectivo; transferencia y mixto son CR-02).

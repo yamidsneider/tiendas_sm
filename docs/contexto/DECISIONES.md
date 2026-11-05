@@ -77,6 +77,15 @@ fijarlo (ERS RN-14, DDS §11.2). La parte del cliente ya se había corregido com
 demás fechas: ninguna otra se lee de la base como objeto. *Prueba:* `test_defectos_corregidos.py`, por `cuentas_del_cliente` y `obtener_cuenta`.
 *Impacto:* solo `repositorios.py`.
 
+**Interfaz Tkinter, primera versión (tarea 8, TD-03, noviembre de 2026).** Solo el punto de venta, como pide la tarea 8 (el plan inicial
+de 4 pestañas queda para después). *Diseño:* `tiendas_sm/presentador.py` (sin Tkinter, cuenta para la cobertura) recibe texto, llama a
+`Aplicacion` y devuelve filas y mensajes; `interfaz_tk/ventana_punto_de_venta.py` solo dibuja (no cuenta para la cobertura). El total y el
+cambio previo usan `Venta` del dominio; el stock se valida solo al confirmar (se muestra «Disponibles: N»); los mensajes del dominio se
+muestran tal como llegan. *Base de datos:* `%LOCALAPPDATA%\TIENDAS_SM\tiendas_sm.db` (DDS §14), decisión del desarrollador; antes se
+había dicho «junto a `iniciar_tienda.py`». *Datos de ejemplo:* `--datos-de-ejemplo` carga datos ficticios solo si la base está vacía.
+*Desviación declarada:* las pruebas de `iniciar_tienda.py` y `datos_de_ejemplo.py` se escribieron después del código.
+*Pendiente:* medir E-01 (venta de 5 productos en menos de 60 s) con personas reales; pantallas de productos, clientes y abonos.
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
