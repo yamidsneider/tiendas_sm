@@ -104,6 +104,15 @@ class PresentadorPuntoDeVenta:
         return DatosDelCliente(cliente.id_cliente, cliente.nombres, cliente.limite_credito, deuda, disponible, texto)
 
     # ------------------------------------------------------------------ cobro
+    def cambio_previo(self, recibido_texto):
+        """CU-02 paso 2: muestra el cambio mientras se escribe lo recibido, con las reglas del dominio y sin guardar."""
+        try:
+            venta = self._venta_previa()
+            venta.registrar_pago_en_efectivo(a_entero(recibido_texto, "El valor recibido"))
+        except ERRORES_DEL_NEGOCIO as error:
+            return Resultado(False, str(error))
+        return Resultado(True, f"Cambio: {formato_pesos(venta.calcular_cambio())}")
+
     def cobrar_de_contado(self, recibido_texto):
         try:
             recibido = a_entero(recibido_texto, "El valor recibido")

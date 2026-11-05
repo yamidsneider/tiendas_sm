@@ -87,6 +87,14 @@ class PruebasDelCobroDeContado(BaseDelPresentador):
         self.assertEqual(self.pv.lineas(), [])
         self.assertEqual(self.app.cantidad_en_inventario(self.arroz.id_producto), 8)
 
+    def test_cambio_previo_antes_de_confirmar_usa_las_reglas_del_dominio(self):
+        self.pv.agregar(self.arroz.id_producto, "2")                     # total 5.000
+        self.assertEqual(self.pv.cambio_previo("10000"), (True, "Cambio: $ 5.000", None))
+        self.assertEqual(self.pv.cambio_previo("4000").mensaje,
+                         "El efectivo recibido (4000) no alcanza para el total, que es 5000")
+        self.assertFalse(self.pv.cambio_previo("").exito)
+        self.assertEqual(self.app.numero_de_ventas(), 0)                 # calcular el cambio no guarda nada
+
     def test_el_total_mostrado_es_el_mismo_que_se_guarda(self):
         self.pv.agregar(self.arroz.id_producto, "3")
         mostrado = self.pv.total()
