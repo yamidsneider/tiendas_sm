@@ -1,0 +1,8 @@
+# TD-07: Dependabot revisa cada semana si hay versiones nuevas de las GitHub Actions del CI
+# y abre un Pull Request para actualizarlas. El proyecto no tiene dependencias de Python que revisar.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

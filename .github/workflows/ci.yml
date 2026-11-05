@@ -17,17 +17,23 @@ concurrency:
 
 jobs:
   pruebas:
-    name: pruebas
+    name: pruebas (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false           # si falla una versión, igual se ve el resultado de la otra
+      matrix:
+        python: ["3.12", "3.13"] # TD-07: comprobar que todo funciona en las dos versiones (TD-05 era de 3.13)
     steps:
+      # TD-07: las actions siguen fijadas por etiqueta (@v4, @v5). Fijarlas por SHA exige comprobar el SHA real
+      # en GitHub; no se hizo para no inventarlo. Dependabot (.github/dependabot.yml) avisa cuando haya versiones nuevas.
       - name: Descargar el código
         uses: actions/checkout@v4
 
-      - name: Preparar Python 3.12
+      - name: Preparar Python ${{ matrix.python }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
 
       # 1) BUILD: el proyecto solo usa la biblioteca estándar, así que "construir" es comprobar que
       #    todo el código compila y que la aplicación se puede armar.
