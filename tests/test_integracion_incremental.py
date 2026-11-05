@@ -48,6 +48,18 @@ class PruebasNivel2(unittest.TestCase):
         self.assertIsNone(self.repo_productos.obtener(999))
         self.assertIsNone(self.repo_clientes.obtener(999))
 
+    def test_listar_clientes_sin_registros_devuelve_lista_vacia(self):
+        self.assertEqual(self.repo_clientes.listar(), [])
+
+    def test_listar_clientes_los_devuelve_por_nombre_con_limite_y_plazo(self):
+        self.repo_clientes.guardar(Cliente(None, "Zoila de prueba", False, 0, 30))
+        self.repo_clientes.guardar(Cliente(None, "Andrés de prueba", True, 80000, 15))
+        clientes = self.repo_clientes.listar()
+        self.assertEqual([c.nombres for c in clientes], ["Andrés de prueba", "Zoila de prueba"])
+        self.assertEqual((clientes[0].credito_habilitado, clientes[0].limite_credito, clientes[0].plazo_credito_dias),
+                         (True, 80000, 15))
+        self.assertIsNotNone(clientes[0].id_cliente)
+
 
 class PruebasNivel3(unittest.TestCase):
     """Controles reales + repositorios reales (todavía sin ServicioDeVentas)."""

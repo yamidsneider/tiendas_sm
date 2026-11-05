@@ -65,6 +65,17 @@ class PruebasDeProductos(unittest.TestCase):
         self.assertEqual(self.app.cantidad_en_inventario(p.id_producto), 5)
 
 
+class PruebasDeClientes(unittest.TestCase):
+    """HU-05 / RF-07: los clientes registrados se pueden consultar (para elegir a quién se le fía)."""
+
+    def test_hu05_listar_devuelve_los_clientes_registrados(self):
+        app = Aplicacion()
+        self.assertEqual(app.clientes.listar(), [])
+        registrado = app.clientes.registrar_cliente("Cliente de prueba", True, 50000)
+        listados = app.clientes.listar()
+        self.assertEqual([(c.id_cliente, c.nombres) for c in listados], [(registrado.id_cliente, "Cliente de prueba")])
+
+
 class PruebasDeVentaACredito(unittest.TestCase):
     def setUp(self):
         self.app = Aplicacion()
