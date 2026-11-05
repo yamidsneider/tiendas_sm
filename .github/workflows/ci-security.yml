@@ -1,0 +1,83 @@
+# TIENDAS S.M — Pipeline de seguridad (DevSecOps, FPI-28, ADR-12). Shift-Left: corre en cada PR hacia main.
+# SAST: Semgrep sobre el código propio. SCA + secretos + configuración: Trivy sobre el repositorio.
+# Falla (código de salida 1) ante cualquier hallazgo ALTO o CRÍTICO sin mitigar; las excepciones van
+# justificadas en .trivyignore o con «# nosemgrep: <regla> — motivo» en la línea.
+# Versiones comprobadas el 2026-11-05: semgrep 1.183.0 (la más reciente en PyPI), trivy-action v0.36.0 (SHA del commit
+# de la etiqueta, con git ls-remote) y Trivy v0.76.2 (versión publicada, marcada Latest e inmutable en GitHub Releases).
+name: ci-security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 7 * * 1"          # cada lunes: aparecen CVE nuevos aunque el código no cambie
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1) SAST — patrones inseguros en el código propio (inyección SQL, subprocess, hashes débiles…)
+  sast:
+    name: sast (Semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6 (mismo SHA del ci.yml)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Instalar Semgrep (versión exacta)
+        run: python -m pip install "semgrep==1.183.0"
+      - name: Semgrep — falla con hallazgos de severidad ERROR (alta)
+        run: >
+          semgrep scan
+          --config p/python --config p/security-audit
+          --severity ERROR --error --metrics off
+          --json-output reporte-semgrep.json
+          tiendas_sm interfaz_tk iniciar_tienda.py
+      - name: Guardar el reporte (artefacto privado del repositorio, nunca público)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: reporte-semgrep-${{ github.sha }}
+          path: reporte-semgrep.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # 2) SCA + secretos + configuración — dependencias con CVE, credenciales filtradas, malas configuraciones
+  sca:
+    name: sca (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      # CVE-2026-33634: el 19-mar-2026 se secuestraron 76 etiquetas de trivy-action y Trivy v0.69.4 era malicioso.
+      # Por eso: acción fijada por SHA (v0.35.0 o posterior) y versión de Trivy explícita y conocida como segura.
+      - name: Trivy — vulnerabilidades, secretos y configuración (ALTA o CRÍTICA = rojo)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0, comprobado con git ls-remote
+        with:
+          version: v0.76.2                   # nunca v0.69.4, v0.69.5 ni v0.69.6 (sin esto, la action instala v0.70.0)
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          trivyignores: .trivyignore
+          exit-code: "1"
+          format: json
+          output: reporte-trivy.json
+      - name: Guardar el reporte (artefacto privado del repositorio, nunca público)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: reporte-trivy-${{ github.sha }}
+          path: reporte-trivy.json
+          retention-days: 30
+          if-no-files-found: ignore

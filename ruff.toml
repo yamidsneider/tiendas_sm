@@ -1,0 +1,8 @@
+# TIENDAS S.M — Excepciones de seguridad justificadas (FPI-28, ADR-12). Revisar en cada cambio de estos archivos.
+[lint.per-file-ignores]
+# S603 (subprocess con entrada no confiable): calcular_metricas.py solo ejecuta git con una lista fija de
+# argumentos, sin shell=True; lo usa el desarrollador en su equipo y NO se distribuye (el .zip lleva solo tiendas_sm).
+"calcular_metricas.py" = ["S603"]
+# S603/S607 (ruta parcial del ejecutable): correr_regresion.py llama a ["git", "diff", ...] y a python con
+# argumentos fijos, para elegir pruebas en el equipo del desarrollador; no se distribuye.
+"correr_regresion.py" = ["S603", "S607"]

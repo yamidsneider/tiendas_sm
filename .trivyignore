@@ -1,0 +1,7 @@
+# TIENDAS S.M — Exclusiones de Trivy (FPI-28, ADR-12).
+# Regla: cada línea lleva encima QUIÉN la aprobó, POR QUÉ es segura, y CUÁNDO se revisa. Sin justificación, no entra.
+# A la fecha (5-nov-2026) no hay ninguna exclusión: el MVP no tiene dependencias de terceros en ejecución.
+#
+# Formato de ejemplo (no activo):
+# # Aprobó: Yamid Merchan · Motivo: solo afecta a una herramienta de desarrollo que no viaja en el .zip · Revisar: 2027-01-31
+# CVE-0000-00000
