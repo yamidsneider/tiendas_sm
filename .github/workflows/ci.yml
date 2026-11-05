@@ -37,7 +37,7 @@ jobs:
         run: >
           ruff check --select E9,F63,F7,F82,F401,F841,S,C901
           --config "lint.mccabe.max-complexity = 10"
-          tiendas_sm interfaz_tk tests iniciar_tienda.py
+          tiendas_sm interfaz_tk tests scripts iniciar_tienda.py
 
   # 2) TEST — suite de regresión completa en dos versiones de Python (bloqueante)
   test:
@@ -56,7 +56,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Build (compilar y armar la aplicación)
         run: |
-          python -m compileall -q tiendas_sm interfaz_tk tests iniciar_tienda.py
+          python -m compileall -q tiendas_sm interfaz_tk tests scripts iniciar_tienda.py
           python -c "from tiendas_sm.aplicacion import Aplicacion; Aplicacion()"
       # Las 5 pruebas de la ventana (tests/test_interfaz_tk.py) se SALTAN aquí: el runner no tiene pantalla.
       - name: Suite completa (unitarias, integración, aceptación y regresión)

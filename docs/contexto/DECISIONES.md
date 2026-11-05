@@ -112,6 +112,14 @@ en rojo) y dos consultas SQL con f-string en pruebas (S608), corregidas con cons
 una excepción justificada. *No verificado en local:* Python 3.13 y SonarCloud (sin token). Los checks de `main` cambian a `linter`,
 `test (Python 3.12)`, `test (Python 3.13)` y `analysis` (ver `docs/CI.md`).
 
+**Entrega continua (tarea 10, FPI-27, ADR-11, noviembre de 2026).** `.github/workflows/deploy.yml` y `scripts/healthcheck_paquete.py`
+de la propuesta, sin cambiar su lógica. *Ajustes:* el healthcheck comprueba también el movimiento `SALIDA_VENTA` (TD-01); las actions
+quedan fijadas por SHA (TD-07); el CI revisa y compila `scripts/`. *Verificado en local:* el healthcheck da `HEALTHCHECK OK` sobre un
+paquete real de `git archive` y sale con código 1 con un `.zip` dañado o cortado (`tests/test_healthcheck_paquete.py`). *No verificado:*
+el workflow en GitHub (no hay `gh` ni push); `--prerelease=false` no aparece escrito así en el manual de `gh release edit`.
+*Excepciones de ruff:* S603 en los `subprocess` del healthcheck y de sus pruebas, con la razón al lado (el mismo Python con un script
+fijo). Es una excepción por línea, no se desactivó la regla.
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.

@@ -1,0 +1,142 @@
+# TIENDAS S.M — Entrega continua de la aplicación de escritorio (FPI-27, ADR-11).
+# TIENDAS S.M no es un servicio web (ADR-03): «producción» es la versión marcada como
+# «Latest» en GitHub Releases, que es la que descarga e instala la tienda.
+# Flujo: verificar -> (aprobación humana) publicar como prerelease -> healthcheck del
+# paquete publicado -> promover a Latest | si falla: rollback (se retira y se deja la anterior).
+name: CD
+
+on:
+  push:
+    tags: ["v*.*.*"]            # solo una versión etiquetada se entrega, no cada commit
+  workflow_dispatch:            # rollback manual de un fallo descubierto después
+    inputs:
+      version_mala:
+        description: "Versión a retirar (ej. v1.3.0)"
+        required: true
+      version_estable:
+        description: "Versión estable a la que se vuelve (ej. v1.2.0)"
+        required: true
+
+permissions:
+  contents: read
+
+# TD-07: actions fijadas por el SHA real de su etiqueta (git ls-remote, 2026-11-05), igual que en ci.yml.
+# Solo se usa el GITHUB_TOKEN automático: ningún secreto ni servicio externo.
+
+concurrency:
+  group: cd-produccion
+  cancel-in-progress: false     # nunca se corta una entrega a la mitad
+
+jobs:
+  # 1) Mismos gates del CI (FPI-25) sobre el commit exacto de la etiqueta
+  verificar:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Suite completa
+        run: python -m unittest discover -s tests
+      - name: Cobertura mínima
+        run: python medir_cobertura.py --minimo 90
+
+  # 2) Continuous Delivery: el environment «produccion» exige la aprobación del responsable
+  publicar:
+    needs: verificar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: produccion
+    permissions:
+      contents: write
+    outputs:
+      anterior: ${{ steps.anterior.outputs.tag }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Recordar la versión estable actual (destino del rollback)
+        id: anterior
+        run: echo "tag=$(gh release view --json tagName -q .tagName 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+      - name: Empaquetar el artefacto inmutable con su suma SHA-256
+        run: |
+          git archive --format=zip -o "tiendas_sm-${TAG}.zip" "${TAG}" tiendas_sm
+          sha256sum "tiendas_sm-${TAG}.zip" > "tiendas_sm-${TAG}.zip.sha256"
+      - name: Publicar como prerelease (la tienda todavía no la ve)
+        run: >
+          gh release create "${TAG}" "tiendas_sm-${TAG}.zip" "tiendas_sm-${TAG}.zip.sha256"
+          --verify-tag --prerelease --title "TIENDAS S.M ${TAG}"
+          --notes "En verificación. Commit ${GITHUB_SHA}."
+
+  # 3) Healthcheck posterior: se descarga lo publicado (no lo construido) y se ejecuta
+  healthcheck:
+    needs: publicar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Descargar el paquete publicado
+        run: gh release download "${TAG}" --pattern "tiendas_sm-*" --dir publicado
+      - name: Integridad, arranque y venta de humo
+        run: >
+          python scripts/healthcheck_paquete.py
+          --paquete "publicado/tiendas_sm-${TAG}.zip"
+          --sha256 "publicado/tiendas_sm-${TAG}.zip.sha256"
+
+  # 4a) Todo bien: pasa a ser la versión que descarga la tienda
+  promover:
+    needs: healthcheck
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - run: gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --prerelease=false --latest --notes "Versión estable. Commit ${GITHUB_SHA}. Healthcheck OK."
+
+  # 4b) Rollback automático: la versión nunca llega a Latest y queda marcada como retirada
+  rollback:
+    needs: [publicar, healthcheck]
+    if: ${{ always() && needs.publicar.result == 'success' && needs.healthcheck.result != 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+      ANTERIOR: ${{ needs.publicar.outputs.anterior }}
+    steps:
+      - name: Retirar la versión y confirmar la estable anterior
+        run: |
+          gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --prerelease --title "RETIRADA ${TAG}" --notes "Falló el healthcheck posterior a la publicación. No instalar."
+          if [ -n "${ANTERIOR}" ]; then gh release edit "${ANTERIOR}" --repo "${GITHUB_REPOSITORY}" --latest; fi
+          echo "::error::Rollback: ${TAG} retirada; versión vigente: ${ANTERIOR:-ninguna}"
+          exit 1
+
+  # 5) Rollback manual: un fallo descubierto en la tienda después de promover
+  rollback_manual:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    environment: produccion
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MALA: ${{ inputs.version_mala }}
+      ESTABLE: ${{ inputs.version_estable }}
+    steps:
+      - run: |
+          gh release edit "${ESTABLE}" --repo "${GITHUB_REPOSITORY}" --latest
+          gh release edit "${MALA}" --repo "${GITHUB_REPOSITORY}" --prerelease --title "RETIRADA ${MALA}" --notes "Retirada manualmente. Volver a ${ESTABLE}."
