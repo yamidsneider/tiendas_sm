@@ -68,6 +68,12 @@ fijarlo (ERS RN-14, DDS §11.2). La parte del cliente ya se había corregido com
 `stock_minimo=0` al final. *Prueba:* CN-09 en `test_caja_negra.py` (−1 rechazado, 0 aceptado, el valor se conserva).
 *Pendiente con el propietario:* si el stock mínimo es general o por producto y su valor; aquí solo se guarda, no genera alertas (RF-12).
 
+**TD-14 (noviembre de 2026, pagada).** *Hallazgo:* al leer una cuenta desde SQLite, `_a_cuenta` dejaba `fecha_apertura` y
+`fecha_vencimiento` como texto; al crearla son `datetime`. No fallaba aún, pero el futuro estado «cuenta vencida» sí fallaría.
+*Corrección:* `_a_cuenta` convierte con `datetime.fromisoformat`; se siguen guardando como texto ISO (DEC-05 del DDS). Se revisaron las
+demás fechas: ninguna otra se lee de la base como objeto. *Prueba:* `test_defectos_corregidos.py`, por `cuentas_del_cliente` y `obtener_cuenta`.
+*Impacto:* solo `repositorios.py`.
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
