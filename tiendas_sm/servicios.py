@@ -51,6 +51,9 @@ class ServicioDeClientes:
         self.repo_clientes.guardar(cliente)
         return cliente
 
+    def listar(self):
+        return self.repo_clientes.listar()
+
 
 class ControlInventario:
     def __init__(self, repo_productos):

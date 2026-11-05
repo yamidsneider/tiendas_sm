@@ -83,8 +83,14 @@ class RepositorioDeClientes(PuertoDeClientes):
 
     def obtener(self, id_cliente):
         fila = self.conexion.execute("SELECT * FROM clientes WHERE id_cliente=?", (id_cliente,)).fetchone()
-        if fila is None:
-            return None
+        return self._a_cliente(fila) if fila else None
+
+    def listar(self):
+        filas = self.conexion.execute("SELECT * FROM clientes ORDER BY nombres").fetchall()
+        return [self._a_cliente(fila) for fila in filas]
+
+    @staticmethod
+    def _a_cliente(fila):
         return Cliente(fila["id_cliente"], fila["nombres"], bool(fila["credito_habilitado"]),
                        fila["limite_credito"], fila["plazo_credito_dias"])
 

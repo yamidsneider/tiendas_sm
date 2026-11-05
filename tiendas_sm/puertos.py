@@ -66,3 +66,7 @@ class PuertoDeClientes(ABC):
     @abstractmethod
     def guardar(self, cliente):
         ...
+
+    @abstractmethod
+    def listar(self):
+        """Todos los clientes, ordenados por nombre (HU-05: elegir a quién se le fía)."""
