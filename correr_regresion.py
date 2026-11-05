@@ -26,6 +26,7 @@ PRUEBAS = {
     "arranque": "tests.test_iniciar_tienda",
     "ventana": "tests.test_interfaz_tk",
     "escenarios": "tests.test_escenarios_calidad",
+    "migracion": "tests.test_migracion_esquema",
 }
 TODAS = list(PRUEBAS.values())
 
@@ -34,7 +35,8 @@ MAPA = {
     "tiendas_sm/validaciones.py": TODAS,                      # lo usan casi todas las clases del dominio
     "tiendas_sm/dominio.py": TODAS,                           # base de todo el sistema
     "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios")],
-    "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios")],
+    "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios",
+                                                         "migracion")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
     "tiendas_sm/puertos.py": TODAS,                           # contratos que usan servicios y repositorios
     "tiendas_sm/presentador.py": [PRUEBAS[k] for k in ("presentador", "ventana")],

@@ -40,6 +40,14 @@ CREATE TABLE IF NOT EXISTS abonos (
     valor INTEGER NOT NULL, fecha TEXT NOT NULL);
 """
 
+# Columnas que la venta de contado (UC-02) agregó a ventas. Una base creada antes no las tiene: se agregan
+# sin perder datos. Las ventas viejas eran todas a crédito, por eso tipo toma 'CREDITO' por defecto.
+COLUMNAS_NUEVAS_DE_VENTAS = (
+    ("tipo", "TEXT NOT NULL DEFAULT 'CREDITO'"),
+    ("forma_pago", "TEXT"),
+    ("valor_recibido", "INTEGER"),
+)
+
 
 class BaseDeDatos:
     def __init__(self, ruta=":memory:"):
@@ -47,3 +55,11 @@ class BaseDeDatos:
         self.conexion.row_factory = sqlite3.Row
         self.conexion.execute("PRAGMA foreign_keys = ON")
         self.conexion.executescript(ESQUEMA_SQL)
+        self._migrar_ventas()
+
+    def _migrar_ventas(self):
+        existentes = {fila["name"] for fila in self.conexion.execute("PRAGMA table_info(ventas)")}
+        with self.conexion:
+            for nombre, definicion in COLUMNAS_NUEVAS_DE_VENTAS:
+                if nombre not in existentes:
+                    self.conexion.execute(f"ALTER TABLE ventas ADD COLUMN {nombre} {definicion}")
