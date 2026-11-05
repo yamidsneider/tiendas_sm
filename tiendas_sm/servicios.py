@@ -11,8 +11,8 @@ class ServicioDeProductos:
     def __init__(self, repo_productos):
         self.repo_productos = repo_productos
 
-    def registrar_producto(self, nombre, precio_compra, precio_venta, cantidad_inicial=0):
-        producto = Producto(None, nombre, precio_compra, precio_venta)
+    def registrar_producto(self, nombre, precio_compra, precio_venta, cantidad_inicial=0, stock_minimo=0):
+        producto = Producto(None, nombre, precio_compra, precio_venta, stock_minimo)
         self.repo_productos.guardar(producto)
         if cantidad_inicial > 0:
             self.registrar_entrada(producto.id_producto, cantidad_inicial)
