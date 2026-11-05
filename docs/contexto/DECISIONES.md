@@ -26,6 +26,16 @@
 - Los abonos son una tabla simple (DT-03), no el modelo Pago/AplicacionPago del modelo de 29 entidades.
 - `guardar_transaccion` recibe también las existencias para que descontar el inventario sea parte de la misma transacción.
 - Los repositorios de productos y clientes son clases concretas; solo `RepositorioDeVentas` es una abstracción.
+- **Venta de contado (UC-02, noviembre de 2026).** Firma `registrar_venta_de_contado(lineas, recibido)`, sin el parámetro
+  `forma_de_pago` que propone el DDS: hoy la única forma de pago aprobada es efectivo (transferencia y pago mixto son CR-02),
+  y el DAD aclara que esos nombres son contratos de referencia. Si se aprueba CR-02, se agrega el parámetro.
+  *Causa:* no programar opciones sin aprobar. *Impacto:* solo `servicios.py`; las pruebas fijan la firma.
+- `guardar_transaccion(venta, cuenta, existencias)` acepta `cuenta=None` en la venta de contado, en vez de agregar un método a
+  `RepositorioDeVentas`. *Causa:* mantener pequeña la única interfaz (ISP). *Impacto:* `repositorios.py`.
+- La tabla `ventas` guarda `tipo` (CONTADO o CREDITO), `forma_pago` y `valor_recibido` (ERS 7.1 y ticket del DDS 10.3).
+  En la venta a crédito `forma_pago` y `valor_recibido` quedan vacíos. No había bases de datos reales, así que no hubo migración.
+- El efectivo insuficiente es una excepción propia (`EfectivoInsuficiente`), como `StockInsuficiente` y `CreditoNoPermitido`.
+  Orden de validación de UC-02: existencias, después efectivo; ninguna de las dos cambia datos.
 
 ## Deuda técnica
 DT-01 existencias sin lotes (abierta) · DT-03 abonos simples (abierta) · DT-04 cobertura medida, faltan pruebas de interfaz (parcial) · DT-05 constructores con muchos parámetros (aceptada) ·
