@@ -44,7 +44,10 @@
 - `guardar_transaccion(venta, cuenta, existencias)` acepta `cuenta=None` en la venta de contado, en vez de agregar un método a
   `RepositorioDeVentas`. *Causa:* mantener pequeña la única interfaz (ISP). *Impacto:* `repositorios.py`.
 - La tabla `ventas` guarda `tipo` (CONTADO o CREDITO), `forma_pago` y `valor_recibido` (ERS 7.1 y ticket del DDS 10.3).
-  En la venta a crédito `forma_pago` y `valor_recibido` quedan vacíos. No había bases de datos reales, así que no hubo migración.
+  En la venta a crédito `forma_pago` y `valor_recibido` quedan vacíos. **Migración (DIF-06, tarea 7):** `BaseDeDatos._migrar_ventas`
+  agrega con `ALTER TABLE` las columnas que falten en una base vieja; las ventas viejas quedan como `CREDITO`.
+  *Desviación de E-04:* la venta de contado cambió 4 archivos de `tiendas_sm/` (dominio, servicios, repositorios y base_de_datos);
+  el criterio pedía como máximo 3. Se hizo así para guardar tipo y forma de pago (ERS 7.1); se declara en lugar de ocultarlo.
 - El efectivo insuficiente es una excepción propia (`EfectivoInsuficiente`), como `StockInsuficiente` y `CreditoNoPermitido`.
   Orden de validación de UC-02: existencias, después efectivo; ninguna de las dos cambia datos.
 
