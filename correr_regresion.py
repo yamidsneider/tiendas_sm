@@ -27,6 +27,7 @@ PRUEBAS = {
     "ventana": "tests.test_interfaz_tk",
     "escenarios": "tests.test_escenarios_calidad",
     "migracion": "tests.test_migracion_esquema",
+    "medidor": "tests.test_medir_cobertura",
 }
 TODAS = list(PRUEBAS.values())
 
@@ -43,6 +44,7 @@ MAPA = {
     "tiendas_sm/datos_de_ejemplo.py": [PRUEBAS["arranque"]],
     "interfaz_tk/ventana_punto_de_venta.py": [PRUEBAS["ventana"]],
     "iniciar_tienda.py": [PRUEBAS["arranque"]],
+    "medir_cobertura.py": [PRUEBAS["medidor"]],
     "tiendas_sm/aplicacion.py": [PRUEBAS[k] for k in ("comportamiento", "caja_negra", "defectos", "contado")],
 }
 DOCUMENTACION = ("README.md", "docs/", ".github/", "evidencia_")

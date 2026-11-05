@@ -99,6 +99,11 @@ seguidas pueden quedar con la misma fecha y hora. Por eso no se puede probar ven
 comprueba por producto. *Recomendación (no aprobada):* agregar `id_venta` al movimiento de venta. Se registrará con el número TD que
 corresponda en las fichas.
 
+**TD-05 y TD-07 (noviembre de 2026).** *TD-05 (pagada):* `medir_cobertura.py` descarta los números de línea `None` que entrega
+`trace` en Python 3.13 (`lineas_validas`); prueba en `test_medir_cobertura.py` que simula esa entrada. En 3.12 el resultado no cambió
+(606 de 617 líneas). *TD-07 (parcial):* matriz 3.12 y 3.13 en el CI y Dependabot semanal para las actions. **Falta:** fijar `ruff` a una
+versión exacta (no hay ruff instalado en el equipo de desarrollo) y fijar las actions por SHA (requiere comprobarlo en GitHub).
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
