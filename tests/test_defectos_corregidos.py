@@ -6,7 +6,9 @@ después de la corrección pasan. Quedan en la suite para que el defecto no vuel
 BUG-01  Ids que no existen provocan AttributeError en lugar de un mensaje claro   (antes DT-06)
 BUG-02  El vencimiento del crédito ignora el plazo del cliente (siempre 30 días)  (antes DT-02)
 DT-09   El cliente se guarda con nombre vacío, límite negativo o plazo menor a 1 día (UC-05 del DDS)
+TD-01   Las ventas descuentan existencias sin registrar su movimiento de inventario (RF-04, RN-07, RNF-10, E-05)
 """
+import sqlite3
 import unittest
 from datetime import datetime
 from unittest.mock import Mock
@@ -117,6 +119,62 @@ class PruebasDt09ClienteSinValidar(unittest.TestCase):
     def test_unitaria_sin_base_de_datos(self):
         with self.assertRaises(ValueError):
             Cliente(None, " ", True, 50000, 30)
+
+
+class PruebasTd01MovimientoDeVenta(unittest.TestCase):
+    """Cada venta (a crédito o de contado) deja un movimiento SALIDA_VENTA por producto, en la misma transacción."""
+
+    def setUp(self):
+        self.app = Aplicacion()
+        self.a = self.app.productos.registrar_producto("Producto A", 1500, 2500, 10)
+        self.b = self.app.productos.registrar_producto("Producto B", 2000, 3000, 5)
+        self.cliente = self.app.clientes.registrar_cliente("Cliente de prueba", True, 100000)
+
+    def salidas(self):
+        return self.app.conexion.execute(
+            "SELECT id_producto, cantidad, fecha FROM movimientos_inventario "
+            "WHERE tipo='SALIDA_VENTA' ORDER BY id_producto").fetchall()
+
+    def simular_falla(self, tabla):
+        self.app.conexion.execute(
+            f"CREATE TRIGGER falla_simulada BEFORE INSERT ON {tabla} "
+            "BEGIN SELECT RAISE(ABORT, 'falla simulada'); END")
+
+    def test_venta_a_credito_registra_una_salida_por_producto_sumando_lineas_repetidas(self):
+        venta = self.app.ventas.registrar_venta_a_credito(
+            self.cliente.id_cliente, [(self.a.id_producto, 2), (self.b.id_producto, 1), (self.a.id_producto, 3)])
+        fecha = venta.fecha.isoformat()
+        self.assertEqual([tuple(fila) for fila in self.salidas()],
+                         [(self.a.id_producto, 5, fecha), (self.b.id_producto, 1, fecha)])
+
+    def test_venta_de_contado_tambien_registra_su_salida(self):
+        venta = self.app.ventas.registrar_venta_de_contado([(self.b.id_producto, 2)], 6000)
+        self.assertEqual([tuple(fila) for fila in self.salidas()],
+                         [(self.b.id_producto, 2, venta.fecha.isoformat())])
+
+    def test_si_falla_la_venta_a_credito_no_queda_ningun_movimiento(self):
+        self.simular_falla("cuentas_por_cobrar")
+        with self.assertRaises(sqlite3.Error):
+            self.app.ventas.registrar_venta_a_credito(self.cliente.id_cliente, [(self.a.id_producto, 2)])
+        self.assertEqual(self.salidas(), [])
+
+    def test_si_falla_la_venta_de_contado_no_queda_ningun_movimiento(self):
+        self.simular_falla("detalles_venta")
+        with self.assertRaises(sqlite3.Error):
+            self.app.ventas.registrar_venta_de_contado([(self.a.id_producto, 2)], 5000)
+        self.assertEqual(self.salidas(), [])
+
+    def test_e05_entradas_menos_salidas_es_igual_a_la_cantidad_actual(self):
+        self.app.productos.registrar_entrada(self.a.id_producto, 4)
+        self.app.ventas.registrar_venta_a_credito(self.cliente.id_cliente, [(self.a.id_producto, 3)])
+        self.app.ventas.registrar_venta_de_contado([(self.a.id_producto, 2), (self.b.id_producto, 5)], 20000)
+        for producto in (self.a, self.b):
+            with self.subTest(producto=producto.nombre):
+                entradas, salidas = self.app.conexion.execute(
+                    "SELECT COALESCE(SUM(CASE WHEN tipo='ENTRADA' THEN cantidad END), 0), "
+                    "COALESCE(SUM(CASE WHEN tipo='SALIDA_VENTA' THEN cantidad END), 0) "
+                    "FROM movimientos_inventario WHERE id_producto=?", (producto.id_producto,)).fetchone()
+                self.assertEqual(entradas - salidas, self.app.cantidad_en_inventario(producto.id_producto))
 
 
 if __name__ == "__main__":
