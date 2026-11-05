@@ -80,8 +80,7 @@ class Existencia:
 class Cliente:
     def __init__(self, id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias):
         exigir_texto_obligatorio(nombres, "El nombre es obligatorio")
-        if limite_credito < 0:
-            raise ValueError("El límite de crédito no puede ser negativo")
+        exigir_no_negativo(limite_credito, "El límite de crédito no puede ser negativo")
         if plazo_credito_dias < PLAZO_MINIMO_DIAS:
             raise ValueError(f"El plazo de crédito debe ser de al menos {PLAZO_MINIMO_DIAS} día")
         self.id_cliente = id_cliente
