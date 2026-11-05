@@ -41,6 +41,7 @@ Resultado esperado: 77 pruebas, `OK`. Las mismas pruebas se ejecutan solas en ca
     evidencia_fpi12/      Código v1 (antes de refactorizar), resultados de pruebas y métricas antes/después
     evidencia_fpi14/      Caja negra antes y después del arreglo, complejidad ciclomática y cobertura
     evidencia_fpi15/      Defectos reproducidos antes de corregir, resultados después y simulación local del pipeline
+    evidencia_fpi24/      TDD de la tarea 3: salida real de las pruebas en los commits rojo, verde y refactor (Guía 8)
 
 ## Trazabilidad
 Implementa HU-01 a HU-04, HU-06 y CU-01 (RF-01 a RF-09). Diseño: FPI-10 y FPI-11.

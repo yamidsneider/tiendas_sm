@@ -38,7 +38,7 @@ docs/                CI.md, FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACO
 medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresion.py · calcular_metricas.py · demo_en_vivo.py
 ```
 
-**Ignora** las carpetas `evidencia_fpi12/`, `evidencia_fpi14/` y `evidencia_fpi15/`: son evidencia de las fichas (incluye una copia vieja del código en
+**Ignora** las carpetas `evidencia_fpi12/`, `evidencia_fpi14/`, `evidencia_fpi15/` y `evidencia_fpi24/`: son evidencia de las fichas (incluye una copia vieja del código en
 `evidencia_fpi12/v1_antes/`). No las edites ni las uses como fuente del código; el código vigente está en `tiendas_sm/`.
 
 ## Comandos
