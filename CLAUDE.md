@@ -43,7 +43,7 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (106 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (108 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 99 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
@@ -65,7 +65,7 @@ ruff check --select E9,F63,F7,F82,F401,F841 tiendas_sm tests   # lint que usa el
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 106 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09 y TD-01 corregidos.
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 108 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01 y TD-04 corregidos.
 - **Pendiente, en este orden de prioridad:**
   1. **Interfaz Tkinter** (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).
   2. ~~Venta de contado~~ (hecha: UC-02, solo efectivo).

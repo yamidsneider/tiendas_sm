@@ -62,11 +62,17 @@ cliente y el control de duplicados siguen pendientes con el propietario.
 Aplica a la venta a crédito y a la de contado. *Prueba:* escenario E-05 (entradas − salidas = cantidad actual) en `test_defectos_corregidos.py`.
 *Impacto:* solo `repositorios.py`; sin cambios de firmas.
 
+**TD-04 (noviembre de 2026, pagada).** *Hallazgo:* `Producto` aceptaba un `stock_minimo` negativo y `registrar_producto` no permitía
+fijarlo (ERS RN-14, DDS §11.2). La parte del cliente ya se había corregido como DT-09. *Corrección:* `exigir_no_negativo` en
+`validaciones.py`, usada por `Producto` (stock mínimo) y por `Cliente` (límite, mismo mensaje); `registrar_producto` recibe
+`stock_minimo=0` al final. *Prueba:* CN-09 en `test_caja_negra.py` (−1 rechazado, 0 aceptado, el valor se conserva).
+*Pendiente con el propietario:* si el stock mínimo es general o por producto y su valor; aquí solo se guarda, no genera alertas (RF-12).
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
 
 | Repositorio | Fichas | Relación |
 | --- | --- | --- |
-| DT-09 (cliente sin validar) | TD-04 | DT-09 cubre la parte del cliente de TD-04; falta `stock_minimo` del producto |
+| DT-09 (cliente sin validar) | TD-04 | DT-09 cubrió la parte del cliente; el resto de TD-04 (stock mínimo) se hizo como TD-04 |
 | Hallazgo de la venta de contado (sin movimiento al vender) | TD-01 | Es el mismo problema; quedó registrado como TD-01 |
