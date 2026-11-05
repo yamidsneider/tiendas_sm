@@ -51,6 +51,9 @@ class PruebasDeBusquedaYCarrito(BaseDelPresentador):
         resultado = self.pv.agregar(self.arroz.id_producto, "0")
         self.assertEqual(resultado.mensaje, "La cantidad debe ser mayor a cero")
 
+    def test_producto_inexistente_da_el_mensaje_del_dominio(self):
+        self.assertEqual(self.pv.agregar(9999, "1").mensaje, "El producto no existe")
+
     def test_no_valida_el_stock_al_agregar_solo_al_confirmar(self):
         resultado = self.pv.agregar(self.panela.id_producto, "3")   # solo hay 1
         self.assertTrue(resultado.exito)
@@ -127,6 +130,10 @@ class PruebasDeLaVentaACredito(BaseDelPresentador):
         datos = self.pv.datos_del_cliente(self.cliente.id_cliente)
         self.assertEqual((datos.limite, datos.deuda, datos.disponible), (100000, 5000, 95000))
         self.assertIn("Crédito disponible: $ 95.000", datos.texto)
+
+    def test_cliente_sin_credito_lo_dice_en_sus_datos(self):
+        sin_credito = self.app.clientes.registrar_cliente("Sin crédito", False, 0)
+        self.assertTrue(self.pv.datos_del_cliente(sin_credito.id_cliente).texto.startswith("No tiene crédito habilitado"))
 
     def test_lista_de_clientes_para_elegir(self):
         self.assertEqual([(c.id_cliente, c.nombres) for c in self.pv.clientes()],
