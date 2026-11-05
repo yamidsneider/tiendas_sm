@@ -9,7 +9,7 @@
 | RF-04 | Entradas y salidas de inventario | Must | HU-03 | **Parcial** (entradas y salidas por venta sí, TD-01; salida manual por confirmar, H-1) |
 | RF-05 | Registrar ventas | Must | HU-04, CU-01, CU-02 | Programado (a crédito y de contado en efectivo; transferencia y mixto son CR-02) |
 | RF-06 | Descontar del inventario lo vendido | Must | HU-04 | Programado |
-| RF-07 | Registrar clientes | Must | HU-05 | **Parcial** (valida nombre, límite y plazo por DT-09; sin control de duplicados; datos por definir) |
+| RF-07 | Registrar clientes | Must | HU-05 | **Parcial** (registra y lista; valida nombre, límite y plazo por DT-09; sin control de duplicados; datos por definir) |
 | RF-08 | Venta a crédito asociada a un cliente | Must | CU-01 | Programado |
 | RF-09 | Abonos y saldo pendiente | Must | HU-06 | Programado |
 | RF-10 | Registrar lotes | Should | HU-07 | Pendiente (DT-01) |

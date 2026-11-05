@@ -34,6 +34,9 @@
   (`numero_de_ventas()` ya no tiene SQL). No cambió ninguna firma pública ni comportamiento; las pruebas anteriores pasan sin modificarse.
   Se mantiene la idea de no crear una interfaz por cada clase: solo hay puertos para la persistencia.
   *Orden:* la Guía 4 la ponía como primera tarea; aquí se hizo después de la venta de contado y de DT-09.
+- **`PuertoDeClientes.listar()` (noviembre de 2026).** Se amplía el contrato de clientes con `listar()`, ordenado por nombre como el de
+  productos. *Causa:* la interfaz debe dejar elegir al cliente en la venta a crédito (HU-05, RF-07, tarea 8). *Impacto:* `puertos.py`,
+  `repositorios.py` (más `_a_cliente`, que reutiliza `obtener()`) y `servicios.py`. Solo consulta: sin búsqueda, filtros ni datos nuevos.
 - **Venta de contado (UC-02, noviembre de 2026).** Firma `registrar_venta_de_contado(lineas, recibido)`, sin el parámetro
   `forma_de_pago` que propone el DDS: hoy la única forma de pago aprobada es efectivo (transferencia y pago mixto son CR-02),
   y el DAD aclara que esos nombres son contratos de referencia. Si se aprueba CR-02, se agrega el parámetro.

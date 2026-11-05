@@ -24,7 +24,7 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
 - **Python 3** (solo biblioteca estándar) · **SQLite** · interfaz de **escritorio con Tkinter** (aún no construida) · pruebas con **unittest**.
 - Dinero: **enteros en pesos colombianos** (sin centavos ni `float`).
 - Reglas de diseño: Clean Code, SOLID **selectivo** con «hexagonal ligero» (ADR-04): los contratos de persistencia viven en `puertos.py`
-  (`RepositorioDeVentas`, `PuertoDeProductos`, `PuertoDeClientes`) y el núcleo no importa SQLite (`test_arquitectura`); no se crea un puerto por cada clase,
+  (`RepositorioDeVentas`, `PuertoDeProductos`, `PuertoDeClientes`, con `obtener`, `guardar` y `listar`) y el núcleo no importa SQLite (`test_arquitectura`); no se crea un puerto por cada clase,
   funciones pequeñas, sin números mágicos, validaciones compartidas en `validaciones.py`, nombres en español y `snake_case`.
 - Una operación que cambia venta + inventario + deuda se guarda **todo o nada** (RNF-04) dentro de una transacción.
 
@@ -43,7 +43,7 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (110 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (113 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 99 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
@@ -65,7 +65,7 @@ ruff check --select E9,F63,F7,F82,F401,F841 tiendas_sm tests   # lint que usa el
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 110 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04 y TD-14 corregidos.
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 113 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04 y TD-14 corregidos.
 - **Pendiente, en este orden de prioridad:**
   1. **Interfaz Tkinter** (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).
   2. ~~Venta de contado~~ (hecha: UC-02, solo efectivo).
