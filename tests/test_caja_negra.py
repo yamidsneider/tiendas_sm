@@ -13,6 +13,7 @@ CN-05 HU-01 escenario 2: producto sin nombre o con precio negativo
 CN-06 CU-01 / RN-03: límite de crédito (valores límite 50.000 y 50.001)
 CN-07 HU-04: valores límite del stock (cantidad = stock - 1, stock y stock + 1)
 CN-08 HU-02 escenario 1: ventas anteriores no cambian al subir el precio
+CN-09 RN-14 / TD-04: stock mínimo del producto (valores límite -1 y 0) y que se pueda registrar
 """
 import unittest
 
@@ -95,6 +96,20 @@ class PruebasDeCajaNegra(unittest.TestCase):
         vendido = self.app.conexion.execute("SELECT precio_unitario_venta FROM detalles_venta").fetchone()[0]
         self.assertEqual(vendido, 2500)
         self.assertEqual(self.app.productos.obtener(a.id_producto).precio_venta, 2700)
+
+    def test_cn09_valores_limite_del_stock_minimo(self):
+        with self.assertRaises(ValueError) as negativo:                # -1: se rechaza
+            self.app.productos.registrar_producto("Arroz", 1000, 2000, stock_minimo=-1)
+        self.assertIn("stock mínimo", str(negativo.exception).lower())
+        self.assertEqual(self.app.productos.listar(), [])
+        cero = self.app.productos.registrar_producto("Arroz", 1000, 2000, stock_minimo=0)   # 0: se acepta
+        self.assertEqual(self.app.productos.obtener(cero.id_producto).stock_minimo, 0)
+
+    def test_cn09_el_stock_minimo_registrado_se_conserva(self):
+        p = self.app.productos.registrar_producto("Frijol", 3000, 4000, 8, stock_minimo=5)
+        guardado = self.app.productos.obtener(p.id_producto)
+        self.assertEqual(guardado.stock_minimo, 5)
+        self.assertEqual(self.app.cantidad_en_inventario(p.id_producto), 8)
 
 
 if __name__ == "__main__":
