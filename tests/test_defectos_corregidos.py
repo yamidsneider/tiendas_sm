@@ -164,6 +164,17 @@ class PruebasTd01MovimientoDeVenta(unittest.TestCase):
             self.app.ventas.registrar_venta_de_contado([(self.a.id_producto, 2)], 5000)
         self.assertEqual(self.salidas(), [])
 
+    def test_rnf04_si_falla_el_movimiento_se_revierte_toda_la_venta(self):
+        self.app.conexion.execute(
+            "CREATE TRIGGER falla_en_movimiento BEFORE INSERT ON movimientos_inventario "
+            "WHEN NEW.tipo='SALIDA_VENTA' BEGIN SELECT RAISE(ABORT, 'falla simulada'); END")
+        with self.assertRaises(sqlite3.Error):
+            self.app.ventas.registrar_venta_a_credito(self.cliente.id_cliente, [(self.a.id_producto, 2)])
+        self.assertEqual(self.app.numero_de_ventas(), 0)
+        self.assertEqual(self.app.cantidad_en_inventario(self.a.id_producto), 10)
+        cuentas = self.app.conexion.execute("SELECT COUNT(*) FROM cuentas_por_cobrar").fetchone()[0]
+        self.assertEqual(cuentas, 0)
+
     def test_e05_entradas_menos_salidas_es_igual_a_la_cantidad_actual(self):
         self.app.productos.registrar_entrada(self.a.id_producto, 4)
         self.app.ventas.registrar_venta_a_credito(self.cliente.id_cliente, [(self.a.id_producto, 3)])
