@@ -55,3 +55,18 @@ SQLite lanzaba `IntegrityError` en vez de un mensaje claro. *Regla:* UC-05 del D
 un día). *Corrección:* en el dominio (`Cliente.__init__`), no en la pantalla; prueba primero en `test_defectos_corregidos.py`.
 *Impacto:* `dominio.py` y `validaciones.py` (`exigir_texto_obligatorio`, que ahora también usa `Producto`). Los datos adicionales del
 cliente y el control de duplicados siguen pendientes con el propietario.
+
+**TD-01 (noviembre de 2026, pagada).** *Hallazgo:* `guardar_transaccion` descontaba existencias sin insertar nada en `movimientos_inventario`
+(incumplía RF-04, RN-07 y RNF-10). *Corrección:* `RepositorioDeVentasSqlite._insertar_salidas` agrega un movimiento `SALIDA_VENTA` por producto
+(suma de sus líneas) con la fecha de la venta, dentro de la misma transacción (RNF-04), en el repositorio y no con un trigger (FPI-19).
+Aplica a la venta a crédito y a la de contado. *Prueba:* escenario E-05 (entradas − salidas = cantidad actual) en `test_defectos_corregidos.py`.
+*Impacto:* solo `repositorios.py`; sin cambios de firmas.
+
+### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
+Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
+Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
+
+| Repositorio | Fichas | Relación |
+| --- | --- | --- |
+| DT-09 (cliente sin validar) | TD-04 | DT-09 cubre la parte del cliente de TD-04; falta `stock_minimo` del producto |
+| Hallazgo de la venta de contado (sin movimiento al vender) | TD-01 | Es el mismo problema; quedó registrado como TD-01 |

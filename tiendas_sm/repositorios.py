@@ -6,6 +6,8 @@ from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, RepositorioD
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
 __all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes"]
 
+MOVIMIENTO_SALIDA_VENTA = "SALIDA_VENTA"
+
 
 def _ahora():
     return datetime.now().isoformat()
@@ -98,6 +100,7 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
             if cuenta is not None:
                 self._insertar_cuenta(venta, cuenta)
             self._actualizar_existencias(existencias)
+            self._insertar_salidas(venta)
 
     def _insertar_venta(self, venta):
         forma_pago = venta.forma_pago.value if venta.forma_pago else None
@@ -129,6 +132,16 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
         for existencia in existencias:
             self.conexion.execute("UPDATE existencias SET cantidad_actual=? WHERE id_producto=?",
                                   (existencia.cantidad_actual, existencia.id_producto))
+
+    def _insertar_salidas(self, venta):
+        """TD-01: un movimiento SALIDA_VENTA por producto (suma sus líneas), con la fecha de la venta."""
+        vendido = {}
+        for detalle in venta.detalles:
+            vendido[detalle.id_producto] = vendido.get(detalle.id_producto, 0) + detalle.cantidad
+        for id_producto, cantidad in vendido.items():
+            self.conexion.execute(
+                "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha) VALUES (?,?,?,?)",
+                (id_producto, MOVIMIENTO_SALIDA_VENTA, cantidad, venta.fecha.isoformat()))
 
     def cuentas_del_cliente(self, id_cliente):
         filas = self.conexion.execute(
