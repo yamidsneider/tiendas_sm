@@ -150,11 +150,11 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                 (id_producto, MOVIMIENTO_SALIDA_VENTA, cantidad, venta.fecha.isoformat()))
 
     def saldo_pendiente_del_cliente(self, id_cliente):
-        """TD-13: suma de (monto original − abonos) de todas las cuentas del cliente, en una sola consulta."""
+        """TD-13: misma regla que CuentaPorCobrar.calcular_saldo (monto original − abonos), sumada en una consulta."""
         fila = self.conexion.execute(
-            "SELECT COALESCE(SUM(c.monto_credito_original), 0) - COALESCE((SELECT SUM(a.valor) FROM abonos a "
-            "JOIN cuentas_por_cobrar ca ON ca.id_cuenta = a.id_cuenta WHERE ca.id_cliente = ?), 0) "
-            "FROM cuentas_por_cobrar c WHERE c.id_cliente = ?", (id_cliente, id_cliente)).fetchone()
+            "SELECT COALESCE(SUM(c.monto_credito_original - COALESCE(a.pagado, 0)), 0) FROM cuentas_por_cobrar c "
+            "LEFT JOIN (SELECT id_cuenta, SUM(valor) AS pagado FROM abonos GROUP BY id_cuenta) a "
+            "ON a.id_cuenta = c.id_cuenta WHERE c.id_cliente = ?", (id_cliente,)).fetchone()
         return fila[0]
 
     def cuentas_del_cliente(self, id_cliente):
