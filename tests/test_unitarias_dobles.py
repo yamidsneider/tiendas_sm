@@ -25,6 +25,9 @@ class RepositorioDeVentasStub:
     def cuentas_del_cliente(self, id_cliente):
         return self._cuentas
 
+    def saldo_pendiente_del_cliente(self, id_cliente):      # TD-13: el contrato del repositorio ahora incluye el saldo
+        return sum(cuenta.calcular_saldo() for cuenta in self._cuentas)
+
 
 class RepositorioDeProductosStub:
     """Stub: devuelve siempre la misma existencia."""

@@ -77,8 +77,7 @@ class ControlCredito:
         self.repo_ventas = repo_ventas
 
     def saldo_pendiente(self, cliente):
-        cuentas = self.repo_ventas.cuentas_del_cliente(cliente.id_cliente)
-        return sum(cuenta.calcular_saldo() for cuenta in cuentas)
+        return self.repo_ventas.saldo_pendiente_del_cliente(cliente.id_cliente)   # TD-13: una consulta, no N cuentas
 
     def puede_comprar_a_credito(self, cliente, monto):
         return cliente.puede_endeudarse(monto, self.saldo_pendiente(cliente))

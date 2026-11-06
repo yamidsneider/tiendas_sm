@@ -149,6 +149,14 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                 "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha) VALUES (?,?,?,?)",
                 (id_producto, MOVIMIENTO_SALIDA_VENTA, cantidad, venta.fecha.isoformat()))
 
+    def saldo_pendiente_del_cliente(self, id_cliente):
+        """TD-13: suma de (monto original − abonos) de todas las cuentas del cliente, en una sola consulta."""
+        fila = self.conexion.execute(
+            "SELECT COALESCE(SUM(c.monto_credito_original), 0) - COALESCE((SELECT SUM(a.valor) FROM abonos a "
+            "JOIN cuentas_por_cobrar ca ON ca.id_cuenta = a.id_cuenta WHERE ca.id_cliente = ?), 0) "
+            "FROM cuentas_por_cobrar c WHERE c.id_cliente = ?", (id_cliente, id_cliente)).fetchone()
+        return fila[0]
+
     def cuentas_del_cliente(self, id_cliente):
         filas = self.conexion.execute(
             "SELECT * FROM cuentas_por_cobrar WHERE id_cliente=? ORDER BY id_cuenta", (id_cliente,)).fetchall()
