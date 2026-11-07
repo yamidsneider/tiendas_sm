@@ -8,7 +8,8 @@ Consolidado de las guías 1 a 16, más la etapa de IS II con Claude Code (secci�
   y defender todo (política de uso de IA del proyecto).
 - Tamaño del código actual: 537 líneas del sistema (`tiendas_sm/`) y 717 de pruebas (`tests/`).
   Proporción generada con apoyo de IA: **prácticamente el 100 %** (el desarrollador no lo escribió a mano).
-  Revisado y validado por el desarrollador: **[CONFIRMAR: qué partes leíste, ejecutaste y modificaste]**.
+  Revisado y validado por el desarrollador, según su respuesta del 6-nov-2026: **no leyó, no ejecutó y no modificó el código a mano**;
+  todo lo hizo la IA (Claude) y él confió en el resultado. Sí comprobó, con ayuda de la IA, los hallazgos de la sección 2.
 - Datos: ninguna prueba ni consulta a la IA usó datos reales de clientes, contraseñas ni información confidencial.
 
 ## 2. Hallazgos reales en lo generado con IA (20 de las guías 1 a 16; 17 más en la sección 7)
@@ -16,22 +17,22 @@ Consolidado de las guías 1 a 16, más la etapa de IS II con Claude Code (secci�
 (una prueba que no prueba lo que dice) u *otro* (se dice cuál). **Revisado por:** quién encontró y comprobó el hallazgo: una persona o la IA.
 | N.° | Guía | Hallazgo | Cómo se detectó | Tipo | Revisado por |
 | --- | --- | --- | --- | --- | --- |
-| 1–8 | 12 | 8 code smells en el primer borrador: Long Method, Feature Envy, código duplicado (5 copias), cadenas y números mágicos, clase grande, dependencia oculta, código muerto, nombres poco claros | Auditoría de código y script `medir_calidad.py` | diseño | [CONFIRMAR] |
-| 9 | 13 | Ids inexistentes producían `AttributeError` (BUG-01, antes DT-06) | Revisión de código del PR 1, ejecutando el código | diseño | [CONFIRMAR] |
-| 10 | 12 | El vencimiento del crédito ignoraba el plazo del cliente (BUG-02, antes DT-02) | Auditoría de código | diseño | [CONFIRMAR] |
-| 11–12 | 14 | Mensajes de stock insuficiente y de abono excedido sin las cantidades que piden los criterios (CN-02 y CN-03) | Pruebas de caja negra derivadas de los criterios Gherkin | diseño | [CONFIRMAR] |
-| 13 | 14 | Primera medición de cobertura errónea (63,9 % en vez de 98,7 %) por un error en el script | Comparar el resultado con lo esperado | diseño (script de medición) | [CONFIRMAR] |
-| 14 | 12 | Una prueba generada estaba mal escrita (contenía instrucciones sin sentido) | Revisión de las pruebas al ejecutarlas | prueba débil | [CONFIRMAR] |
-| 15 | 15 | Una prueba marcada como falla esperada que ya pasaba hacía fallar toda la suite | Probar el script del kit de punta a punta | prueba débil | [CONFIRMAR] |
-| 16 | 15 | Un parche del README no encajaba con el README real | Probar el script del kit de punta a punta | alucinación | [CONFIRMAR] |
-| 17 | 16 | La FPI-10 decía que la venta de contado quedaba cubierta, pero el código solo tiene la venta a crédito (RF-05 parcial) | Al armar el panel del proyecto y cruzar requisitos con el código | alucinación | [CONFIRMAR] |
-| 18–20 | 9 | En el modelo entidad-relación propuesto por una IA: entidades más allá de los requisitos (Devolución, Usuario y Rol, ConfiguracionAlerta, MovimientoCaja); nombre `costo_compra_referencia` distinto de «precio de compra»; fórmula que usa `cantidad_recibida`, que no es un atributo | Comparar con el catálogo de requisitos y los términos del negocio | diseño (alcance) y alucinación (`cantidad_recibida`) | [CONFIRMAR] |
+| 1–8 | 12 | 8 code smells en el primer borrador: Long Method, Feature Envy, código duplicado (5 copias), cadenas y números mágicos, clase grande, dependencia oculta, código muerto, nombres poco claros | Auditoría de código y script `medir_calidad.py` | diseño | Yamid, con ayuda de la IA |
+| 9 | 13 | Ids inexistentes producían `AttributeError` (BUG-01, antes DT-06) | Revisión local del código, ejecutándolo (no fue un Pull Request en GitHub; confirmado por el desarrollador el 6-nov-2026) | diseño | Yamid, con ayuda de la IA |
+| 10 | 12 | El vencimiento del crédito ignoraba el plazo del cliente (BUG-02, antes DT-02) | Auditoría de código | diseño | Yamid, con ayuda de la IA |
+| 11–12 | 14 | Mensajes de stock insuficiente y de abono excedido sin las cantidades que piden los criterios (CN-02 y CN-03) | Pruebas de caja negra derivadas de los criterios Gherkin | diseño | Yamid, con ayuda de la IA |
+| 13 | 14 | Primera medición de cobertura errónea (63,9 % en vez de 98,7 %) por un error en el script | Comparar el resultado con lo esperado | diseño (script de medición) | Yamid, con ayuda de la IA |
+| 14 | 12 | Una prueba generada estaba mal escrita (contenía instrucciones sin sentido) | Revisión de las pruebas al ejecutarlas | prueba débil | Yamid, con ayuda de la IA |
+| 15 | 15 | Una prueba marcada como falla esperada que ya pasaba hacía fallar toda la suite | Probar el script del kit de punta a punta | prueba débil | Yamid, con ayuda de la IA |
+| 16 | 15 | Un parche del README no encajaba con el README real | Probar el script del kit de punta a punta | alucinación | Yamid, con ayuda de la IA |
+| 17 | 16 | La FPI-10 decía que la venta de contado quedaba cubierta, pero el código solo tiene la venta a crédito (RF-05 parcial) | Al armar el panel del proyecto y cruzar requisitos con el código | alucinación | Yamid, con ayuda de la IA |
+| 18–20 | 9 | En el modelo entidad-relación propuesto por una IA: entidades más allá de los requisitos (Devolución, Usuario y Rol, ConfiguracionAlerta, MovimientoCaja); nombre `costo_compra_referencia` distinto de «precio de compra»; fórmula que usa `cantidad_recibida`, que no es un atributo | Comparar con el catálogo de requisitos y los términos del negocio | diseño (alcance) y alucinación (`cantidad_recibida`) | Yamid, con ayuda de la IA |
 
 ## 3. Ejemplos de taller simulados (14) — no cuentan como hallazgos reales
 En el ejercicio 5 de las guías 4 a 15 (y en los ejercicios 4 y 5 de la guía 3) el prompt y la respuesta de la IA fueron
 **redactados como ejemplo** para practicar la auditoría. Sus hallazgos (sobrediseño, criterios subjetivos, mocks innecesarios,
 secretos en YAML, etc.) ilustran riesgos reales, pero no fueron salidas obtenidas de una ejecución registrada.
-**[CONFIRMAR: si repetiste alguno con una IA real, súmalo a la sección 2.]**
+Confirmado por el desarrollador (6-nov-2026): **ninguno se repitió con una IA real**; los 14 siguen siendo simulados.
 
 ## 4. Licencias y dependencias
 - Rechazadas: **0** de forma formal. Decisión de diseño: el MVP usa solo la biblioteca estándar de Python (sin dependencias externas).
@@ -63,7 +64,9 @@ secretos en YAML, etc.) ilustran riesgos reales, pero no fueron salidas obtenida
 - **Forma de trabajo:** la IA proponía un plan, el desarrollador lo aprobaba o lo ajustaba, y después se escribía primero la prueba que
   fallaba. Al final de la etapa de las tareas 1 a 8 el desarrollador pidió que la IA continuara sin aprobar cada paso (interfaz, tareas 5, 6 y 7); en las tareas 9 a 16 aprobó cada plan y cada fusión.
 - **Tamaño actual (6-nov-2026):** 1.103 líneas en `tiendas_sm/`, 385 en la interfaz (`interfaz_tk/` e `iniciar_tienda.py`) y 2.113 en `tests/`.
-  Generado con IA: prácticamente el 100 %. Revisado por el desarrollador: **[CONFIRMAR: qué partes leíste, ejecutaste y modificaste]**.
+  Generado con IA: prácticamente el 100 %. Revisado por el desarrollador, según su respuesta del 6-nov-2026: **solo leyó y aprobó los
+  planes y resúmenes** que le mostró la IA; no leyó el código, no ejecutó la aplicación ni las pruebas por su cuenta y no modificó nada.
+  Las ejecuciones, mediciones y capturas que respaldan esta etapa las hizo la IA.
 - **Decisiones que tomó el desarrollador, no la IA:** trabajar solo en local sin GitHub; aprobar cada plan; la numeración TD; la base de datos
   en la carpeta del usuario; los datos de ejemplo con `--datos-de-ejemplo`; fusionar la interfaz sin revisarla a mano.
 - **Datos:** solo datos ficticios en pruebas, datos de ejemplo y consultas. Ningún secreto, contraseña ni dato real de clientes.

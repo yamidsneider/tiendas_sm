@@ -92,10 +92,10 @@
 - • Un YAML con un «:» que lo invalidaba (FPI-25).
 - Los cuatro se detectaron ejecutando, no leyendo.
 
-**Pendiente del propio estudiante: la bitácora del repositorio aún tiene dos campos «[CONFIRMAR: qué partes leíste, ejecutaste y modificaste]» sin llenar. Deben completarse antes de entregar.**
+**Campos «[CONFIRMAR]» de la bitácora completados el 6-nov-2026 con las respuestas del desarrollador:** en IS I y en IS II no leyó, no ejecutó y no modificó el código a mano; en IS II solo aprobó los planes y resúmenes de la IA; los hallazgos de IS I los comprobó él con ayuda de la IA; ningún ejemplo simulado se repitió con una IA real; y el hallazgo 9 fue una revisión local, no un PR en GitHub.
 
 
-**Evaluación del uso responsable de la IA:** 3 de 5. La IA auditora dio 4 de 5 con un extracto; la bitácora completa muestra supervisión humana sin documentar ([CONFIRMAR] vacíos) y una etapa sin aprobación paso a paso.
+**Evaluación del uso responsable de la IA:** 3 de 5. La IA auditora dio 4 de 5 con un extracto; la bitácora completa muestra que la supervisión humana se limitó a aprobar planes (sin leer ni ejecutar el código) y una etapa sin aprobación paso a paso. La nota de 3 de 5 es la del borrador; el desarrollador decide si la mantiene.
 
 ## 6. Deuda técnica residual aceptada
 
@@ -116,7 +116,7 @@ Técnicas. La arquitectura correcta es la que el problema pide, no la que impres
 
 De proceso. Las decisiones escritas (ADR) sirven de verdad: permitieron defender por qué no hay microservicios, por qué hay aprobación humana o por qué la telemetría no usa Grafana. El inventario de deuda funcionó porque se revisó contra el código y no contra la intención: 4 ítems pagados, 5 iguales y 1 que empeoró. Y «medir antes de opinar» resolvió discusiones: concurrencia, costo de la telemetría, saldo lento.
 
-Éticas. Prácticamente todo el código lo generó una IA, y eso no reduce mi responsabilidad: la aumenta. La IA inventó tablas, módulos, números y estados con formato impecable, propuso exponer datos personales y recomendó prácticas que ya habían sido explotadas. Lo detecté ejecutando y comparando con los requisitos, no leyendo. Reconozco mi falla: hubo una etapa en que dejé que la IA avanzara sin aprobar cada paso, y la bitácora todavía no dice qué revisé yo. Eso se corrige antes de entregar.
+Éticas. Prácticamente todo el código lo generó una IA, y eso no reduce mi responsabilidad: la aumenta. La IA inventó tablas, módulos, números y estados con formato impecable, propuso exponer datos personales y recomendó prácticas que ya habían sido explotadas. Lo detecté ejecutando y comparando con los requisitos, no leyendo. Reconozco mi falla: hubo una etapa en que dejé que la IA avanzara sin aprobar cada paso, y la bitácora ya lo dice sin adornos: aprobé los planes, pero no leí ni ejecuté el código por mi cuenta.
 
 De trabajo en equipo. Como desarrollador único, el «equipo» fue el desarrollador más la IA. La lección es la misma que con personas: dividir el trabajo no divide la responsabilidad. Cada tarea tuvo un plan aprobado, una prueba que fallaba primero y una revisión, y cuando se saltó un paso (pruebas escritas después del código) quedó declarado.
 
@@ -132,5 +132,5 @@ Lo que haría distinto: subir el repositorio a GitHub desde el primer día, para
 ## 9. Pendientes para certificar el cierre
 - [ ] Crear el repositorio en GitHub, hacer push, ver en verde `ci.yml`, `ci-security.yml` y `deploy.yml`, y etiquetar `v1.0.0` (tarea 16).
 - [ ] Grabar el video con el guion de la sección 8.
-- [ ] Completar los `[CONFIRMAR]` de `docs/BITACORA_IA.md` y aclarar «revisión de código del PR 1».
+- [x] Completar los `[CONFIRMAR]` de `docs/BITACORA_IA.md` y aclarar «revisión de código del PR 1» (revisión local), el 6-nov-2026.
 - [x] Tareas 13, 14 y 15 (telemetría, confiabilidad y TD-13), fusionadas en `main` local el 6-nov-2026.
