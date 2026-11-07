@@ -67,12 +67,12 @@ class PruebasDeLaVentanaPrincipal(BaseConVentana):
         self.assertEqual(self.principal.botones["Punto de venta"].cget("bg"), PALETA["v600"])
         self.assertEqual(self.principal.titulo.cget("text"), "Punto de venta")
 
-    def test_una_seccion_pendiente_muestra_proximamente_y_oculta_el_punto_de_venta(self):
-        self.principal.mostrar("Ventas")                        # Clientes y Créditos ya existen (etapas 2 y 3)
+    def test_cambiar_de_seccion_oculta_el_punto_de_venta(self):
+        self.principal.mostrar("Ventas")                        # etapa 6: ya no queda ninguna «Próximamente»
         punto_de_venta = self.principal.pantallas["Punto de venta"]
         self.assertEqual(punto_de_venta.marco.winfo_manager(), "")
         self.assertFalse(punto_de_venta.activa)
-        self.assertIn("Próximamente", self.principal.pantallas["Ventas"].aviso.cget("text"))
+        self.assertEqual(self.principal.pantallas["Ventas"].marco.winfo_manager(), "pack")
         self.assertEqual(self.principal.botones["Punto de venta"].cget("bg"), PALETA["v900"])
 
     def test_los_atajos_del_punto_de_venta_no_actuan_en_otra_seccion(self):
