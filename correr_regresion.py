@@ -30,6 +30,8 @@ PRUEBAS = {
     "pantalla_clientes": "tests.test_pantalla_clientes",
     "creditos": "tests.test_presentador_creditos",
     "pantalla_creditos": "tests.test_pantalla_creditos",
+    "productos": "tests.test_presentador_productos",
+    "pantalla_productos": "tests.test_pantalla_productos",
     "escenarios": "tests.test_escenarios_calidad",
     "migracion": "tests.test_migracion_esquema",
     "medidor": "tests.test_medir_cobertura",
@@ -41,6 +43,7 @@ PRUEBAS = {
     "saldo": "tests.test_td13_saldo_pendiente",
 }
 TODAS = list(PRUEBAS.values())
+PRUEBAS_DE_PANTALLAS = [PRUEBAS[k] for k in PRUEBAS if k in ("ventana", "principal") or k.startswith("pantalla_")]
 
 # módulo cambiado -> pruebas que lo ejercitan (directa o indirectamente)
 MAPA = {
@@ -55,13 +58,16 @@ MAPA = {
     "tiendas_sm/presentador.py": [PRUEBAS[k] for k in ("presentador", "ventana", "principal")],
     "tiendas_sm/datos_de_ejemplo.py": [PRUEBAS["arranque"]],
     "interfaz_tk/ventana_punto_de_venta.py": [PRUEBAS[k] for k in ("ventana", "principal")],
-    "interfaz_tk/ventana_principal.py": [PRUEBAS[k] for k in ("principal", "pantalla_clientes", "pantalla_creditos")],
+    "interfaz_tk/ventana_principal.py": [PRUEBAS[k] for k in ("principal", "pantalla_clientes", "pantalla_creditos",
+                                                             "pantalla_productos")],
+    "interfaz_tk/pantalla_productos.py": [PRUEBAS["pantalla_productos"]],
+    "tiendas_sm/presentador_productos.py": [PRUEBAS[k] for k in ("productos", "pantalla_productos")],
     "interfaz_tk/pantalla_creditos.py": [PRUEBAS["pantalla_creditos"]],
     "tiendas_sm/presentador_creditos.py": [PRUEBAS[k] for k in ("creditos", "pantalla_creditos")],
     "interfaz_tk/pantalla_clientes.py": [PRUEBAS["pantalla_clientes"]],
     "tiendas_sm/presentador_clientes.py": [PRUEBAS[k] for k in ("clientes", "pantalla_clientes")],
-    "interfaz_tk/pantalla.py": [PRUEBAS[k] for k in ("ventana", "principal", "pantalla_clientes", "pantalla_creditos")],
-    "interfaz_tk/tema.py": [PRUEBAS[k] for k in ("ventana", "principal", "pantalla_clientes", "pantalla_creditos")],
+    "interfaz_tk/pantalla.py": PRUEBAS_DE_PANTALLAS,
+    "interfaz_tk/tema.py": PRUEBAS_DE_PANTALLAS,
     "iniciar_tienda.py": [PRUEBAS[k] for k in ("arranque", "telemetria", "respaldo")],
     "tiendas_sm/telemetria.py": [PRUEBAS[k] for k in ("telemetria", "respaldo")],
     "tiendas_sm/respaldo.py": [PRUEBAS["respaldo"]],
