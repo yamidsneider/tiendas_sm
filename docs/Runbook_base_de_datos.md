@@ -12,6 +12,7 @@
 |---|---|
 | La caja muestra «No se pudo guardar la venta; no quedó nada a medias. Intente de nuevo.» **dos veces seguidas** | La base no aceptó la escritura (bloqueo o daño). La venta NO quedó a medias. |
 | La venta tarda unos 5 segundos y luego sale ese mismo mensaje | Bloqueo: otro programa tiene la base ocupada (`database is locked`, comprobado: falla a los 5,01 s). |
+| Al abrir aparece «La base de datos está dañada. No venda en el sistema: use el cuaderno y llame al soporte (Runbook)» | La revisión al abrir (`PRAGMA quick_check`, tarea 14) encontró daño. El punto de venta **no se abre**: vaya directo a 3.1 y 4.B. |
 | La aplicación no abre, o aparece «database disk image is malformed» | Archivo dañado (típico después de un apagón). |
 | En `telemetria.jsonl` aparecen errores `OperationalError` o `DatabaseError` | Fallas técnicas: consumen el presupuesto de error (SLO 99,5 %). |
 
@@ -78,7 +79,10 @@ python -c "import os,sys,sqlite3,shutil,datetime,json; C=os.path.join(os.environ
 - Cuente la falla en el presupuesto de error: `python slo_mensual.py telemetria.jsonl --mes AAAA-MM`. Si dice «PRESUPUESTO AGOTADO», no se entregan funciones nuevas hasta corregir la causa (ADR-14).
 
 ## 6. Prevención (de rutina)
-- **Respaldo diario** al cerrar la caja (hasta que la tarea 14 lo automatice):
+- **Respaldo automático** (tarea 14): cada vez que se cierra la aplicación, primero se revisa la base con `PRAGMA integrity_check`;
+  si da `ok`, se crea `respaldo_AAAA-MM-DDTHHMM.db` en la misma carpeta y se conservan los **7 más recientes**. Si la base está
+  dañada **no** se crea el respaldo, la consola dice «No se creó el respaldo: revise la base con el Runbook» y la telemetría registra
+  `BaseDeDatosDanada`. El comando manual de abajo sigue sirviendo para un respaldo extra (por ejemplo, antes de copiarlo a la USB):
 ```
 python -c "import os,sys,sqlite3,shutil,datetime,json; C=os.path.join(os.environ['LOCALAPPDATA'],'TIENDAS_SM'); DB=os.path.join(C,'tiendas_sm.db'); r=sqlite3.connect(DB).execute('PRAGMA integrity_check').fetchone()[0]; assert r=='ok', 'base dañada, NO se respalda: '+r; d=os.path.join(C,'respaldo_'+datetime.datetime.now().isoformat(timespec='minutes').replace(':','')+'.db'); o=sqlite3.connect(d); sqlite3.connect(DB).backup(o); o.close(); print('respaldo:', d)"
 ```

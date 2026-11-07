@@ -32,16 +32,17 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
 ```
 tiendas_sm/          dominio.py, servicios.py, puertos.py, repositorios.py, base_de_datos.py, validaciones.py, aplicacion.py,
                      presentador.py (lógica de la pantalla, sin Tkinter), datos_de_ejemplo.py (ficticios),
-                     telemetria.py (span, métricas y log JSON de la venta, FPI-29)
+                     telemetria.py (span, métricas y log JSON de la venta, FPI-29), respaldo.py (respaldo verificado y revisión al abrir, FPI-30)
 interfaz_tk/         ventana_punto_de_venta.py (solo dibuja; no cuenta en la cobertura) · iniciar_tienda.py abre la app
 tests/               test_comportamiento, test_unitarias_dobles, test_caja_negra, test_integracion_incremental, test_defectos_corregidos,
-                     test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_interfaz_tk (se salta sin pantalla), test_escenarios_calidad, test_migracion_esquema, test_medir_cobertura, test_healthcheck_paquete, test_telemetria
+                     test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_interfaz_tk (se salta sin pantalla), test_escenarios_calidad, test_migracion_esquema, test_medir_cobertura, test_healthcheck_paquete, test_telemetria,
+                     test_slo_mensual, test_respaldo, test_tablero_telemetria
 scripts/             healthcheck_paquete.py (revisa el .zip publicado; lo usa el CD)
-docs/                CI.md, FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACORA_IA.md, HOJA_DE_RUTA_IS2.md, contexto/, referencia/
+docs/                CI.md, Runbook_base_de_datos.md, incidentes/ (Postmortem INC-SIM-01), FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACORA_IA.md, HOJA_DE_RUTA_IS2.md, contexto/, referencia/
 .github/workflows/ci.yml   pipeline de 3 jobs (FPI-25): linter -> test (3.12 y 3.13) -> analysis (cobertura ≥ 90 %, SonarCloud)
 .github/workflows/deploy.yml   entrega continua por GitHub Releases con healthcheck y rollback (FPI-27)
 .github/workflows/ci-security.yml   Semgrep (SAST) y Trivy (SCA, secretos) (FPI-28) · ruff.toml y .trivyignore: excepciones justificadas
-medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresion.py · calcular_metricas.py · demo_en_vivo.py · tablero_telemetria.py (tablero local del log de telemetría)
+medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresion.py · calcular_metricas.py · demo_en_vivo.py · tablero_telemetria.py (tablero local del log de telemetría) · slo_mensual.py (SLO y presupuesto de error)
 ```
 
 **Ignora** las carpetas `evidencia_fpi12/`, `evidencia_fpi14/`, `evidencia_fpi15/` y `evidencia_fpi24/`: son evidencia de las fichas (incluye una copia vieja del código en
@@ -49,12 +50,12 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (172 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (193 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 98 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
 python iniciar_tienda.py --datos-de-ejemplo      # abre el punto de venta (datos en %LOCALAPPDATA%\TIENDAS_SM)
-ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py   # job linter (ruff==0.16.9)
+ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py slo_mensual.py   # job linter (ruff==0.16.9)
 ```
 
 ## Arquitectura (resumen)
@@ -72,7 +73,7 @@ ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-com
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 172 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07 y TD-14 corregidos; pipeline de la Guía 9, entrega continua de la Guía 11, seguridad de la Guía 12 y telemetría de la venta (Guía 13).
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 193 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07 y TD-14 corregidos; pipeline de la Guía 9, entrega continua de la Guía 11, seguridad de la Guía 12, telemetría de la venta (Guía 13) y confiabilidad: SLO, Runbook, respaldo verificado al cerrar y revisión al abrir (Guía 14).
 - **Pendiente, en este orden de prioridad:**
   1. **Interfaz Tkinter:** punto de venta hecho; faltan medir E-01 con personas y las demás pantallas
      (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).

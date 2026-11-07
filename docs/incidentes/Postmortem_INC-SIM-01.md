@@ -37,8 +37,8 @@ Nadie «hizo algo mal»: la persona de la caja usó el sistema como siempre; el 
 ## Acciones preventivas
 | Acción | Tipo | Dueño | Estado |
 |---|---|---|---|
-| Respaldo automático al cerrar la aplicación con la API de SQLite, verificando integridad, conservando 7 | Prevenir pérdida | Yamid (tarea 14) | PENDIENTE |
-| `PRAGMA quick_check` al abrir; si falla, mensaje claro y no se vende sobre la base dañada | Detectar | Yamid (tarea 14) | PENDIENTE |
+| Respaldo automático al cerrar la aplicación con la API de SQLite, verificando integridad, conservando 7 | Prevenir pérdida | Yamid (tarea 14) | Hecho en el código (`tiendas_sm/respaldo.py`, `tests/test_respaldo.py`); falta usarlo en la tienda real |
+| `PRAGMA quick_check` al abrir; si falla, mensaje claro y no se vende sobre la base dañada | Detectar | Yamid (tarea 14) | Hecho en el código (`revisar_al_abrir`); la ventana del mensaje no se probó a mano |
 | Runbook impreso junto a la caja + cuaderno de contingencia | Responder | Yamid / tienda | Hecho (Runbook v1.0) |
 | Simulacro de restauración una vez al mes | Practicar | Yamid | PENDIENTE (primer simulacro hecho en copia) |
 | Regulador o UPS | Mitigar | Propietario | Por decidir (costo) |

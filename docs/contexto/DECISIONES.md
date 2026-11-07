@@ -141,6 +141,24 @@ con un `main` anterior (aquí 164 + 8 = 172); `marca_tiempo` está en UTC, así 
 las 7 p. m. de Colombia cae en el día siguiente), lo que queda como recomendación sin aplicar; `tablero_telemetria.py` no tiene pruebas
 propias (herramienta del desarrollador, como `medir_*.py`). *No verificado:* Python 3.13 (lo corre el CI) y el uso real durante varios días.
 
+**Confiabilidad (tarea 14, FPI-30, ADR-14, INC-SIM-01, noviembre de 2026).** Parche `cambios_fpi30.patch` sin cambios (`slo_mensual.py`
+y 4 pruebas: SLO 99,5 % de ventas sin falla técnica y 99 % en menos de 1 s; los rechazos de negocio no consumen presupuesto). Runbook en
+`docs/Runbook_base_de_datos.md` y Postmortem en `docs/incidentes/`. *Causa raíz del simulacro, corregida con TDD (ROJO, VERDE y
+REFACTOR):* `tiendas_sm/respaldo.py`. **Al cerrar** (en el `finally` de `iniciar_tienda.py`): `PRAGMA integrity_check`; si da `ok`,
+copia con `sqlite3 .backup()` a `respaldo_AAAA-MM-DDTHHMM.db` en la misma carpeta y conserva los 7 más recientes; si la base está
+dañada no respalda y la telemetría registra `BaseDeDatosDanada` (solo el tipo). **Al abrir:** `PRAGMA quick_check` en solo lectura (no
+crea el archivo si no existe); si no da `ok`, muestra «La base de datos está dañada. No venda en el sistema: use el cuaderno y llame al
+soporte (Runbook)» y no abre el punto de venta. Las pruebas usan una base dañada a propósito (basura en la página 2): `quick_check` y
+`integrity_check` la detectan. `respaldo.py` es infraestructura (usa `sqlite3`), no núcleo: `test_arquitectura` no cambia.
+*Tablero:* el porcentaje cuenta solo fallas técnicas (umbral 0,5 % = 100 − SLO) y los rechazos se listan aparte, con la misma lista
+`RECHAZOS_DE_NEGOCIO` de `slo_mensual.py`. *Ajuste no pedido, con prueba en ROJO primero:* los spans nuevos `abrir_base` y
+`respaldar_base` se habrían contado como ventas en el tablero y en el SLO; `slo_mensual.solo_ventas` los deja fuera (un registro sin
+nombre sigue contando como venta, para no romper las pruebas del parche). *Verificado en local:* 193 pruebas OK, cobertura 98,4 %
+(`respaldo.py` 100 %), ruff con las reglas del CI (ahora también sobre `slo_mensual.py`) y todos los comandos del Runbook (3.1, 3.2,
+3.3, 4.B y el respaldo de la sección 6) ejecutados en `cmd` con `verificar_runbook.py` sobre una carpeta temporal: detecta el daño,
+se niega a restaurar un respaldo inexistente, restaura el bueno y vuelve a dar `ok` con las 5 ventas. *No verificado:* la ventana del
+mensaje de base dañada (no se abrió a mano), Python 3.13, el computador real de la tienda y el simulacro con tiempo medido por Yamid.
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
