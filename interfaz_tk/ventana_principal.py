@@ -9,10 +9,12 @@ from tkinter import ttk
 
 from interfaz_tk.pantalla import Pantalla
 from interfaz_tk.pantalla_clientes import PantallaClientes
+from interfaz_tk.pantalla_creditos import PantallaCreditos
 from interfaz_tk.tema import FUENTE_MENU, LETRA, PALETA, aplicar_tema
 from interfaz_tk.ventana_punto_de_venta import VentanaPuntoDeVenta
 from tiendas_sm.presentador import PresentadorPuntoDeVenta
 from tiendas_sm.presentador_clientes import PresentadorDeClientes
+from tiendas_sm.presentador_creditos import PresentadorDeCreditos
 
 TITULO = "TIENDAS S.M"
 ANCHO_MINIMO, ALTO_MINIMO = 1024, 600          # DDS §9.2
@@ -75,6 +77,8 @@ class VentanaPrincipal:
             return VentanaPuntoDeVenta(self.raiz, PresentadorPuntoDeVenta(self.app), contenedor=self.area)
         if seccion == "Clientes":
             return PantallaClientes(self.area, PresentadorDeClientes(self.app))
+        if seccion == "Créditos y abonos":
+            return PantallaCreditos(self.area, PresentadorDeCreditos(self.app))
         return PantallaPendiente(self.area, seccion)
 
 
