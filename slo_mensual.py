@@ -13,9 +13,16 @@ RECHAZOS_DE_NEGOCIO = {"StockInsuficiente", "CreditoNoPermitido", "EfectivoInsuf
 SLO_EXITO_TECNICO = 99.5      # % de ventas sin falla técnica
 SLO_LATENCIA = 99.0           # % de ventas exitosas en menos de 1 s (E-03)
 UMBRAL_LATENCIA_MS = 1000
+OPERACION_VENTA = "registrar_venta"   # FPI-30: abrir_base y respaldar_base también escriben spans, pero no son ventas
+
+
+def solo_ventas(registros):
+    """Un registro sin nombre se toma como venta (así eran los ejemplos del parche original)."""
+    return [r for r in registros if r.get("nombre", OPERACION_VENTA) == OPERACION_VENTA]
 
 
 def calcular(registros, tasa):
+    registros = solo_ventas(registros)
     ok = [r for r in registros if r["estado"] == "OK"]
     negocio = [r for r in registros if r["estado"] == "ERROR" and r.get("error.tipo") in RECHAZOS_DE_NEGOCIO]
     tecnicas = [r for r in registros if r["estado"] == "ERROR" and r.get("error.tipo") not in RECHAZOS_DE_NEGOCIO]
