@@ -41,21 +41,13 @@ def revisar_al_abrir(ruta, telemetria=None):
     ruta = Path(ruta)
     if not ruta.exists():                                      # primera vez: la base todavía no existe
         return None
-    try:
-        _exigir_base_sana(ruta, "quick_check", "abrir_base", telemetria)
-    except BaseDeDatosDanada:
-        return MENSAJE_BASE_DANADA
-    return None
+    return None if _esta_sana(ruta, "quick_check", "abrir_base", telemetria) else MENSAJE_BASE_DANADA
 
 
 def respaldar(ruta, telemetria=None, ahora=None):
     """Respalda la base si está sana y deja solo los 7 respaldos más recientes. Devuelve la ruta o None."""
     ruta = Path(ruta)
-    if not ruta.exists():
-        return None
-    try:
-        _exigir_base_sana(ruta, "integrity_check", "respaldar_base", telemetria)
-    except BaseDeDatosDanada:
+    if not ruta.exists() or not _esta_sana(ruta, "integrity_check", "respaldar_base", telemetria):
         return None
     destino = ruta.parent / f"respaldo_{(ahora or datetime.now()):%Y-%m-%dT%H%M}.db"
     with closing(sqlite3.connect(ruta)) as origen, closing(sqlite3.connect(destino)) as copia:
@@ -64,12 +56,16 @@ def respaldar(ruta, telemetria=None, ahora=None):
     return destino
 
 
-def _exigir_base_sana(ruta, revision, operacion, telemetria):
+def _esta_sana(ruta, revision, operacion, telemetria):
     """La revisión va dentro de un span: si falla, la telemetría registra BaseDeDatosDanada (solo el tipo)."""
-    with (telemetria or Telemetria()).span(operacion):
-        resultado = revisar_integridad(ruta, revision)
-        if resultado != RESULTADO_SANO:
-            raise BaseDeDatosDanada(resultado)
+    try:
+        with (telemetria or Telemetria()).span(operacion):
+            resultado = revisar_integridad(ruta, revision)
+            if resultado != RESULTADO_SANO:
+                raise BaseDeDatosDanada(resultado)
+    except BaseDeDatosDanada:
+        return False
+    return True
 
 
 def _borrar_respaldos_viejos(carpeta):
