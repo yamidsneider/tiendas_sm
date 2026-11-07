@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 from enum import Enum
 
@@ -37,6 +38,10 @@ class EstadoVenta(str, Enum):
 class EstadoCuenta(str, Enum):
     ABIERTA = "ABIERTA"
     PAGADA = "PAGADA"
+
+
+# RF-04: una entrada o una salida por venta ya guardada. Solo se lee (no tiene reglas); la fecha es datetime.
+MovimientoDeInventario = namedtuple("MovimientoDeInventario", "id_movimiento id_producto tipo cantidad fecha")
 
 
 class Producto:

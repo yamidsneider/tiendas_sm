@@ -59,6 +59,10 @@ class PuertoDeProductos(ABC):
     def guardar_existencia(self, existencia, tipo_movimiento, cantidad):
         ...
 
+    @abstractmethod
+    def listar_movimientos(self, limite):
+        """RF-04: los últimos movimientos de inventario (MovimientoDeInventario), del más reciente al más viejo."""
+
 
 class PuertoDeClientes(ABC):
     """Lo que el núcleo necesita para clientes."""

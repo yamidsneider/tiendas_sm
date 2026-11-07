@@ -82,21 +82,23 @@ def _estilos_de_tablas(estilo, p):
     estilo.map("Treeview.Heading", background=[("active", p["v700"])])
 
 
-def crear_tabla(padre, titulo, columnas, alto, columna_principal=None):
+def crear_tabla(padre, titulo, columnas, alto, columna_principal=None, anchos=None):
     """Tabla con encabezado verde y filas alternadas, dentro de un marco con título.
 
     La columna principal (por defecto la primera) va alineada a la izquierda y más ancha; las demás, a la
-    derecha, porque casi siempre son números o pesos.
+    derecha, porque casi siempre son números o pesos. «anchos» cambia el ancho de alguna columna.
     """
     principal = columna_principal or columnas[0]
     marco = ttk.LabelFrame(padre, text=titulo, padding=6)
     marco.pack(fill="both", expand=True, pady=(10, 0))
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=alto, selectmode="browse")
+    anchos = anchos or {}
     for columna in columnas:
         es_principal = columna == principal
+        ancho_normal = ANCHO_COLUMNA_PRINCIPAL if es_principal else ANCHO_COLUMNA
         tabla.heading(columna, text=columna)
-        tabla.column(columna, anchor="w" if es_principal else "e", stretch=es_principal,   # el espacio que sobra
-                     width=ANCHO_COLUMNA_PRINCIPAL if es_principal else ANCHO_COLUMNA)   # va al nombre
+        tabla.column(columna, anchor="w" if es_principal else "e", width=anchos.get(columna, ancho_normal),
+                     stretch=es_principal)                        # el espacio que sobra va a la principal
     tabla.tag_configure("par", background=PALETA["v50"])
     tabla.pack(fill="both", expand=True)
     return tabla
