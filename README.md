@@ -5,7 +5,8 @@ MVP académico (Ingeniería de Software I, Universidad de Pamplona). Autor: Yami
 ## Tecnología (decisión registrada en la FPI-12)
 - Lenguaje: **Python 3** (solo biblioteca estándar, no hay que instalar nada).
 - Base de datos: **SQLite** (viene con Python; un solo archivo, sin servidor).
-- Tipo de aplicación: **escritorio** con **Tkinter** (viene con Python). Primera versión: el punto de venta.
+- Tipo de aplicación: **escritorio** con **Tkinter** (viene con Python), con el diseño del borrador HTML del autor: menú lateral con
+  Punto de venta, Ventas, Productos, Existencias, Clientes y Créditos y abonos.
 - Pruebas: `unittest`.
 - Dinero: números enteros en pesos colombianos (sin centavos).
 
@@ -16,16 +17,17 @@ Desde esta carpeta, con Python 3.12 en Windows:
 
 - `--datos-de-ejemplo` carga productos y clientes **ficticios**, solo si la base está vacía. Sin esa opción se abre con los datos guardados.
 - Los datos se guardan en `%LOCALAPPDATA%\TIENDAS_SM\tiendas_sm.db` (la ruta exacta aparece en la consola al abrir).
-  **Respaldo manual:** con la aplicación cerrada, copia ese archivo a otra carpeta o memoria USB.
-- Atajos: **F2** buscar producto · **Enter** agregar · **F9** cobrar de contado · **F4** vender a crédito · **Supr** quitar · **Esc** cerrar diálogo.
+  Al cerrar, la aplicación crea un respaldo verificado en esa misma carpeta (conserva los 7 más recientes).
+- Atajos del punto de venta: **F2** buscar producto · **Enter** agregar · **F9** cobrar de contado · **F4** vender a crédito · **Supr** quitar ·
+  **Esc** cerrar diálogo. Solo actúan con el punto de venta a la vista.
 
 ## Cómo correr las pruebas
 Desde esta carpeta:
 
     python -m unittest discover -s tests -v
 
-Resultado esperado: 197 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
-allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla.
+Resultado esperado: 275 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
+allí las 37 pruebas de pantallas se saltan porque el servidor no tiene pantalla.
 
 ## Estructura
     tiendas_sm/
@@ -36,10 +38,13 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
       base_de_datos.py    Conexión y esquema de la base de datos
       validaciones.py     Validaciones compartidas
       presentador.py      Lógica de la pantalla del punto de venta, sin Tkinter (se prueba sin abrir ventanas)
+      presentador_*.py    Lógica de Clientes, Créditos, Productos, Existencias y Ventas, sin Tkinter
       datos_de_ejemplo.py Datos ficticios para la demo
       aplicacion.py       Arma el sistema (conecta los objetos)
     interfaz_tk/
-      ventana_punto_de_venta.py  Ventana Tkinter (solo dibuja y llama al presentador)
+      ventana_principal.py       Menú lateral con las 6 secciones
+      tema.py · pantalla.py      Colores del borrador HTML y base común de cada sección
+      ventana_punto_de_venta.py · pantalla_*.py  Pantallas (solo dibujan y llaman a su presentador)
     iniciar_tienda.py     Abre la aplicación de escritorio
     tests/
       test_comportamiento.py          Pruebas de flujo completo con SQLite real (escenarios de la FPI-06)
@@ -50,8 +55,9 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
       test_venta_de_contado.py        Venta de contado (UC-02)
       test_arquitectura.py            El núcleo no importa SQLite (ADR-04)
       test_presentador.py             Punto de venta sin abrir ventanas
+      test_presentador_*.py           Clientes, Créditos, Productos, Existencias y Ventas sin abrir ventanas
       test_iniciar_tienda.py          Ruta de datos y datos de ejemplo
-      test_interfaz_tk.py             Pruebas de humo de la ventana (se saltan sin pantalla)
+      test_interfaz_tk.py · test_ventana_principal.py · test_pantalla_*.py  Pantallas (se saltan sin pantalla)
       test_escenarios_calidad.py      Escenarios E-02 (fallos), E-03 (desempeño) y E-05 (trazabilidad)
       test_migracion_esquema.py       Abrir una base vieja sin perder datos (columnas nuevas de ventas)
       test_medir_cobertura.py         TD-05: el medidor de cobertura no falla con líneas None (Python 3.13)
@@ -74,8 +80,8 @@ allí las 5 pruebas de la ventana se saltan porque el servidor no tiene pantalla
     evidencia_fpi24/      TDD de la tarea 3: salida real de las pruebas en los commits rojo, verde y refactor (Guía 8)
 
 ## Trazabilidad
-Implementa HU-01 a HU-06, CU-01 y CU-02 (RF-01 a RF-09) y el punto de venta de escritorio (tarea 8, TD-03).
-Pendiente: medir RNF-01/E-01 con personas, las demás pantallas, lotes y vencimientos (Should Have) y alertas.
+Implementa HU-01 a HU-06, CU-01 y CU-02 (RF-01 a RF-09) y la interfaz de escritorio con sus 6 secciones.
+Pendiente: medir RNF-01/E-01 con personas, lotes y vencimientos (Should Have) y alertas.
 CR-01 (usuarios) y CR-02 (proveedores, pedidos, caja) no están aprobadas.
 
 ## Uso de IA

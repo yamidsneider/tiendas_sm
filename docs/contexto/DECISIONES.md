@@ -13,7 +13,7 @@
 | FPI-09 | Modelo de dominio de 29 entidades; CR-02 sin aprobar | Adoptado |
 | FPI-10 | UML selectivo: solo CU-01 (8 clases + secuencia). Tipos genéricos | Implementado |
 | FPI-11 | SOLID donde hay riesgo: `ControlInventario`, `ControlCredito` y la interfaz `RepositorioDeVentas` | Implementado |
-| FPI-12 | **Python + SQLite + Tkinter**, dinero entero, refactor de 8 code smells, deuda DT-01..DT-05 | Tkinter pendiente |
+| FPI-12 | **Python + SQLite + Tkinter**, dinero entero, refactor de 8 code smells, deuda DT-01..DT-05 | Tkinter: las 6 pantallas del MVP (noviembre de 2026) |
 | FPI-13 | GitHub Flow, `main` protegida, commits atómicos, conflicto simulado, release v0.1.0 | Evidencia en GitHub por confirmar |
 | FPI-14 | Pruebas unitarias con stubs/mocks, caja negra, integración ascendente, cobertura | Implementado |
 | FPI-15 | CI con GitHub Actions, regresión, BUG-01 y BUG-02 corregidos | Pipeline verde por confirmar |
@@ -50,9 +50,16 @@
   el criterio pedía como máximo 3. Se hizo así para guardar tipo y forma de pago (ERS 7.1); se declara en lugar de ocultarlo.
 - El efectivo insuficiente es una excepción propia (`EfectivoInsuficiente`), como `StockInsuficiente` y `CreditoNoPermitido`.
   Orden de validación de UC-02: existencias, después efectivo; ninguna de las dos cambia datos.
+- **Lecturas nuevas en los puertos para las pantallas (noviembre de 2026).** Solo consultas; no cambian el esquema ni las reglas.
+  `PuertoDeProductos.listar_movimientos(limite)` devuelve `MovimientoDeInventario` (registro de datos en `dominio.py`, sin reglas) y
+  `ServicioDeProductos.movimientos()` trae los últimos 50 (RF-04, sección Existencias). `RepositorioDeVentas.obtener(id_venta)` y
+  `listar(limite)` rearman la venta con el precio guardado en cada línea, y `ServicioDeVentas.obtener/listar` traen las últimas 50
+  (RF-05, sección Ventas). *Causa:* los movimientos y las ventas ya se guardaban, pero ningún contrato permitía leerlos; se siguió la
+  convención `obtener`/`listar` de ADR-04. *Impacto:* `dominio.py`, `puertos.py`, `repositorios.py` y `servicios.py`; cada método
+  abstracto tiene su prueba en ROJO primero en `test_arquitectura`. Ninguna prueba anterior cambió.
 
 ## Deuda técnica
-DT-01 existencias sin lotes (abierta) · DT-03 abonos simples (abierta) · DT-04 cobertura medida, faltan pruebas de interfaz (parcial) · DT-05 constructores con muchos parámetros (aceptada) ·
+DT-01 existencias sin lotes (abierta) · DT-03 abonos simples (abierta) · DT-04 cobertura medida; las 37 pruebas de pantallas se saltan en el CI sin pantalla (parcial) · DT-05 constructores con muchos parámetros (aceptada) ·
 DT-08 `Venta.anular()` sin historia (abierta) · **pagadas:** DT-02 → BUG-02, DT-06 → BUG-01, DT-07 (mensajes con cantidades),
 DT-09 (cliente sin validar), TD-13 (saldo en una consulta, FPI-31).
 
@@ -172,6 +179,25 @@ método nuevo que usa el servicio; se agregó como método abstracto, con su pru
 *Medido en el equipo del desarrollador* (`medir_saldo.py`, mediana de 30): 100 cuentas 0,751 → 0,058 ms; 500 cuentas 7,893 → 0,263 ms;
 2.000 cuentas 81,360 → 1,071 ms (unas 76 veces menos; el ensayo de la guía daba 39 → 0,6 ms en otro equipo). Los saldos son idénticos
 antes y después. *Verificado:* 197 pruebas OK, cobertura 98,4 %, ruff con las reglas del CI. *No verificado:* Python 3.13 (lo corre el CI).
+
+**Interfaz con el diseño del borrador HTML (opción A, noviembre de 2026).** El desarrollador mostró su borrador
+`tiendas_sm_dashboard.html` y eligió la **opción A**: seguir en Tkinter y copiar solo el diseño (paleta verde, letra Segoe UI, menú
+lateral), sin emojis y **sin cambiar la arquitectura**; la lógica del borrador (JavaScript y `localStorage`) no se usó. *Alternativa
+descartada:* la opción B (interfaz HTML) cambiaba el stack de FPI-12. *Cómo quedó:* `interfaz_tk/tema.py` (paleta y estilos sobre el tema
+`clam`, porque el tema nativo de Windows ignora los colores; tablas con filas alternadas), `interfaz_tk/pantalla.py` (mostrar, ocultar y
+`_si_activa`: F2/F9/F4/Supr solo actúan con el punto de venta a la vista), `interfaz_tk/ventana_principal.py` (menú con las **6 secciones
+aprobadas**: Punto de venta, Ventas, Productos, Existencias, Clientes, Créditos y abonos; cada una se crea la primera vez y después solo se
+oculta, así la venta en curso no se pierde). Cada sección tiene su presentador sin Tkinter en `tiendas_sm/presentador_*.py`, probado sin
+ventanas, y su pantalla en `interfaz_tk/pantalla_*.py`, que solo dibuja; los mensajes del dominio se muestran tal como llegan.
+*Fuera a propósito:* lotes, alertas, configuración y tablero (esperan al propietario); proveedores, pedidos y caja (CR-02); stock mínimo
+en el formulario (TD-04: ¿general o por producto?); mora o cuentas «vencidas» (reglas del crédito por confirmar); salida manual (H-1);
+nombres de cliente repetidos (HU-05, por definir); anular ventas y borrar productos (DT-08); totales, reportes y ganancias (no aprobados).
+*Único control nuevo:* una cantidad inicial negativa en «Nuevo producto» se rechaza antes de guardar (antes `registrar_producto` la
+ignoraba en silencio). *Proceso:* una rama por etapa con ROJO y VERDE (y un REFACTOR aparte para reutilizar el ticket), fusionadas con
+`--no-ff` en la rama de integración `app/pantallas`. *Verificado en local:* 275 pruebas OK (las 37 de pantallas se ejecutaron con
+pantalla real), cobertura 98,8 %, V(G) máximo 6, ruff con las reglas del CI, y cada pantalla revisada a 1024×600 con datos ficticios.
+*No verificado:* Python 3.13 (lo corre el CI, donde las 37 pruebas de pantallas se saltan), el uso por personas (E-01, RNF-01) y el PR a `main`.
+*Recomendación sin aprobar:* «Editar cliente» (ver `ESTADO_Y_PENDIENTES.md`).
 
 **Deuda nueva TD-15, TD-16 y TD-17 (FPI-31).** El texto completo de la FPI-31 **no está** en el repositorio ni en las carpetas del
 proyecto; lo que sigue sale de `Dossier_Final.md` (secciones 3 y 6) y debe confirmarse con la ficha:
