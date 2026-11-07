@@ -40,6 +40,11 @@ class PruebasDeArquitectura(unittest.TestCase):
         self.assertTrue(es_prohibido("tiendas_sm.repositorios"))
         self.assertFalse(es_prohibido("tiendas_sm.dominio"))
 
+    def test_el_puerto_de_ventas_declara_el_saldo_que_usa_el_servicio(self):
+        """TD-13: ControlCredito pide el saldo al repositorio; el contrato (ADR-04) debe exigirlo."""
+        from tiendas_sm.puertos import RepositorioDeVentas
+        self.assertIn("saldo_pendiente_del_cliente", RepositorioDeVentas.__abstractmethods__)
+
 
 if __name__ == "__main__":
     unittest.main()
