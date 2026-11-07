@@ -21,9 +21,9 @@ Python 3.12: el arreglo se probó simulando esa entrada (`tests/test_medir_cober
 El job `analysis` sigue en 3.12.
 
 ## Pruebas de la interfaz en el CI
-- `tests/test_interfaz_tk.py` necesita pantalla. El runner de GitHub (Linux) no la tiene, así que esas 5 pruebas **se saltan**
+- `tests/test_interfaz_tk.py`, `test_ventana_principal.py` y `test_pantalla_*.py` necesitan pantalla. El runner de GitHub (Linux) no la tiene, así que esas 37 pruebas **se saltan**
   (`skipped`): en el CI no cuentan como aprobadas. Se ejecutan en el computador del desarrollador.
-- La lógica de la pantalla está en `tiendas_sm/presentador.py` y sí se prueba en el CI. Por eso `interfaz_tk/` no entra en la cobertura.
+- La lógica de las pantallas está en `tiendas_sm/presentador.py` y `tiendas_sm/presentador_*.py` y sí se prueba en el CI. Por eso `interfaz_tk/` no entra en la cobertura.
 
 ## Lo que hay que hacer en GitHub (no se puede hacer desde el código)
 1. **Fusionar** el PR cuando los cuatro checks estén en verde y **guardar el enlace de la ejecución** (pestaña *Actions*): es la evidencia de la FPI-25.

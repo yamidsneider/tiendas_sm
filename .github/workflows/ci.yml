@@ -58,7 +58,7 @@ jobs:
         run: |
           python -m compileall -q tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py slo_mensual.py
           python -c "from tiendas_sm.aplicacion import Aplicacion; Aplicacion()"
-      # Las 5 pruebas de la ventana (tests/test_interfaz_tk.py) se SALTAN aquí: el runner no tiene pantalla.
+      # Las 37 pruebas de pantallas (test_interfaz_tk, test_ventana_principal y test_pantalla_*) se SALTAN aquí: no hay pantalla.
       - name: Suite completa (unitarias, integración, aceptación y regresión)
         run: python -m unittest discover -s tests -v
 
