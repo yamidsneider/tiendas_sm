@@ -32,6 +32,14 @@ class RepositorioDeVentas(ABC):
         """Número de ventas guardadas (lo usa Aplicacion.numero_de_ventas)."""
 
     @abstractmethod
+    def obtener(self, id_venta):
+        """Una venta guardada con sus detalles, o None si no existe (sección Ventas)."""
+
+    @abstractmethod
+    def listar(self, limite):
+        """Las últimas ventas, de la más reciente a la más vieja, con sus detalles (sección Ventas)."""
+
+    @abstractmethod
     def saldo_pendiente_del_cliente(self, id_cliente):
         """TD-13: suma de (monto original − abonos) de todas las cuentas del cliente (regla de calcular_saldo)."""
 

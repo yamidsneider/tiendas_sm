@@ -7,11 +7,11 @@ se abre y después solo se oculta: así la venta en curso no se pierde al cambia
 import tkinter as tk
 from tkinter import ttk
 
-from interfaz_tk.pantalla import Pantalla
 from interfaz_tk.pantalla_clientes import PantallaClientes
 from interfaz_tk.pantalla_creditos import PantallaCreditos
 from interfaz_tk.pantalla_existencias import PantallaExistencias
 from interfaz_tk.pantalla_productos import PantallaProductos
+from interfaz_tk.pantalla_ventas import PantallaVentas
 from interfaz_tk.tema import FUENTE_MENU, LETRA, PALETA, aplicar_tema
 from interfaz_tk.ventana_punto_de_venta import VentanaPuntoDeVenta
 from tiendas_sm.presentador import PresentadorPuntoDeVenta
@@ -19,12 +19,14 @@ from tiendas_sm.presentador_clientes import PresentadorDeClientes
 from tiendas_sm.presentador_creditos import PresentadorDeCreditos
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
+from tiendas_sm.presentador_ventas import PresentadorDeVentas
 
 TITULO = "TIENDAS S.M"
 ANCHO_MINIMO, ALTO_MINIMO = 1024, 600          # DDS §9.2
 ANCHO_DEL_MENU = 210
 SECCIONES = ("Punto de venta", "Ventas", "Productos", "Existencias", "Clientes", "Créditos y abonos")
 PANTALLAS = {                                   # sección -> (pantalla, presentador); el punto de venta va aparte
+    "Ventas": (PantallaVentas, PresentadorDeVentas),
     "Productos": (PantallaProductos, PresentadorDeProductos),
     "Existencias": (PantallaExistencias, PresentadorDeExistencias),
     "Clientes": (PantallaClientes, PresentadorDeClientes),
@@ -85,17 +87,5 @@ class VentanaPrincipal:
     def _crear_pantalla(self, seccion):
         if seccion == "Punto de venta":
             return VentanaPuntoDeVenta(self.raiz, PresentadorPuntoDeVenta(self.app), contenedor=self.area)
-        if seccion in PANTALLAS:
-            pantalla, presentador = PANTALLAS[seccion]
-            return pantalla(self.area, presentador(self.app))
-        return PantallaPendiente(self.area, seccion)
-
-
-class PantallaPendiente(Pantalla):
-    """Lugar reservado para las secciones de las etapas 2 a 6 mientras se construyen."""
-
-    def __init__(self, contenedor, seccion):
-        super().__init__(contenedor)
-        self.aviso = ttk.Label(self.marco, text=f"Próximamente: la sección {seccion} se construye en la "
-                                                "siguiente etapa.", style="Tenue.TLabel")
-        self.aviso.pack(anchor="w", pady=20)
+        pantalla, presentador = PANTALLAS[seccion]
+        return pantalla(self.area, presentador(self.app))

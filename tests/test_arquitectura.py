@@ -50,6 +50,11 @@ class PruebasDeArquitectura(unittest.TestCase):
         from tiendas_sm.puertos import PuertoDeProductos
         self.assertIn("listar_movimientos", PuertoDeProductos.__abstractmethods__)
 
+    def test_el_puerto_de_ventas_declara_obtener_y_listar(self):
+        """Etapa 6 de la interfaz: la sección Ventas lee las ventas guardadas por el contrato (ADR-04)."""
+        from tiendas_sm.puertos import RepositorioDeVentas
+        self.assertLessEqual({"obtener", "listar"}, RepositorioDeVentas.__abstractmethods__)
+
 
 if __name__ == "__main__":
     unittest.main()
