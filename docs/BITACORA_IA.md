@@ -78,6 +78,8 @@ Todos ocurrieron en esta sesión de trabajo. Varios son errores **de la propia I
 | 29 | La prueba de E-02 usaba el código de salida 1, el mismo de una excepción sin capturar: podía pasar por la razón equivocada | Autorrevisión de la prueba | Se usa el código 3 |
 | 30 | La IA **inventó un número de deuda (TD-15)** en un mensaje de commit sin conocer el catálogo TD de las fichas | Autorrevisión del mensaje | Mensaje corregido («pendiente de numerar») antes de compartir el commit |
 | 31 | La venta de contado cambió 4 archivos de `tiendas_sm/` cuando el criterio E-04 permitía 3; y las pruebas de `iniciar_tienda.py` se escribieron después del código | Comparar el trabajo con los criterios de las tareas | Declarado como desviación en `DECISIONES.md` (no se oculta) |
+| 32 | La guía de la tarea 13 anunciaba «168 pruebas en verde» con el parche de telemetría; al aplicarlo dieron 172, porque el parche se probó con un `main` anterior | Correr la suite y comparar con la cifra anunciada | Se reporta la cifra real (172) y la causa en `DECISIONES.md` |
+| 33 | El log de telemetría guarda la hora en UTC y el tablero agrupa por ese día: una venta nocturna en Colombia aparece al día siguiente | Revisar las líneas reales del `.jsonl` de la prueba | Anotado como recomendación sin aplicar (no se cambió la lógica del parche) |
 
 ### 7.3 Lo que no se verificó
 - `ruff` no se ejecutó nunca en esta etapa: no está instalado en el equipo; lo correrá el CI al subir las ramas.
