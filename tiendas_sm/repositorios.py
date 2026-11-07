@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from tiendas_sm.dominio import Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta
+from tiendas_sm.dominio import Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario
 from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, RepositorioDeVentas
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
@@ -65,6 +65,12 @@ class RepositorioDeProductos(PuertoDeProductos):
             self.conexion.execute(
                 "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha) VALUES (?,?,?,?)",
                 (existencia.id_producto, tipo_movimiento, cantidad, _ahora()))
+
+    def listar_movimientos(self, limite):
+        filas = self.conexion.execute(
+            "SELECT * FROM movimientos_inventario ORDER BY id_movimiento DESC LIMIT ?", (limite,)).fetchall()
+        return [MovimientoDeInventario(fila["id_movimiento"], fila["id_producto"], fila["tipo"], fila["cantidad"],
+                                       datetime.fromisoformat(fila["fecha"])) for fila in filas]
 
 
 class RepositorioDeClientes(PuertoDeClientes):

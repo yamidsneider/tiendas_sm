@@ -32,6 +32,8 @@ PRUEBAS = {
     "pantalla_creditos": "tests.test_pantalla_creditos",
     "productos": "tests.test_presentador_productos",
     "pantalla_productos": "tests.test_pantalla_productos",
+    "existencias": "tests.test_presentador_existencias",
+    "pantalla_existencias": "tests.test_pantalla_existencias",
     "escenarios": "tests.test_escenarios_calidad",
     "migracion": "tests.test_migracion_esquema",
     "medidor": "tests.test_medir_cobertura",
@@ -50,7 +52,7 @@ MAPA = {
     "tiendas_sm/validaciones.py": TODAS,                      # lo usan casi todas las clases del dominio
     "tiendas_sm/dominio.py": TODAS,                           # base de todo el sistema
     "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios",
-                                                        "saldo")],
+                                                        "saldo", "existencias")],
     "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios",
                                                          "migracion", "saldo")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
@@ -59,8 +61,10 @@ MAPA = {
     "tiendas_sm/datos_de_ejemplo.py": [PRUEBAS["arranque"]],
     "interfaz_tk/ventana_punto_de_venta.py": [PRUEBAS[k] for k in ("ventana", "principal")],
     "interfaz_tk/ventana_principal.py": [PRUEBAS[k] for k in ("principal", "pantalla_clientes", "pantalla_creditos",
-                                                             "pantalla_productos")],
+                                                             "pantalla_productos", "pantalla_existencias")],
     "interfaz_tk/pantalla_productos.py": [PRUEBAS["pantalla_productos"]],
+    "interfaz_tk/pantalla_existencias.py": [PRUEBAS["pantalla_existencias"]],
+    "tiendas_sm/presentador_existencias.py": [PRUEBAS[k] for k in ("existencias", "pantalla_existencias")],
     "tiendas_sm/presentador_productos.py": [PRUEBAS[k] for k in ("productos", "pantalla_productos")],
     "interfaz_tk/pantalla_creditos.py": [PRUEBAS["pantalla_creditos"]],
     "tiendas_sm/presentador_creditos.py": [PRUEBAS[k] for k in ("creditos", "pantalla_creditos")],

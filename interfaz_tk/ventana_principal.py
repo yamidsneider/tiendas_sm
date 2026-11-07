@@ -10,12 +10,14 @@ from tkinter import ttk
 from interfaz_tk.pantalla import Pantalla
 from interfaz_tk.pantalla_clientes import PantallaClientes
 from interfaz_tk.pantalla_creditos import PantallaCreditos
+from interfaz_tk.pantalla_existencias import PantallaExistencias
 from interfaz_tk.pantalla_productos import PantallaProductos
 from interfaz_tk.tema import FUENTE_MENU, LETRA, PALETA, aplicar_tema
 from interfaz_tk.ventana_punto_de_venta import VentanaPuntoDeVenta
 from tiendas_sm.presentador import PresentadorPuntoDeVenta
 from tiendas_sm.presentador_clientes import PresentadorDeClientes
 from tiendas_sm.presentador_creditos import PresentadorDeCreditos
+from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
 
 TITULO = "TIENDAS S.M"
@@ -24,6 +26,7 @@ ANCHO_DEL_MENU = 210
 SECCIONES = ("Punto de venta", "Ventas", "Productos", "Existencias", "Clientes", "Créditos y abonos")
 PANTALLAS = {                                   # sección -> (pantalla, presentador); el punto de venta va aparte
     "Productos": (PantallaProductos, PresentadorDeProductos),
+    "Existencias": (PantallaExistencias, PresentadorDeExistencias),
     "Clientes": (PantallaClientes, PresentadorDeClientes),
     "Créditos y abonos": (PantallaCreditos, PresentadorDeCreditos),
 }

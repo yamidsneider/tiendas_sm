@@ -5,6 +5,7 @@ from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, Stock
                                 CreditoNoPermitido, TipoVenta, PLAZO_POR_DEFECTO_DIAS)
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
+MOVIMIENTOS_A_MOSTRAR = 50          # RF-04: el historial muestra los últimos, no toda la historia
 
 
 class ServicioDeProductos:
@@ -39,6 +40,9 @@ class ServicioDeProductos:
         existencia.aumentar(cantidad)
         self.repo_productos.guardar_existencia(existencia, "ENTRADA", cantidad)
         return existencia
+
+    def movimientos(self, limite=MOVIMIENTOS_A_MOSTRAR):
+        return self.repo_productos.listar_movimientos(limite)
 
 
 class ServicioDeClientes:
