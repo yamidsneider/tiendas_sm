@@ -6,6 +6,7 @@ from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, Stock
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
 MOVIMIENTOS_A_MOSTRAR = 50          # RF-04: el historial muestra los últimos, no toda la historia
+VENTAS_A_MOSTRAR = 50               # sección Ventas: las últimas (no es un reporte)
 
 
 class ServicioDeProductos:
@@ -129,6 +130,12 @@ class ServicioDeVentas:
         venta.confirmar()
         self.repo_ventas.guardar_transaccion(venta, None, existencias)
         return venta
+
+    def obtener(self, id_venta):
+        return self.repo_ventas.obtener(id_venta)
+
+    def listar(self, limite=VENTAS_A_MOSTRAR):
+        return self.repo_ventas.listar(limite)
 
     def _obtener_cliente(self, id_cliente):
         cliente = self.repo_clientes.obtener(id_cliente)

@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from tiendas_sm.dominio import Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario
+from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
+                                Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago)
 from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, RepositorioDeVentas
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
@@ -184,6 +185,29 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
 
     def contar_ventas(self):
         return self.conexion.execute("SELECT COUNT(*) FROM ventas").fetchone()[0]
+
+    def obtener(self, id_venta):
+        fila = self.conexion.execute("SELECT * FROM ventas WHERE id_venta=?", (id_venta,)).fetchone()
+        return self._a_venta(fila) if fila else None
+
+    def listar(self, limite):
+        filas = self.conexion.execute("SELECT * FROM ventas ORDER BY id_venta DESC LIMIT ?", (limite,)).fetchall()
+        return [self._a_venta(fila) for fila in filas]
+
+    def _a_venta(self, fila):
+        """Rearma la venta tal como se guardó: precio de cada línea, total, pago y fecha (TD-14: texto ISO)."""
+        venta = Venta(fila["id_cliente"], TipoVenta(fila["tipo"]))
+        venta.id_venta = fila["id_venta"]
+        venta.fecha = datetime.fromisoformat(fila["fecha"])
+        venta.estado = EstadoVenta(fila["estado"])
+        venta.total = fila["total"]
+        venta.forma_pago = FormaDePago(fila["forma_pago"]) if fila["forma_pago"] else None
+        venta.valor_recibido = fila["valor_recibido"]
+        detalles = self.conexion.execute(
+            "SELECT * FROM detalles_venta WHERE id_venta=? ORDER BY numero_linea", (venta.id_venta,)).fetchall()
+        venta.detalles = [DetalleVenta(d["numero_linea"], d["id_producto"], d["cantidad"], d["precio_unitario_venta"])
+                          for d in detalles]
+        return venta
 
     def guardar_abono(self, cuenta, valor):
         with self.conexion:
