@@ -80,6 +80,8 @@ Todos ocurrieron en esta sesión de trabajo. Varios son errores **de la propia I
 | 31 | La venta de contado cambió 4 archivos de `tiendas_sm/` cuando el criterio E-04 permitía 3; y las pruebas de `iniciar_tienda.py` se escribieron después del código | Comparar el trabajo con los criterios de las tareas | Declarado como desviación en `DECISIONES.md` (no se oculta) |
 | 32 | La guía de la tarea 13 anunciaba «168 pruebas en verde» con el parche de telemetría; al aplicarlo dieron 172, porque el parche se probó con un `main` anterior | Correr la suite y comparar con la cifra anunciada | Se reporta la cifra real (172) y la causa en `DECISIONES.md` |
 | 33 | El log de telemetría guarda la hora en UTC y el tablero agrupa por ese día: una venta nocturna en Colombia aparece al día siguiente | Revisar las líneas reales del `.jsonl` de la prueba | Anotado como recomendación sin aplicar (no se cambió la lógica del parche) |
+| 34 | Al registrar en la telemetría la revisión de la base (spans `abrir_base` y `respaldar_base`), el tablero y `slo_mensual.py` los habrían contado como **ventas**, porque no filtraban por operación | Pensar qué otras partes leen el mismo log antes de escribir en él | Prueba en ROJO primero; `solo_ventas` en `slo_mensual.py`, que también usa el tablero |
+| 35 | Un comando de la IA dejó un `cat > /dev/null` sobrante que se quedó esperando entrada y bloqueó la terminal 2 minutos; el cambio no se aplicó | Revisar `git status` antes de seguir | Se detuvo la tarea, se comprobó que no hubo cambios a medias y se repitió desde un archivo de script |
 
 ### 7.3 Lo que no se verificó
 - `ruff` no se ejecutó nunca en esta etapa: no está instalado en el equipo; lo correrá el CI al subir las ramas.

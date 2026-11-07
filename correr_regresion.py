@@ -30,6 +30,9 @@ PRUEBAS = {
     "medidor": "tests.test_medir_cobertura",
     "healthcheck": "tests.test_healthcheck_paquete",
     "telemetria": "tests.test_telemetria",
+    "slo": "tests.test_slo_mensual",
+    "respaldo": "tests.test_respaldo",
+    "tablero": "tests.test_tablero_telemetria",
 }
 TODAS = list(PRUEBAS.values())
 
@@ -45,8 +48,11 @@ MAPA = {
     "tiendas_sm/presentador.py": [PRUEBAS[k] for k in ("presentador", "ventana")],
     "tiendas_sm/datos_de_ejemplo.py": [PRUEBAS["arranque"]],
     "interfaz_tk/ventana_punto_de_venta.py": [PRUEBAS["ventana"]],
-    "iniciar_tienda.py": [PRUEBAS[k] for k in ("arranque", "telemetria")],
-    "tiendas_sm/telemetria.py": [PRUEBAS["telemetria"]],
+    "iniciar_tienda.py": [PRUEBAS[k] for k in ("arranque", "telemetria", "respaldo")],
+    "tiendas_sm/telemetria.py": [PRUEBAS[k] for k in ("telemetria", "respaldo")],
+    "tiendas_sm/respaldo.py": [PRUEBAS["respaldo"]],
+    "slo_mensual.py": [PRUEBAS[k] for k in ("slo", "tablero")],
+    "tablero_telemetria.py": [PRUEBAS["tablero"]],
     "medir_cobertura.py": [PRUEBAS["medidor"]],
     "scripts/healthcheck_paquete.py": [PRUEBAS["healthcheck"]],
     "tiendas_sm/aplicacion.py": [PRUEBAS[k] for k in ("comportamiento", "caja_negra", "defectos", "contado", "telemetria")],

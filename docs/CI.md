@@ -5,7 +5,7 @@ Tiene **tres jobs encadenados**: si uno falla, los siguientes no se ejecutan y e
 
 | Job (nombre del check) | Qué hace | Falla si… |
 | --- | --- | --- |
-| `linter` | `ruff==0.16.9` con errores reales (E9, F63, F7, F82, F401, F841), seguridad (`S`) y complejidad ciclomática `C901` ≤ 10, sobre `tiendas_sm`, `interfaz_tk`, `tests`, `scripts`, `iniciar_tienda.py` y `tablero_telemetria.py` | hay un error, un riesgo de seguridad o una función con V(G) > 10 |
+| `linter` | `ruff==0.16.9` con errores reales (E9, F63, F7, F82, F401, F841), seguridad (`S`) y complejidad ciclomática `C901` ≤ 10, sobre `tiendas_sm`, `interfaz_tk`, `tests`, `scripts`, `iniciar_tienda.py`, `tablero_telemetria.py` y `slo_mensual.py` | hay un error, un riesgo de seguridad o una función con V(G) > 10 |
 | `test (Python 3.12)` y `test (Python 3.13)` | compila, arma la `Aplicacion` y corre toda la suite (`unittest`) | hay un error de sintaxis o falla cualquier prueba |
 | `analysis` | Quality Gate de cobertura (`medir_cobertura.py --minimo 90`), `coverage==7.13.4` genera `coverage.xml` para SonarCloud, análisis de SonarCloud (si hay token) y, solo en `main`, un `.zip` del código con el SHA del commit | la cobertura baja de 90 % o SonarCloud no aprueba su Quality Gate |
 
@@ -46,8 +46,8 @@ El job `analysis` sigue en 3.12.
 
 ## Cómo correr lo mismo en el computador
 ```
-ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py
-python -m compileall -q tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py
+ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py slo_mensual.py
+python -m compileall -q tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py slo_mensual.py
 python -m unittest discover -s tests -v
 python medir_cobertura.py --minimo 90
 ```
@@ -127,6 +127,12 @@ mecanismo, pero se confirmará en la primera ejecución real.
 No es un paso del pipeline: la aplicación escribe `telemetria.jsonl` junto a la base (`%LOCALAPPDATA%\TIENDAS_SM`) y el tablero se
 genera en el computador con `python tablero_telemetria.py <ruta>\telemetria.jsonl tablero.html`. Ni el log ni el tablero se suben al
 repositorio (`.gitignore`). El CI solo revisa `tablero_telemetria.py` con ruff y corre `tests/test_telemetria.py` con la suite.
+
+## Confiabilidad (FPI-30, ADR-14)
+`python slo_mensual.py <ruta>\telemetria.jsonl --mes AAAA-MM` calcula el SLO (99,5 % de ventas sin falla técnica y 99 % en menos
+de 1 s) y sale con código 1 si el presupuesto de error se agotó. Los rechazos de negocio no cuentan (la misma lista la usa el tablero).
+Al cerrar, la aplicación crea un respaldo verificado y, al abrir, revisa la base (`tiendas_sm/respaldo.py`). Qué hacer si algo falla:
+`docs/Runbook_base_de_datos.md`.
 
 ## Regresión
 `python correr_regresion.py <archivos que cambiaron>` elige las pruebas que se relacionan con el cambio. El pipeline siempre corre la suite completa.
