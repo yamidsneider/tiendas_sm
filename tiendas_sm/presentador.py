@@ -30,6 +30,30 @@ def _plural(cantidad, singular, plural):
     return f"{cantidad} {singular if cantidad == 1 else plural}"
 
 
+def armar_ticket(venta, nombre_de_producto, pie):
+    """DDS §10.3: número, fecha y hora, líneas, total y forma de pago. Se arma desde la venta guardada.
+
+    nombre_de_producto es una función id_producto -> nombre; pie son las líneas finales (forma de pago, etc.).
+    La usan el punto de venta (al cobrar) y la sección Ventas (para ver el ticket de una venta pasada).
+    """
+    lineas = ["TIENDAS S.M — Comprobante interno (no es factura)",
+              f"Venta #{venta.id_venta} · {venta.fecha:%Y-%m-%d %H:%M}", ""]
+    for detalle in venta.detalles:
+        lineas.append(f"{detalle.cantidad} x {nombre_de_producto(detalle.id_producto)}  "
+                      f"{formato_pesos(detalle.precio_unitario)}  {formato_pesos(detalle.subtotal())}")
+    lineas += ["", f"TOTAL: {formato_pesos(venta.total)}", *pie]
+    return "\n".join(lineas)
+
+
+def pie_de_contado(venta):
+    return [f"Forma de pago: {venta.forma_pago.value}", f"Recibido: {formato_pesos(venta.valor_recibido)}",
+            f"Cambio: {formato_pesos(venta.calcular_cambio())}"]
+
+
+def pie_de_credito(nombres_del_cliente, fecha_vencimiento):
+    return ["Forma de pago: CRÉDITO", f"Cliente: {nombres_del_cliente}", f"Vence: {fecha_vencimiento:%Y-%m-%d}"]
+
+
 def a_entero(texto, campo):
     try:
         return int(str(texto).strip())
@@ -123,9 +147,7 @@ class PresentadorPuntoDeVenta:
         if error:
             return Resultado(False, error)
         cambio = formato_pesos(venta.calcular_cambio())
-        pie = [f"Forma de pago: {venta.forma_pago.value}",
-               f"Recibido: {formato_pesos(venta.valor_recibido)}", f"Cambio: {cambio}"]
-        return self._cerrar(venta, f"Venta #{venta.id_venta} registrada. Cambio: {cambio}", pie)
+        return self._cerrar(venta, f"Venta #{venta.id_venta} registrada. Cambio: {cambio}", pie_de_contado(venta))
 
     def vender_a_credito(self, id_cliente):
         venta, error = self._registrar(lambda: self.app.ventas.registrar_venta_a_credito(id_cliente,
@@ -135,9 +157,8 @@ class PresentadorPuntoDeVenta:
         cuenta = next(c for c in self.app.credito.cuentas_del_cliente(id_cliente) if c.id_venta == venta.id_venta)
         cliente = self.datos_del_cliente(id_cliente)
         vence = f"{cuenta.fecha_vencimiento:%Y-%m-%d}"
-        pie = ["Forma de pago: CRÉDITO", f"Cliente: {cliente.nombres}", f"Vence: {vence}"]
         return self._cerrar(venta, f"Venta #{venta.id_venta} registrada a crédito para {cliente.nombres}. Vence: {vence}",
-                            pie)
+                            pie_de_credito(cliente.nombres, cuenta.fecha_vencimiento))
 
     def _registrar(self, registrar_venta):
         """Llama al servicio y devuelve (venta, None); si se rechaza, (None, mensaje del dominio tal como llega)."""
@@ -149,20 +170,9 @@ class PresentadorPuntoDeVenta:
             return None, MENSAJE_FALLA_AL_GUARDAR
 
     def _cerrar(self, venta, mensaje, pie):
-        ticket = self._ticket(venta, pie)
+        ticket = armar_ticket(venta, lambda id_producto: self._producto(id_producto).nombre, pie)
         self.limpiar()
         return Resultado(True, mensaje, ticket)
-
-    def _ticket(self, venta, pie):
-        """DDS §10.3: número, fecha y hora, líneas, total y forma de pago. Se arma desde la venta guardada."""
-        lineas = ["TIENDAS S.M — Comprobante interno (no es factura)",
-                  f"Venta #{venta.id_venta} · {venta.fecha:%Y-%m-%d %H:%M}", ""]
-        for detalle in venta.detalles:
-            nombre = self._producto(detalle.id_producto).nombre
-            lineas.append(f"{detalle.cantidad} x {nombre}  {formato_pesos(detalle.precio_unitario)}  "
-                          f"{formato_pesos(detalle.subtotal())}")
-        lineas += ["", f"TOTAL: {formato_pesos(venta.total)}", *pie]
-        return "\n".join(lineas)
 
     # ------------------------------------------------------------------ apoyo
     def _producto(self, id_producto):
