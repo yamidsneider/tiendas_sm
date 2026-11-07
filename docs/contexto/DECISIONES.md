@@ -127,6 +127,20 @@ Semgrep (`p/python`, `p/security-audit`) **no detecta** una consulta `sqlite3` a
 *Recomendación (no aprobada):* agregar una regla propia de Semgrep para ese patrón, o dejar constancia de que la barrera es ruff.
 *No verificado en local:* Trivy (requiere descargar su ejecutable).
 
+**Observabilidad (tarea 13, FPI-29, ADR-13, noviembre de 2026).** Parche `cambios_fpi29.patch` aplicado sin cambiar su lógica:
+`tiendas_sm/telemetria.py` (span con `trace_id`/`span_id`, contador e histograma en memoria y log JSON por línea), `tests/test_telemetria.py`
+(8 pruebas) y `tablero_telemetria.py` (HTML local). *Reglas revisadas:* solo biblioteca estándar; el dominio y `ServicioDeVentas` no
+cambian, se instrumenta con el adaptador `VentasObservadas` que arma `Aplicacion` solo si recibe una telemetría (sin ella todo sigue
+igual); lista blanca de atributos (`venta.tipo`, `venta.lineas`, `venta.unidades`, `venta.total`): nada del cliente, y de un error solo su
+tipo; muestreo 0,2 para ventas exitosas y 100 % para errores; `telemetria.jsonl` junto a la base con rotación de 1 MB y 3 respaldos.
+`*.jsonl` y `tablero*.html` no se suben (`.gitignore`). *Verificado en local:* 172 pruebas OK, cobertura 98,3 %, ruff con las reglas del
+CI (ahora también sobre `tablero_telemetria.py`) y 5 ventas por el mismo arranque de `iniciar_tienda` (sin abrir la ventana, en una
+carpeta temporal): 4 OK y 1 `StockInsuficiente`; con muestreo 0,2 solo quedó la línea del error, con muestreo 1,0 las 5 líneas, y
+ninguna contiene el nombre del cliente ni el texto del error. *Observaciones:* la guía esperaba 168 pruebas, pero su parche se probó
+con un `main` anterior (aquí 164 + 8 = 172); `marca_tiempo` está en UTC, así que el tablero agrupa por día UTC (una venta después de
+las 7 p. m. de Colombia cae en el día siguiente), lo que queda como recomendación sin aplicar; `tablero_telemetria.py` no tiene pruebas
+propias (herramienta del desarrollador, como `medir_*.py`). *No verificado:* Python 3.13 (lo corre el CI) y el uso real durante varios días.
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.

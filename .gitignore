@@ -3,3 +3,7 @@ __pycache__/
 *.db
 .coverage
 coverage.xml
+# FPI-29: log de telemetría y tablero generado (se quedan en el computador, ADR-13)
+*.jsonl
+*.jsonl.*
+tablero*.html

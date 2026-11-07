@@ -6,16 +6,23 @@ Uso:  python iniciar_tienda.py                      abre la tienda con los datos
 Los datos se guardan en la carpeta de datos del usuario (DDS §14):
 %LOCALAPPDATA%\\TIENDAS_SM\\tiendas_sm.db en Windows. Para un respaldo manual (RNF-08) basta copiar ese archivo.
 """
+import logging
 import os
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.datos_de_ejemplo import cargar_datos_de_ejemplo
+from tiendas_sm.telemetria import Telemetria
 
 CARPETA_DE_DATOS = "TIENDAS_SM"
 ARCHIVO_DE_DATOS = "tiendas_sm.db"
 OPCION_DATOS_DE_EJEMPLO = "--datos-de-ejemplo"
+ARCHIVO_DE_TELEMETRIA = "telemetria.jsonl"
+TASA_DE_MUESTREO = 0.2                       # ADR-13: errores al 100 %, ventas exitosas al 20 %
+TAMANO_MAXIMO_LOG = 1_000_000                # ADR-13: 1 MB por archivo...
+ARCHIVOS_DE_RESPALDO = 3                     # ...y 3 anteriores: máximo 4 MB (≈ 14 a 19 meses a 80 ventas/día)
 
 
 def ruta_de_datos(entorno=os.environ):
@@ -24,10 +31,23 @@ def ruta_de_datos(entorno=os.environ):
     return base / CARPETA_DE_DATOS / ARCHIVO_DE_DATOS
 
 
-def abrir_aplicacion(ruta, con_datos_de_ejemplo):
+def configurar_telemetria(carpeta):
+    """FPI-29: log JSON con rotación por tamaño, junto a la base. Nunca contiene datos personales."""
+    registro = logging.getLogger("tiendas_sm.telemetria")
+    registro.setLevel(logging.INFO)
+    registro.propagate = False
+    if not registro.handlers:
+        manejador = RotatingFileHandler(carpeta / ARCHIVO_DE_TELEMETRIA, maxBytes=TAMANO_MAXIMO_LOG,
+                                        backupCount=ARCHIVOS_DE_RESPALDO, encoding="utf-8")
+        manejador.setFormatter(logging.Formatter("%(message)s"))
+        registro.addHandler(manejador)
+    return Telemetria(escribir=registro.info, tasa_muestreo=TASA_DE_MUESTREO)
+
+
+def abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria=None):
     """Crea la carpeta si falta y abre la base. Devuelve (app, True si cargó los datos de ejemplo)."""
     ruta.parent.mkdir(parents=True, exist_ok=True)
-    app = Aplicacion(str(ruta))
+    app = Aplicacion(str(ruta), telemetria=telemetria)
     return app, con_datos_de_ejemplo and cargar_datos_de_ejemplo(app)
 
 
@@ -47,7 +67,9 @@ def main(argumentos):
 
     usar_escala_de_windows()
     ruta = ruta_de_datos()
-    app, cargo_ejemplo = abrir_aplicacion(ruta, OPCION_DATOS_DE_EJEMPLO in argumentos)
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    telemetria = configurar_telemetria(ruta.parent)
+    app, cargo_ejemplo = abrir_aplicacion(ruta, OPCION_DATOS_DE_EJEMPLO in argumentos, telemetria)
     print(f"Base de datos: {ruta}")
     if cargo_ejemplo:
         print("Se cargaron datos de ejemplo ficticios.")

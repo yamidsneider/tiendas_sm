@@ -3,7 +3,7 @@
 ## Qué existe y funciona
 Lógica de negocio en Python con SQLite: productos, entradas de mercancía, clientes, venta **a crédito** con validación de stock y de límite, venta **de contado** en efectivo con cálculo del cambio (UC-02),
 descuento automático del inventario, cuenta por cobrar con el plazo del cliente, abonos y saldo, y el guardado "todo o nada".
-164 pruebas en verde (unitarias con dobles, caja negra, integración, flujo completo, venta de contado, regresión de defectos,
+172 pruebas en verde (unitarias con dobles, caja negra, integración, flujo completo, venta de contado, regresión de defectos,
 arquitectura, presentador y ventana), cobertura ≈ 98 %, CI configurado (las 5 pruebas de la ventana se saltan en el CI: no hay pantalla).
 **Primera versión de la interfaz Tkinter:** solo el punto de venta (`python iniciar_tienda.py`), con venta de contado y a crédito.
 
