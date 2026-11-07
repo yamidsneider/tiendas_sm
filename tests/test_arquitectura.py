@@ -45,6 +45,11 @@ class PruebasDeArquitectura(unittest.TestCase):
         from tiendas_sm.puertos import RepositorioDeVentas
         self.assertIn("saldo_pendiente_del_cliente", RepositorioDeVentas.__abstractmethods__)
 
+    def test_el_puerto_de_productos_declara_los_movimientos_que_usa_el_servicio(self):
+        """RF-04 (etapa 5 de la interfaz): ServicioDeProductos pide el historial al repositorio por el contrato."""
+        from tiendas_sm.puertos import PuertoDeProductos
+        self.assertIn("listar_movimientos", PuertoDeProductos.__abstractmethods__)
+
 
 if __name__ == "__main__":
     unittest.main()
