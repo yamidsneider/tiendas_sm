@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS abonos (
     id_abono INTEGER PRIMARY KEY AUTOINCREMENT,
     id_cuenta INTEGER NOT NULL REFERENCES cuentas_por_cobrar(id_cuenta),
     valor INTEGER NOT NULL, fecha TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_cuentas_por_cliente ON cuentas_por_cobrar(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_abonos_por_cuenta ON abonos(id_cuenta);
 """
 
 # Columnas que la venta de contado (UC-02) agregó a ventas. Una base creada antes no las tiene: se agregan

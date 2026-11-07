@@ -24,7 +24,7 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
 - **Python 3** (solo biblioteca estándar) · **SQLite** · interfaz de **escritorio con Tkinter** (primera versión: punto de venta) · pruebas con **unittest**.
 - Dinero: **enteros en pesos colombianos** (sin centavos ni `float`).
 - Reglas de diseño: Clean Code, SOLID **selectivo** con «hexagonal ligero» (ADR-04): los contratos de persistencia viven en `puertos.py`
-  (`RepositorioDeVentas`, `PuertoDeProductos`, `PuertoDeClientes`, con `obtener`, `guardar` y `listar`) y el núcleo no importa SQLite (`test_arquitectura`); no se crea un puerto por cada clase,
+  (`RepositorioDeVentas`, `PuertoDeProductos`, `PuertoDeClientes`, con `obtener`, `guardar` y `listar`; el saldo pendiente se pide al repositorio en una consulta, TD-13) y el núcleo no importa SQLite (`test_arquitectura`); no se crea un puerto por cada clase,
   funciones pequeñas, sin números mágicos, validaciones compartidas en `validaciones.py`, nombres en español y `snake_case`.
 - Una operación que cambia venta + inventario + deuda se guarda **todo o nada** (RNF-04) dentro de una transacción.
 
@@ -36,7 +36,7 @@ tiendas_sm/          dominio.py, servicios.py, puertos.py, repositorios.py, base
 interfaz_tk/         ventana_punto_de_venta.py (solo dibuja; no cuenta en la cobertura) · iniciar_tienda.py abre la app
 tests/               test_comportamiento, test_unitarias_dobles, test_caja_negra, test_integracion_incremental, test_defectos_corregidos,
                      test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_interfaz_tk (se salta sin pantalla), test_escenarios_calidad, test_migracion_esquema, test_medir_cobertura, test_healthcheck_paquete, test_telemetria,
-                     test_slo_mensual, test_respaldo, test_tablero_telemetria
+                     test_slo_mensual, test_respaldo, test_tablero_telemetria, test_td13_saldo_pendiente
 scripts/             healthcheck_paquete.py (revisa el .zip publicado; lo usa el CD)
 docs/                CI.md, Runbook_base_de_datos.md, incidentes/ (Postmortem INC-SIM-01), FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACORA_IA.md, HOJA_DE_RUTA_IS2.md, contexto/, referencia/
 .github/workflows/ci.yml   pipeline de 3 jobs (FPI-25): linter -> test (3.12 y 3.13) -> analysis (cobertura ≥ 90 %, SonarCloud)
@@ -50,7 +50,7 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (193 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (197 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 98 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
@@ -73,7 +73,7 @@ ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-com
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 193 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07 y TD-14 corregidos; pipeline de la Guía 9, entrega continua de la Guía 11, seguridad de la Guía 12, telemetría de la venta (Guía 13) y confiabilidad: SLO, Runbook, respaldo verificado al cerrar y revisión al abrir (Guía 14).
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 197 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07, TD-13 y TD-14 corregidos; pipeline de la Guía 9, entrega continua de la Guía 11, seguridad de la Guía 12, telemetría de la venta (Guía 13) y confiabilidad: SLO, Runbook, respaldo verificado al cerrar y revisión al abrir (Guía 14).
 - **Pendiente, en este orden de prioridad:**
   1. **Interfaz Tkinter:** punto de venta hecho; faltan medir E-01 con personas y las demás pantallas
      (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).

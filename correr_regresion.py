@@ -33,6 +33,7 @@ PRUEBAS = {
     "slo": "tests.test_slo_mensual",
     "respaldo": "tests.test_respaldo",
     "tablero": "tests.test_tablero_telemetria",
+    "saldo": "tests.test_td13_saldo_pendiente",
 }
 TODAS = list(PRUEBAS.values())
 
@@ -40,9 +41,10 @@ TODAS = list(PRUEBAS.values())
 MAPA = {
     "tiendas_sm/validaciones.py": TODAS,                      # lo usan casi todas las clases del dominio
     "tiendas_sm/dominio.py": TODAS,                           # base de todo el sistema
-    "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios")],
+    "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios",
+                                                        "saldo")],
     "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios",
-                                                         "migracion")],
+                                                         "migracion", "saldo")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
     "tiendas_sm/puertos.py": TODAS,                           # contratos que usan servicios y repositorios
     "tiendas_sm/presentador.py": [PRUEBAS[k] for k in ("presentador", "ventana")],

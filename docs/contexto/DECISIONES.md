@@ -54,7 +54,7 @@
 ## Deuda técnica
 DT-01 existencias sin lotes (abierta) · DT-03 abonos simples (abierta) · DT-04 cobertura medida, faltan pruebas de interfaz (parcial) · DT-05 constructores con muchos parámetros (aceptada) ·
 DT-08 `Venta.anular()` sin historia (abierta) · **pagadas:** DT-02 → BUG-02, DT-06 → BUG-01, DT-07 (mensajes con cantidades),
-DT-09 (cliente sin validar).
+DT-09 (cliente sin validar), TD-13 (saldo en una consulta, FPI-31).
 
 **DT-09 (noviembre de 2026).** *Hallazgo:* `Cliente` se guardaba con nombre vacío, límite negativo o plazo menor a 1 día; con nombre `None`
 SQLite lanzaba `IntegrityError` en vez de un mensaje claro. *Regla:* UC-05 del DDS (nombre obligatorio, límite no negativo, plazo de al menos
@@ -159,6 +159,30 @@ nombre sigue contando como venta, para no romper las pruebas del parche). *Verif
 se niega a restaurar un respaldo inexistente, restaura el bueno y vuelve a dar `ok` con las 5 ventas. *No verificado:* la ventana del
 mensaje de base dañada (no se abrió a mano), Python 3.13, el computador real de la tienda y el simulacro con tiempo medido por Yamid.
 
+**TD-13 pagada (tarea 15, FPI-31, ADR-15, noviembre de 2026).** Refactorización preventiva: `ControlCredito.saldo_pendiente` cargaba
+todas las cuentas y sus abonos y sumaba en Python; ahora `RepositorioDeVentasSqlite.saldo_pendiente_del_cliente` lo calcula en una sola
+consulta. Tres commits de los parches de la guía, con su mensaje y su autor originales («Ensayo»): ROJO (prueba de equivalencia en 200
+escenarios aleatorios con semilla fija), VERDE (consulta SQL) y REFACTOR (misma regla por cuenta e índices `idx_cuentas_por_cliente` e
+`idx_abonos_por_cuenta`, con `IF NOT EXISTS`, así que también llegan a las bases que ya existen). *Revisado:* la regla es la de
+`CuentaPorCobrar.calcular_saldo` (monto original − abonos de cada cuenta, todas las cuentas del cliente, sin filtrar por estado); el stub
+de `test_unitarias_dobles` solo ganó un método, sin cambiar aserciones. *Desviación:* `git am --keep-cr` no aplicó los commits 2 y 3
+(finales de línea, en `repositorios.py`, `servicios.py` y `base_de_datos.py`); se aplicaron con `git apply --ignore-whitespace`, el diff
+es idéntico al del parche y los archivos siguen en CRLF. *Ajuste no pedido:* `RepositorioDeVentas` (puertos.py, ADR-04) no declaraba el
+método nuevo que usa el servicio; se agregó como método abstracto, con su prueba en ROJO primero en `test_arquitectura`.
+*Medido en el equipo del desarrollador* (`medir_saldo.py`, mediana de 30): 100 cuentas 0,751 → 0,058 ms; 500 cuentas 7,893 → 0,263 ms;
+2.000 cuentas 81,360 → 1,071 ms (unas 76 veces menos; el ensayo de la guía daba 39 → 0,6 ms en otro equipo). Los saldos son idénticos
+antes y después. *Verificado:* 197 pruebas OK, cobertura 98,4 %, ruff con las reglas del CI. *No verificado:* Python 3.13 (lo corre el CI).
+
+**Deuda nueva TD-15, TD-16 y TD-17 (FPI-31).** El texto completo de la FPI-31 **no está** en el repositorio ni en las carpetas del
+proyecto; lo que sigue sale de `Dossier_Final.md` (secciones 3 y 6) y debe confirmarse con la ficha:
+- **TD-15 — movimiento de inventario sin `id_venta`** (bajo impacto con una caja; H2/H3). Es el hallazgo de E-05 (tarea 8): no se puede
+  ligar cada `SALIDA_VENTA` con su venta. *Por confirmar:* la relación TD-15 ↔ «movimiento sin id_venta» se deduce del orden de una fila
+  del dossier («TD-10, TD-15, TD-12, TD-08: abonos simples, movimiento sin id_venta, plazo fijo, fechas sin zona»).
+- **TD-16 — operación: respaldo manual y sin revisión al abrir** (no aceptable para un piloto). **Atendida en el código por la tarea 14**
+  (`tiendas_sm/respaldo.py`); falta usarla en la tienda real y el simulacro medido.
+- **TD-17 — Semgrep no detecta SQL armado con f-string** (hallazgo de la prueba del gate, tarea 12). Abierta: hoy la barrera es ruff S608;
+  la regla propia de Semgrep sigue como recomendación sin aprobar.
+
 ### Equivalencia de numeraciones (DT-xx del repositorio y TD-xx de las fichas FPI-17 en adelante)
 Desde noviembre de 2026 la deuda nueva usa la numeración **TD-xx** de las fichas. Lo ya registrado como DT-xx no se renumera.
 Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálogo completo de TD-xx no está en el repositorio.
@@ -167,3 +191,6 @@ Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálog
 | --- | --- | --- |
 | DT-09 (cliente sin validar) | TD-04 | DT-09 cubrió la parte del cliente; el resto de TD-04 (stock mínimo) se hizo como TD-04 |
 | Hallazgo de la venta de contado (sin movimiento al vender) | TD-01 | Es el mismo problema; quedó registrado como TD-01 |
+| Hallazgo E-05 (movimientos sin `id_venta`) | TD-15 | Por confirmar con la FPI-31 (deducido del orden de una fila del dossier) |
+| Causa raíz de INC-SIM-01 (respaldo manual, sin revisión al abrir) | TD-16 | Comprobada con el dossier; atendida por la tarea 14 |
+| Prueba del gate: Semgrep no detecta SQL con f-string | TD-17 | Comprobada con el dossier (fila de la FPI-28) |
