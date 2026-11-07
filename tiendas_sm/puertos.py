@@ -31,6 +31,10 @@ class RepositorioDeVentas(ABC):
     def contar_ventas(self):
         """Número de ventas guardadas (lo usa Aplicacion.numero_de_ventas)."""
 
+    @abstractmethod
+    def saldo_pendiente_del_cliente(self, id_cliente):
+        """TD-13: suma de (monto original − abonos) de todas las cuentas del cliente (regla de calcular_saldo)."""
+
 
 class PuertoDeProductos(ABC):
     """Lo que el núcleo necesita para productos y existencias."""
