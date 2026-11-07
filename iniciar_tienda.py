@@ -4,7 +4,7 @@ Uso:  python iniciar_tienda.py                      abre la tienda con los datos
       python iniciar_tienda.py --datos-de-ejemplo   además carga datos FICTICIOS si la base está vacía
 
 Los datos se guardan en la carpeta de datos del usuario (DDS §14):
-%LOCALAPPDATA%\\TIENDAS_SM\\tiendas_sm.db en Windows. Para un respaldo manual (RNF-08) basta copiar ese archivo.
+%LOCALAPPDATA%\\TIENDAS_SM\\tiendas_sm.db en Windows. Al cerrar se crea un respaldo verificado en la misma carpeta (FPI-30).
 """
 import logging
 import os
@@ -14,6 +14,7 @@ from pathlib import Path
 
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.datos_de_ejemplo import cargar_datos_de_ejemplo
+from tiendas_sm.respaldo import respaldar, revisar_al_abrir
 from tiendas_sm.telemetria import Telemetria
 
 CARPETA_DE_DATOS = "TIENDAS_SM"
@@ -51,6 +52,12 @@ def abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria=None):
     return app, con_datos_de_ejemplo and cargar_datos_de_ejemplo(app)
 
 
+def cerrar_y_respaldar(app, ruta, telemetria=None, ahora=None):
+    """FPI-30 (INC-SIM-01): al cerrar, se suelta la base y se respalda solo si está sana. Devuelve el respaldo o None."""
+    app.conexion.close()
+    return respaldar(ruta, telemetria, ahora)
+
+
 def usar_escala_de_windows():
     """En Windows con escala de pantalla (125 %, 150 %…) evita que la ventana se vea borrosa."""
     try:
@@ -69,6 +76,10 @@ def main(argumentos):
     ruta = ruta_de_datos()
     ruta.parent.mkdir(parents=True, exist_ok=True)
     telemetria = configurar_telemetria(ruta.parent)
+    problema = revisar_al_abrir(ruta, telemetria)            # FPI-30: no se vende sobre una base dañada
+    if problema:
+        mostrar_base_danada(tk, problema)
+        return
     app, cargo_ejemplo = abrir_aplicacion(ruta, OPCION_DATOS_DE_EJEMPLO in argumentos, telemetria)
     print(f"Base de datos: {ruta}")
     if cargo_ejemplo:
@@ -78,7 +89,16 @@ def main(argumentos):
     try:
         raiz.mainloop()
     finally:
-        app.conexion.close()
+        respaldo = cerrar_y_respaldar(app, ruta, telemetria)
+        print(f"Respaldo: {respaldo}" if respaldo else "No se creó el respaldo: revise la base con el Runbook.")
+
+
+def mostrar_base_danada(tk, mensaje):
+    from tkinter import messagebox
+    raiz = tk.Tk()
+    raiz.withdraw()
+    messagebox.showerror("TIENDAS S.M", mensaje, parent=raiz)
+    raiz.destroy()
 
 
 if __name__ == "__main__":
