@@ -25,6 +25,7 @@ PRUEBAS = {
     "presentador": "tests.test_presentador",
     "arranque": "tests.test_iniciar_tienda",
     "ventana": "tests.test_interfaz_tk",
+    "principal": "tests.test_ventana_principal",
     "escenarios": "tests.test_escenarios_calidad",
     "migracion": "tests.test_migracion_esquema",
     "medidor": "tests.test_medir_cobertura",
@@ -47,9 +48,12 @@ MAPA = {
                                                          "migracion", "saldo")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
     "tiendas_sm/puertos.py": TODAS,                           # contratos que usan servicios y repositorios
-    "tiendas_sm/presentador.py": [PRUEBAS[k] for k in ("presentador", "ventana")],
+    "tiendas_sm/presentador.py": [PRUEBAS[k] for k in ("presentador", "ventana", "principal")],
     "tiendas_sm/datos_de_ejemplo.py": [PRUEBAS["arranque"]],
-    "interfaz_tk/ventana_punto_de_venta.py": [PRUEBAS["ventana"]],
+    "interfaz_tk/ventana_punto_de_venta.py": [PRUEBAS[k] for k in ("ventana", "principal")],
+    "interfaz_tk/ventana_principal.py": [PRUEBAS["principal"]],
+    "interfaz_tk/pantalla.py": [PRUEBAS[k] for k in ("ventana", "principal")],
+    "interfaz_tk/tema.py": [PRUEBAS[k] for k in ("ventana", "principal")],
     "iniciar_tienda.py": [PRUEBAS[k] for k in ("arranque", "telemetria", "respaldo")],
     "tiendas_sm/telemetria.py": [PRUEBAS[k] for k in ("telemetria", "respaldo")],
     "tiendas_sm/respaldo.py": [PRUEBAS["respaldo"]],

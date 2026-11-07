@@ -69,8 +69,7 @@ def usar_escala_de_windows():
 
 def main(argumentos):
     import tkinter as tk                                      # se importa aquí para que las pruebas no lo necesiten
-    from interfaz_tk.ventana_punto_de_venta import VentanaPuntoDeVenta
-    from tiendas_sm.presentador import PresentadorPuntoDeVenta
+    from interfaz_tk.ventana_principal import VentanaPrincipal
 
     usar_escala_de_windows()
     ruta = ruta_de_datos()
@@ -85,7 +84,7 @@ def main(argumentos):
     if cargo_ejemplo:
         print("Se cargaron datos de ejemplo ficticios.")
     raiz = tk.Tk()
-    VentanaPuntoDeVenta(raiz, PresentadorPuntoDeVenta(app))
+    VentanaPrincipal(raiz, app)                               # menú lateral; abre en el punto de venta
     try:
         raiz.mainloop()
     finally:
