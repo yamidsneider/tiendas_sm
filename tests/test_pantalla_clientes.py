@@ -52,6 +52,7 @@ class PruebasDeLaPantallaClientes(BaseDeLaPantalla):
 
     def test_un_error_se_muestra_y_no_guarda(self):
         self.pantalla.nombres.set("")
+        self.pantalla.limite.set("50000")                  # solo falla el nombre
         self.pantalla.guardar()
         self.assertEqual(self.pantalla.mensaje.cget("text"), "El nombre es obligatorio")
         self.assertEqual(len(self.filas()), 1)

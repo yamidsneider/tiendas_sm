@@ -24,7 +24,7 @@ FUENTE_TOTAL = (LETRA, 28, "bold")
 FUENTE_TICKET = ("Consolas", 11)
 COLOR_ERROR, COLOR_OK = PALETA["rojo"], PALETA["v700"]
 ESPACIO_EXTRA_DE_FILA = 10                      # píxeles sobre el alto de la letra: no se cortan la g ni la p
-ANCHO_COLUMNA_PRINCIPAL, ANCHO_COLUMNA = 150, 92    # caben 5 columnas a 1024 px; si sobra espacio, se estiran
+ANCHO_COLUMNA_PRINCIPAL, ANCHO_COLUMNA = 110, 104   # caben 5 columnas a 1024 px; si sobra espacio, se estiran
 COLOR_DESACTIVADO = "#a9cbb9"
 
 
@@ -95,8 +95,8 @@ def crear_tabla(padre, titulo, columnas, alto, columna_principal=None):
     for columna in columnas:
         es_principal = columna == principal
         tabla.heading(columna, text=columna)
-        tabla.column(columna, anchor="w" if es_principal else "e",
-                     width=ANCHO_COLUMNA_PRINCIPAL if es_principal else ANCHO_COLUMNA)
+        tabla.column(columna, anchor="w" if es_principal else "e", stretch=es_principal,   # el espacio que sobra
+                     width=ANCHO_COLUMNA_PRINCIPAL if es_principal else ANCHO_COLUMNA)   # va al nombre
     tabla.tag_configure("par", background=PALETA["v50"])
     tabla.pack(fill="both", expand=True)
     return tabla
