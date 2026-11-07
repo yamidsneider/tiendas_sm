@@ -10,16 +10,23 @@ from tkinter import ttk
 from interfaz_tk.pantalla import Pantalla
 from interfaz_tk.pantalla_clientes import PantallaClientes
 from interfaz_tk.pantalla_creditos import PantallaCreditos
+from interfaz_tk.pantalla_productos import PantallaProductos
 from interfaz_tk.tema import FUENTE_MENU, LETRA, PALETA, aplicar_tema
 from interfaz_tk.ventana_punto_de_venta import VentanaPuntoDeVenta
 from tiendas_sm.presentador import PresentadorPuntoDeVenta
 from tiendas_sm.presentador_clientes import PresentadorDeClientes
 from tiendas_sm.presentador_creditos import PresentadorDeCreditos
+from tiendas_sm.presentador_productos import PresentadorDeProductos
 
 TITULO = "TIENDAS S.M"
 ANCHO_MINIMO, ALTO_MINIMO = 1024, 600          # DDS §9.2
 ANCHO_DEL_MENU = 210
 SECCIONES = ("Punto de venta", "Ventas", "Productos", "Existencias", "Clientes", "Créditos y abonos")
+PANTALLAS = {                                   # sección -> (pantalla, presentador); el punto de venta va aparte
+    "Productos": (PantallaProductos, PresentadorDeProductos),
+    "Clientes": (PantallaClientes, PresentadorDeClientes),
+    "Créditos y abonos": (PantallaCreditos, PresentadorDeCreditos),
+}
 
 
 class VentanaPrincipal:
@@ -75,10 +82,9 @@ class VentanaPrincipal:
     def _crear_pantalla(self, seccion):
         if seccion == "Punto de venta":
             return VentanaPuntoDeVenta(self.raiz, PresentadorPuntoDeVenta(self.app), contenedor=self.area)
-        if seccion == "Clientes":
-            return PantallaClientes(self.area, PresentadorDeClientes(self.app))
-        if seccion == "Créditos y abonos":
-            return PantallaCreditos(self.area, PresentadorDeCreditos(self.app))
+        if seccion in PANTALLAS:
+            pantalla, presentador = PANTALLAS[seccion]
+            return pantalla(self.area, presentador(self.app))
         return PantallaPendiente(self.area, seccion)
 
 
