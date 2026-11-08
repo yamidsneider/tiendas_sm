@@ -5,10 +5,15 @@ a números, llama a ServicioDeClientes y ControlCredito, y devuelve filas y mens
 Las reglas (nombre obligatorio, límite no negativo, plazo mínimo) las valida el dominio; su mensaje se
 muestra tal cual. Solo usa los 4 datos que ya tiene el cliente: los demás están por confirmar.
 """
+from collections import namedtuple
+
 from tiendas_sm.dominio import PLAZO_POR_DEFECTO_DIAS, EstadoCuenta
 from tiendas_sm.presentador import Resultado, a_entero, formato_pesos
 
 SIN_CREDITO = "Sin crédito"
+MENSAJE_SIN_CLIENTE = "Elige un cliente de la lista"
+
+DatosParaEditar = namedtuple("DatosParaEditar", "nombres credito_habilitado limite plazo")
 FORMATO_FECHA = "%d/%m/%Y"
 
 
@@ -41,6 +46,25 @@ class PresentadorDeClientes:
         except ValueError as error:
             return Resultado(False, str(error))
         return Resultado(True, f"Cliente registrado: {cliente.nombres}")
+
+    def datos_para_editar(self, id_cliente):
+        """Los datos guardados, como texto para llenar el formulario de Editar cliente; None si no existe."""
+        cliente = self.app.clientes.obtener(id_cliente)
+        if cliente is None:
+            return None
+        return DatosParaEditar(cliente.nombres, cliente.credito_habilitado, str(cliente.limite_credito),
+                               str(cliente.plazo_credito_dias))
+
+    def editar(self, id_cliente, nombres, credito_habilitado, limite_texto, plazo_texto):
+        if id_cliente is None:
+            return Resultado(False, MENSAJE_SIN_CLIENTE)
+        try:
+            limite = a_entero(limite_texto, "El límite")
+            plazo = a_entero(plazo_texto, "El plazo")
+            cliente = self.app.clientes.actualizar_cliente(id_cliente, nombres.strip(), credito_habilitado, limite, plazo)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        return Resultado(True, f"Cliente actualizado: {cliente.nombres}")
 
     def detalle(self, id_cliente):
         """Texto con el crédito del cliente y sus cuentas que todavía tienen saldo (solo lectura)."""

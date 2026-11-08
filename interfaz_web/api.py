@@ -153,6 +153,17 @@ class ApiDeLaTienda:
     def detalle_cliente(self, id_cliente):
         return self._ejecutar(lambda: self._clientes.detalle(_id(id_cliente)))
 
+    def datos_cliente(self, id_cliente):
+        """Lo guardado, para llenar el formulario de Editar cliente; None si no existe."""
+        datos = self._ejecutar(lambda: self._clientes.datos_para_editar(_id(id_cliente)))
+        if datos is None:
+            return None
+        return {"nombres": datos.nombres, "credito": datos.credito_habilitado, "limite": datos.limite, "plazo": datos.plazo}
+
+    def editar_cliente(self, id_cliente, nombres, credito, limite, plazo):
+        return self._ejecutar(lambda: _resultado(self._clientes.editar(_id(id_cliente), str(nombres), bool(credito),
+                                                                       limite, plazo)))
+
     # ------------------------------------------------------------------ créditos y abonos (HU-06, RF-09)
     def creditos(self, ver_pagadas=False):
         return self._ejecutar(lambda: {"filas": _filas(self._creditos.tabla(bool(ver_pagadas))),
