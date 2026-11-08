@@ -16,7 +16,9 @@ MVP académico (Ingeniería de Software I, Universidad de Pamplona). Autor: Yami
 
     python -m venv .venv
     .venv\Scripts\python -m pip install -r requirements-escritorio.txt
-    .venv\Scripts\python construir_exe.py
+    .venv\Scripts\python construir_exe.py --acceso-directo     (sin la opción, no crea el acceso directo)
+
+Con `--acceso-directo` queda «TIENDAS S.M» en el escritorio, con el ícono de la tienda.
 
 **Desde el código:** `.venv\Scripts\python iniciar_tienda.py --datos-de-ejemplo`
 

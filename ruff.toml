@@ -6,3 +6,6 @@
 # S603/S607 (ruta parcial del ejecutable): correr_regresion.py llama a ["git", "diff", ...] y a python con
 # argumentos fijos, para elegir pruebas en el equipo del desarrollador; no se distribuye.
 "correr_regresion.py" = ["S603", "S607"]
+# S603/S607: construir_exe.py llama a powershell con una orden fija (crear el acceso directo en el escritorio); la única
+# parte variable es la ruta del .exe, con las comillas escapadas. Lo usa el desarrollador al armar el .exe; no se distribuye.
+"construir_exe.py" = ["S603", "S607"]

@@ -54,12 +54,12 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (315 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (323 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 98,8 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
 .venv\Scripts\python iniciar_tienda.py --datos-de-ejemplo   # app de escritorio pywebview (--tkinter: la anterior); datos en %LOCALAPPDATA%\TIENDAS_SM
-.venv\Scripts\python construir_exe.py            # arma dist\TIENDAS_SM.exe (requirements-escritorio.txt)
+.venv\Scripts\python construir_exe.py --acceso-directo   # arma dist\TIENDAS_SM.exe con su ícono y el acceso directo
 ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py slo_mensual.py   # job linter (ruff==0.16.9)
 ```
 
