@@ -5,10 +5,14 @@ No usa Tkinter. Convierte el texto del formulario a números y llama a ServicioD
 Cambiar el precio no altera ventas anteriores: cada venta guardó su precio (HU-02).
 No pide stock mínimo (por confirmar, TD-04), no calcula ganancias y no borra productos (DT-08).
 """
+from collections import namedtuple
+
 from tiendas_sm.presentador import Resultado, a_entero, formato_pesos
 from tiendas_sm.validaciones import exigir_no_negativo
 
 MENSAJE_SIN_PRODUCTO = "Elige un producto de la lista"
+
+DatosParaEditar = namedtuple("DatosParaEditar", "nombre compra venta")
 
 
 class PresentadorDeProductos:
@@ -32,6 +36,24 @@ class PresentadorDeProductos:
         except ValueError as error:
             return Resultado(False, str(error))
         return Resultado(True, f"Producto registrado: {producto.nombre}")
+
+    def datos_para_editar(self, id_producto):
+        """Los datos guardados, como texto para llenar el formulario de Editar producto; None si no existe."""
+        producto = self.app.productos.obtener(id_producto)
+        if producto is None:
+            return None
+        return DatosParaEditar(producto.nombre, str(producto.precio_compra), str(producto.precio_venta))
+
+    def editar(self, id_producto, nombre, compra_texto, venta_texto):
+        if id_producto is None:
+            return Resultado(False, MENSAJE_SIN_PRODUCTO)
+        try:
+            compra = a_entero(compra_texto, "El precio de compra")
+            venta = a_entero(venta_texto, "El precio de venta")
+            producto = self.app.productos.actualizar_producto(id_producto, nombre.strip(), compra, venta)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        return Resultado(True, f"Producto actualizado: {producto.nombre}")
 
     def precio_actual(self, id_producto):
         producto = self.app.productos.obtener(id_producto)
