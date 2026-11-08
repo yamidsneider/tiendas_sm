@@ -47,6 +47,8 @@ PRUEBAS = {
     "saldo": "tests.test_td13_saldo_pendiente",
     "escritorio_api": "tests.test_api_escritorio",
     "escritorio_pagina": "tests.test_pagina_escritorio",
+    "editar_cliente": "tests.test_editar_cliente",
+    "editar_producto": "tests.test_editar_producto",
 }
 TODAS = list(PRUEBAS.values())
 PRUEBAS_DE_PANTALLAS = [PRUEBAS[k] for k in PRUEBAS if k in ("ventana", "principal") or k.startswith("pantalla_")]
@@ -56,7 +58,7 @@ MAPA = {
     "tiendas_sm/validaciones.py": TODAS,                      # lo usan casi todas las clases del dominio
     "tiendas_sm/dominio.py": TODAS,                           # base de todo el sistema
     "tiendas_sm/repositorios.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios",
-                                                        "saldo", "existencias", "ventas")],
+                                                        "saldo", "existencias", "ventas", "editar_cliente", "editar_producto")],
     "tiendas_sm/base_de_datos.py": [PRUEBAS[k] for k in ("integracion", "comportamiento", "caja_negra", "defectos", "contado", "escenarios",
                                                          "migracion", "saldo")],
     "tiendas_sm/servicios.py": TODAS,                         # controles, ventas y productos
@@ -72,15 +74,16 @@ MAPA = {
     "interfaz_tk/pantalla_ventas.py": [PRUEBAS["pantalla_ventas"]],
     "tiendas_sm/presentador_ventas.py": [PRUEBAS[k] for k in ("ventas", "pantalla_ventas", "escritorio_api")],
     "tiendas_sm/presentador_existencias.py": [PRUEBAS[k] for k in ("existencias", "pantalla_existencias", "escritorio_api")],
-    "tiendas_sm/presentador_productos.py": [PRUEBAS[k] for k in ("productos", "pantalla_productos", "escritorio_api")],
+    "tiendas_sm/presentador_productos.py": [PRUEBAS[k] for k in ("productos", "pantalla_productos", "escritorio_api", "editar_producto")],
     "interfaz_tk/pantalla_creditos.py": [PRUEBAS["pantalla_creditos"]],
     "tiendas_sm/presentador_creditos.py": [PRUEBAS[k] for k in ("creditos", "pantalla_creditos", "escritorio_api")],
     "interfaz_tk/pantalla_clientes.py": [PRUEBAS["pantalla_clientes"]],
-    "tiendas_sm/presentador_clientes.py": [PRUEBAS[k] for k in ("clientes", "pantalla_clientes", "escritorio_api")],
+    "tiendas_sm/presentador_clientes.py": [PRUEBAS[k] for k in ("clientes", "pantalla_clientes", "escritorio_api", "editar_cliente")],
     "interfaz_tk/pantalla.py": PRUEBAS_DE_PANTALLAS,
     "interfaz_tk/tema.py": PRUEBAS_DE_PANTALLAS,
     "iniciar_tienda.py": [PRUEBAS[k] for k in ("arranque", "telemetria", "respaldo")],
-    "interfaz_web/api.py": [PRUEBAS[k] for k in ("escritorio_api", "escritorio_pagina", "arranque")],
+    "interfaz_web/api.py": [PRUEBAS[k] for k in ("escritorio_api", "escritorio_pagina", "arranque", "editar_cliente",
+                                                 "editar_producto")],
     "interfaz_web/pagina.py": [PRUEBAS["escritorio_pagina"]],
     "interfaz_web/estatico/app.js": [PRUEBAS["escritorio_pagina"]],
     "interfaz_web/estatico/app.css": [PRUEBAS["escritorio_pagina"]],

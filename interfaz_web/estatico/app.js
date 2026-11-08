@@ -291,13 +291,13 @@ TABLAS.productos = async () => {
   const filas = (await llamar('productos', estado.busquedas.productos || '')).map(f => {
     const [nombre, compra, venta, disponibles] = f.valores;
     return `<tr><td><b>${esc(nombre)}</b></td><td class="num">${esc(compra)}</td><td class="num"><b>${esc(venta)}</b></td><td class="num">${esc(disponibles)}</td>
-      <td><button class="btn btn-s btn-ch" data-accion="cambiar-precio" data-id="${esc(f.id)}">Cambiar precio</button></td></tr>`;
+      <td><button class="btn btn-s btn-ch" data-accion="editar-producto" data-id="${esc(f.id)}">Editar</button></td></tr>`;
   });
   return tabla(['Producto', '>Precio de compra', '>Precio de venta', '>Disponibles', ''], filas, 'No hay productos con esa búsqueda.');
 };
 
 VISTAS.productos = async () => ({
-  sub: 'Registra tus productos y actualiza su precio de venta',
+  sub: 'Registra tus productos y corrige su nombre o sus precios',
   acciones: '<button class="btn btn-p" data-accion="nuevo-producto">+ Nuevo producto</button>',
   html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Catálogo</h3>${buscador('productos', 'Buscar producto por nombre')}</div>
     <div id="tabla">${await TABLAS.productos()}</div>
@@ -305,16 +305,22 @@ VISTAS.productos = async () => ({
 });
 
 function abrirNuevoProducto() {
-  abrirModal('Nuevo producto', `${campo('Nombre del producto', 'f-nombre', '<input id="f-nombre" placeholder="Ej.: Arroz 500 g">')}
-    <div class="dos">${campo('Precio de compra', 'f-compra', '<input id="f-compra" type="number" min="0">')}${campo('Precio de venta', 'f-venta', '<input id="f-venta" type="number" min="0">')}</div>
+  abrirModal('Nuevo producto', `${formularioDeProducto()}
     ${campo('Cantidad inicial', 'f-cantidad', '<input id="f-cantidad" type="number" min="0" value="0">', 'Las unidades que hay hoy en la tienda.')}`,
   botonesGuardar('Guardar producto', 'guardar-producto'));
 }
 
-async function abrirCambioDePrecio(id) {
-  const actual = await llamar('precio_actual', id);
-  abrirModal('Cambiar precio de venta', `<div class="papel texto margen">${esc(actual)}</div>${campo('Nuevo precio de venta', 'f-precio', '<input id="f-precio" type="number" min="0">')}`,
-    botonesGuardar('Guardar precio', 'guardar-precio', ` data-id="${esc(id)}"`));
+function formularioDeProducto(datos = { nombre: '', compra: '', venta: '' }) {
+  return `${campo('Nombre del producto', 'f-nombre', `<input id="f-nombre" placeholder="Ej.: Arroz 500 g" value="${esc(datos.nombre)}">`)}
+    <div class="dos">${campo('Precio de compra', 'f-compra', `<input id="f-compra" type="number" min="0" value="${esc(datos.compra)}">`)}
+    ${campo('Precio de venta', 'f-venta', `<input id="f-venta" type="number" min="0" value="${esc(datos.venta)}">`)}</div>`;
+}
+
+async function abrirEdicionDeProducto(id) {
+  const datos = await llamar('datos_producto', id);
+  if (!datos) { aviso('Ese producto ya no existe.', true); return; }
+  abrirModal('Editar producto', `${formularioDeProducto(datos)}<div class="nota-pie">Las existencias se cambian con «Registrar entrada» en Existencias.
+    Las ventas anteriores conservan el precio con que se vendieron.</div>`, botonesGuardar('Guardar cambios', 'guardar-edicion-producto', ` data-id="${esc(id)}"`));
 }
 
 /* ------------------------------------------------------------------ existencias (HU-03, RF-04) */
@@ -359,7 +365,8 @@ TABLAS.clientes = async () => {
     const [nombre, limite, debe, disponible] = f.valores;
     return `<tr><td><b>${esc(nombre)}</b></td><td class="num">${esc(limite)}</td><td class="num">${esc(debe)}</td>
       <td class="num">${disponible === 'Sin crédito' ? insignia('i-gris', disponible) : `<b>${esc(disponible)}</b>`}</td>
-      <td><button class="btn btn-s btn-ch" data-accion="ver-cliente" data-id="${esc(f.id)}">Ver detalle</button></td></tr>`;
+      <td><button class="btn btn-s btn-ch" data-accion="ver-cliente" data-id="${esc(f.id)}">Ver detalle</button>
+      <button class="btn btn-s btn-ch" data-accion="editar-cliente" data-id="${esc(f.id)}">Editar</button></td></tr>`;
   });
   return tabla(['Cliente', '>Límite', '>Debe', '>Disponible', ''], filas, 'No hay clientes con esa búsqueda.');
 };
@@ -372,13 +379,24 @@ VISTAS.clientes = async () => ({
     <div class="nota-pie">El crédito disponible es el límite menos lo que debe. Los datos de los clientes son personales: protégelos.</div></div>`,
 });
 
+function formularioDeCliente(datos, ayudaDelLimite = '') {
+  return `${campo('Nombre', 'k-nombre', `<input id="k-nombre" value="${esc(datos.nombres)}">`)}
+    <div class="campo"><label class="check"><input type="checkbox" id="k-credito"${datos.credito ? ' checked' : ''}> Puede comprar a crédito (fiado)</label></div>
+    <div class="dos">${campo('Límite de crédito', 'k-limite', `<input id="k-limite" type="number" min="0" value="${esc(datos.limite)}">`, ayudaDelLimite)}
+    ${campo('Plazo para pagar (días)', 'k-plazo', `<input id="k-plazo" type="number" min="1" value="${esc(datos.plazo)}">`)}</div>`;
+}
+
 async function abrirNuevoCliente() {
   const plazo = await llamar('plazo_por_defecto');
-  abrirModal('Nuevo cliente', `${campo('Nombre', 'k-nombre', '<input id="k-nombre">')}
-    <div class="campo"><label class="check"><input type="checkbox" id="k-credito" checked> Puede comprar a crédito (fiado)</label></div>
-    <div class="dos">${campo('Límite de crédito', 'k-limite', '<input id="k-limite" type="number" min="0" value="0">')}
-    ${campo('Plazo para pagar (días)', 'k-plazo', `<input id="k-plazo" type="number" min="1" value="${esc(plazo)}">`)}</div>`,
-  botonesGuardar('Guardar cliente', 'guardar-cliente'));
+  abrirModal('Nuevo cliente', formularioDeCliente({ nombres: '', credito: true, limite: '0', plazo }), botonesGuardar('Guardar cliente', 'guardar-cliente'));
+}
+
+async function abrirEdicionDeCliente(id) {
+  const datos = await llamar('datos_cliente', id);
+  if (!datos) { aviso('Ese cliente ya no existe.', true); return; }
+  abrirModal('Editar cliente', `${formularioDeCliente(datos, 'Si queda por debajo de lo que debe, no se le podrá fiar más hasta que abone.')}
+    <div class="nota-pie">El nuevo plazo se usa en las próximas ventas; las cuentas que ya tiene conservan su fecha de vencimiento.</div>`,
+  botonesGuardar('Guardar cambios', 'guardar-edicion-cliente', ` data-id="${esc(id)}"`));
 }
 
 /* ------------------------------------------------------------------ créditos y abonos (HU-06, RF-09) */
@@ -429,12 +447,14 @@ const ACCIONES = {
   'ver-venta': async el => mostrarTicket(`Venta #${el.dataset.id}`, await llamar('ticket', el.dataset.id)),
   'nuevo-producto': abrirNuevoProducto,
   'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad')),
-  'cambiar-precio': el => abrirCambioDePrecio(el.dataset.id),
-  'guardar-precio': el => guardar('cambiar_precio', el.dataset.id, val('f-precio')),
+  'editar-producto': el => abrirEdicionDeProducto(el.dataset.id),
+  'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta')),
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
   'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
   'nuevo-cliente': abrirNuevoCliente,
   'guardar-cliente': () => guardar('registrar_cliente', val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo')),
+  'editar-cliente': el => abrirEdicionDeCliente(el.dataset.id),
+  'guardar-edicion-cliente': el => guardar('editar_cliente', el.dataset.id, val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo')),
   'ver-cliente': async el => abrirModal('Detalle del cliente', papel(await llamar('detalle_cliente', el.dataset.id)), [{ texto: 'Cerrar', clase: 'btn-p', accion: 'cerrar-modal' }]),
   'filtro-pagadas': el => { estado.verPagadas = el.dataset.valor === 'true'; render(); },
   'ver-credito': async el => abrirModal('Detalle de la cuenta', papel(await llamar('detalle_credito', el.dataset.id)), [{ texto: 'Cerrar', clase: 'btn-p', accion: 'cerrar-modal' }]),
