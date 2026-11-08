@@ -13,8 +13,9 @@ class ServicioDeProductos:
     def __init__(self, repo_productos):
         self.repo_productos = repo_productos
 
-    def registrar_producto(self, nombre, precio_compra, precio_venta, cantidad_inicial=0, stock_minimo=0):
-        producto = Producto(None, nombre, precio_compra, precio_venta, stock_minimo)
+    def registrar_producto(self, nombre, precio_compra, precio_venta, cantidad_inicial=0, stock_minimo=0, codigo=""):
+        producto = Producto(None, nombre, precio_compra, precio_venta, stock_minimo, codigo)
+        self._exigir_codigo_libre(producto)
         self.repo_productos.guardar(producto)
         if cantidad_inicial > 0:
             self.registrar_entrada(producto.id_producto, cantidad_inicial)
@@ -22,6 +23,17 @@ class ServicioDeProductos:
 
     def obtener(self, id_producto):
         return self.repo_productos.obtener(id_producto)
+
+    def buscar_por_codigo(self, codigo):
+        """Respuesta 1.4: lo que manda el lector de código de barras (sin espacios ni Enter); None si no hay."""
+        codigo = codigo.strip()
+        return self.repo_productos.obtener_por_codigo(codigo) if codigo else None
+
+    def _exigir_codigo_libre(self, producto):
+        """Dos productos no pueden tener el mismo código: el lector no sabría cuál agregar."""
+        otro = self.buscar_por_codigo(producto.codigo)
+        if otro is not None and otro.id_producto != producto.id_producto:
+            raise ValueError(f"El código {producto.codigo} ya es del producto {otro.nombre}")
 
     def listar(self):
         return self.repo_productos.listar()
@@ -34,14 +46,17 @@ class ServicioDeProductos:
         self.repo_productos.guardar(producto)
         return producto
 
-    def actualizar_producto(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=None):
+    def actualizar_producto(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=None, codigo=None):
         """Editar producto: se arma un Producto con el mismo id para que el dominio valide igual que al registrar.
-        Las existencias no se tocan (cambian con entradas y ventas). Sin stock_minimo se conserva el guardado."""
+        Las existencias no se tocan (cambian con entradas y ventas). Sin stock_minimo o sin codigo (None) se
+        conserva lo guardado."""
         actual = self.repo_productos.obtener(id_producto)
         if actual is None:
             raise ValueError("El producto no existe")
         minimo = actual.stock_minimo if stock_minimo is None else stock_minimo
-        producto = Producto(id_producto, nombre, precio_compra, precio_venta, minimo)
+        codigo = actual.codigo if codigo is None else codigo
+        producto = Producto(id_producto, nombre, precio_compra, precio_venta, minimo, codigo)
+        self._exigir_codigo_libre(producto)
         self.repo_productos.guardar(producto)
         return producto
 

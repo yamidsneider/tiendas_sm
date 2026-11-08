@@ -55,6 +55,9 @@ COLUMNAS_NUEVAS_DE_CLIENTES = (
     ("telefono", "TEXT NOT NULL DEFAULT ''"),
     ("direccion", "TEXT NOT NULL DEFAULT ''"),
 )
+# Respuesta 1.4: código de barras opcional. NULL cuando no hay, así el índice único deja varios productos sin código.
+COLUMNAS_NUEVAS_DE_PRODUCTOS = (("codigo", "TEXT"),)
+INDICE_DEL_CODIGO = "CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)"
 
 
 class BaseDeDatos:
@@ -65,6 +68,9 @@ class BaseDeDatos:
         self.conexion.executescript(ESQUEMA_SQL)
         self._agregar_columnas("ventas", COLUMNAS_NUEVAS_DE_VENTAS)
         self._agregar_columnas("clientes", COLUMNAS_NUEVAS_DE_CLIENTES)
+        self._agregar_columnas("productos", COLUMNAS_NUEVAS_DE_PRODUCTOS)
+        with self.conexion:
+            self.conexion.execute(INDICE_DEL_CODIGO)            # después de la migración: la columna ya existe
 
     def _agregar_columnas(self, tabla, columnas):
         """Migración: agrega a una base vieja las columnas que le falten, sin perder datos.

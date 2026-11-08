@@ -132,12 +132,12 @@ async function refrescarTabla() {
 
 /* ------------------------------------------------------------------ punto de venta (HU-04, CU-01, CU-02) */
 VISTAS.pos = async () => ({
-  sub: 'Escribe el nombre del producto y presiona Enter para agregarlo',
+  sub: 'Pasa el lector de código de barras o escribe el nombre y presiona Enter',
   acciones: '<button class="btn btn-o" data-accion="limpiar-carrito">Limpiar venta</button>',
   html: `<div class="pos"><div>
       <div class="tarjeta margen"><div class="pos-busca">
         <div class="pos-fila"><label class="ocultar-visual" for="pos-q">Nombre del producto</label>
-          <input id="pos-q" class="grande" placeholder="Nombre del producto  (F2)" autocomplete="off" data-entrada="pos-buscar">
+          <input id="pos-q" class="grande" placeholder="Código de barras o nombre del producto  (F2)" autocomplete="off" data-entrada="pos-buscar">
           <label class="ocultar-visual" for="pos-cant">Cantidad</label><input id="pos-cant" class="cant" type="number" min="1" value="1"></div>
         <div id="pos-sug" class="sugerencias oculto" role="listbox"></div>
       </div><div class="nota-pie">Si pides más de lo que hay, el sistema te dice cuántas unidades quedan.</div></div>
@@ -203,9 +203,12 @@ async function teclaEnBusqueda(ev) {
   else if (ev.key === 'Enter') {
     ev.preventDefault();
     const texto = ev.target.value;
-    const lista = n ? estado.sugerencias : (texto.trim() ? await llamar('buscar', texto) : []);
+    // El lector escribe rápido y oprime Enter: se busca de nuevo con el texto completo (no con sugerencias viejas),
+    // salvo que el vendedor haya elegido una sugerencia con las flechas.
+    const elegida = n && estado.sugSel > 0;
+    const lista = elegida ? estado.sugerencias : (texto.trim() ? await llamar('buscar', texto) : []);
     if (!lista.length) { aviso(texto.trim() ? `No encontré «${texto}». Revisa el nombre.` : 'Escribe el nombre de un producto.', true); return; }
-    agregarProducto(lista[n ? estado.sugSel : 0]);
+    agregarProducto(lista[elegida ? estado.sugSel : 0]);
   }
 }
 
@@ -311,8 +314,9 @@ function abrirNuevoProducto() {
   botonesGuardar('Guardar producto', 'guardar-producto'));
 }
 
-function formularioDeProducto(datos = { nombre: '', compra: '', venta: '', minimo: '0' }) {
-  return `${campo('Nombre del producto', 'f-nombre', `<input id="f-nombre" placeholder="Ej.: Arroz 500 g" value="${esc(datos.nombre)}">`)}
+function formularioDeProducto(datos = { nombre: '', compra: '', venta: '', minimo: '0', codigo: '' }) {
+  return `${campo('Código de barras (opcional)', 'f-codigo', `<input id="f-codigo" data-lector autocomplete="off" placeholder="Pase el lector por el código" value="${esc(datos.codigo)}">`)}
+    ${campo('Nombre del producto', 'f-nombre', `<input id="f-nombre" placeholder="Ej.: Arroz 500 g" value="${esc(datos.nombre)}">`)}
     <div class="dos">${campo('Precio de compra', 'f-compra', `<input id="f-compra" type="number" min="0" value="${esc(datos.compra)}">`)}
     ${campo('Precio de venta', 'f-venta', `<input id="f-venta" type="number" min="0" value="${esc(datos.venta)}">`)}</div>
     ${campo('Stock mínimo', 'f-minimo', `<input id="f-minimo" type="number" min="0" value="${esc(datos.minimo)}">`,
@@ -480,9 +484,9 @@ const ACCIONES = {
   imprimir: () => window.print(),
   'ver-venta': async el => mostrarTicket(`Venta #${el.dataset.id}`, await llamar('ticket', el.dataset.id)),
   'nuevo-producto': abrirNuevoProducto,
-  'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad'), val('f-minimo')),
+  'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad'), val('f-minimo'), val('f-codigo')),
   'editar-producto': el => abrirEdicionDeProducto(el.dataset.id),
-  'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta'), val('f-minimo')),
+  'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta'), val('f-minimo'), val('f-codigo')),
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
   'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
   'nuevo-cliente': abrirNuevoCliente,
@@ -515,6 +519,7 @@ document.addEventListener('change', ev => { const f = CAMBIOS[ev.target.dataset.
 document.addEventListener('keydown', ev => {
   if (ev.target.id === 'pos-q' && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(ev.key)) { teclaEnBusqueda(ev); return; }
   if (ev.key === 'Escape' && hayModal()) { cerrarModal(); return; }
+  if (ev.key === 'Enter' && ev.target.dataset.lector !== undefined) { ev.preventDefault(); $('f-nombre').focus(); return; }  // Enter del lector
   if (ev.key === 'Enter' && hayModal() && ev.target.tagName === 'INPUT') {
     ev.preventDefault();
     const principal = $('modal-raiz').querySelector('.modal-pie .btn-p');
