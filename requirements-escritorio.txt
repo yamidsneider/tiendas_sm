@@ -1,0 +1,3 @@
+# Solo para la app de escritorio (opción B en DECISIONES). El núcleo y las pruebas no los necesitan.
+pywebview==6.2.1
+pyinstaller==6.22.3

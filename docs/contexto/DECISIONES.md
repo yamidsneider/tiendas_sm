@@ -13,14 +13,14 @@
 | FPI-09 | Modelo de dominio de 29 entidades; CR-02 sin aprobar | Adoptado |
 | FPI-10 | UML selectivo: solo CU-01 (8 clases + secuencia). Tipos genéricos | Implementado |
 | FPI-11 | SOLID donde hay riesgo: `ControlInventario`, `ControlCredito` y la interfaz `RepositorioDeVentas` | Implementado |
-| FPI-12 | **Python + SQLite + Tkinter**, dinero entero, refactor de 8 code smells, deuda DT-01..DT-05 | Tkinter: las 6 pantallas del MVP; en curso el paso a HTML local (opción B, noviembre de 2026) |
+| FPI-12 | **Python + SQLite + Tkinter**, dinero entero, refactor de 8 code smells, deuda DT-01..DT-05 | Tkinter: las 6 pantallas del MVP; en curso la app de escritorio con la visual del borrador (pywebview, opción B) |
 | FPI-13 | GitHub Flow, `main` protegida, commits atómicos, conflicto simulado, release v0.1.0 | Evidencia en GitHub por confirmar |
 | FPI-14 | Pruebas unitarias con stubs/mocks, caja negra, integración ascendente, cobertura | Implementado |
 | FPI-15 | CI con GitHub Actions, regresión, BUG-01 y BUG-02 corregidos | Pipeline verde por confirmar |
 | FPI-16 | Demo, retrospectiva cuantitativa, bitácora de IA y hoja de ruta hacia IS II | En cierre |
 
 ## Decisiones técnicas que no deben revertirse sin explicar por qué
-- Solo biblioteca estándar (sin dependencias externas) en el MVP. Única herramienta externa: `ruff`, solo en el CI.
+- Solo biblioteca estándar (sin dependencias externas) en el MVP. Única herramienta externa: `ruff`, solo en el CI. Excepción aprobada: `pywebview` y `PyInstaller` para la app de escritorio (opción B).
 - Dinero como enteros en pesos. Fechas como texto ISO en SQLite.
 - Existencias sin `Lote` en el MVP (DT-01): `Existencia` se liga directamente al producto.
 - Los abonos son una tabla simple (DT-03), no el modelo Pago/AplicacionPago del modelo de 29 entidades.
@@ -199,25 +199,22 @@ pantalla real), cobertura 98,8 %, V(G) máximo 6, ruff con las reglas del CI, y 
 *No verificado:* Python 3.13 (lo corre el CI, donde las 37 pruebas de pantallas se saltan), el uso por personas (E-01, RNF-01) y el PR a `main`.
 *Recomendación sin aprobar:* «Editar cliente» (ver `ESTADO_Y_PENDIENTES.md`).
 
-**Cambio de la interfaz a HTML local (opción B, noviembre de 2026; cambia FPI-12).** Después de terminar la opción A, el desarrollador
-pidió pasar la interfaz a HTML siguiendo la estructura y la visual de su borrador `tiendas_sm_dashboard.html`, y aprobó este plan.
-*Causa:* el borrador en el navegador se ve y se usa mejor que Tkinter (tarjetas, ventanas emergentes, tablas con insignias), y el
-desarrollador quiere que la app final se parezca a él. *Qué cambia:* solo la capa que dibuja. Un **servidor local** con `http.server`
-de la biblioteca estándar (`interfaz_web/servidor.py`) sirve la página y una pequeña API JSON que llama a los **mismos presentadores**
-de `tiendas_sm/presentador*.py`; el dominio, los servicios, los puertos y la base no cambian, y la regla «solo biblioteca estándar» se
-mantiene. *Cuidados de seguridad (RNF-03 en lo que aplica sin usuarios):* escucha solo en `127.0.0.1`; rechaza peticiones cuyo
-encabezado `Host` no sea el de la tienda (contra *DNS rebinding*); toda petición que cambia datos debe traer un **código aleatorio por
-sesión** que solo conoce la página servida, así otra página de internet abierta en el mismo navegador no puede enviar ventas; atiende
-**una petición a la vez**, porque la conexión de SQLite es una sola. *Qué se toma del borrador:* la estructura (menú lateral, encabezado,
-tarjetas, tablas, ventanas emergentes, avisos) y su CSS; **no** su JavaScript de negocio ni `localStorage`: las reglas siguen en Python y
-los datos en SQLite. Solo las **6 secciones aprobadas**, sin emojis y sin lo que el borrador muestra como pendiente o CR-02 (lotes,
-alertas, proveedores, pedidos, caja, medios de pago distintos al efectivo, código de barras, categorías, stock mínimo, salida manual,
-editar). *Impacto:* `iniciar_tienda.py` abre el navegador en vez de la ventana; el respaldo verificado al cerrar (FPI-30) se hace al pulsar
-«Cerrar tienda», que apaga el servidor. Las pruebas de la API usan `unittest` contra el servidor real en un puerto libre, sin navegador,
-así corren también en el CI. *Transición:* `interfaz_tk/` se conserva y sigue funcionando hasta que la versión web tenga las 6 secciones;
-después el desarrollador decide si se retira. *Alternativas descartadas:* seguir solo con Tkinter (opción A, ya hecha, pero no se parece
-lo suficiente al borrador); usar Flask u otro marco web (agrega una dependencia externa, contra la decisión de solo biblioteca estándar);
-abrir el HTML del borrador tal cual (sus reglas en JavaScript y `localStorage` duplicarían el dominio y no guardan en SQLite).
+**Interfaz de escritorio con la visual del borrador HTML (opción B, noviembre de 2026; cambia FPI-12).** Después de terminar la opción A,
+el desarrollador pidió una app **de escritorio, con su `.exe`**, que no se vea como un navegador y que siga la estructura y la visual de su
+borrador `tiendas_sm_dashboard.html`. *Causa:* el borrador se ve y se usa mejor que Tkinter (tarjetas, ventanas emergentes, insignias) y
+el desarrollador quiere que la app final se parezca a él. *Qué cambia:* solo la capa que dibuja. **pywebview** abre una ventana nativa de
+Windows (motor WebView2, que trae Windows 11) con la página de `interfaz_web/estatico/`; el JavaScript de la página llama a
+`interfaz_web/api.py`, que usa los **mismos presentadores** de `tiendas_sm/presentador*.py`. El dominio, los servicios, los puertos y la
+base no cambian. **PyInstaller** arma `TIENDAS_SM.exe`, que no necesita Python instalado. *Excepción a «solo biblioteca estándar»:*
+`pywebview` (en la app) y `PyInstaller` (solo para armar el `.exe`), con versiones fijas en `requirements-escritorio.txt`; el núcleo y
+las pruebas siguen sin dependencias, así el CI no cambia. *Cuidados:* no hay servidor ni puerto abierto (nada queda expuesto en la red);
+la página no carga nada de internet; todas las llamadas a la base pasan por **un solo hilo**, porque pywebview atiende cada llamada en un
+hilo distinto y la conexión de SQLite es una sola. *Qué se toma del borrador:* estructura y CSS; **no** su JavaScript de negocio ni
+`localStorage`. Solo las **6 secciones aprobadas**, sin emojis. *Impacto:* `iniciar_tienda.py` abre la ventana nueva; al cerrarla se hace
+el respaldo verificado (FPI-30). `interfaz_tk/` se conserva hasta que el desarrollador decida retirarla (copia en
+`../TIENDAS-SM_version_tkinter`). *Alternativas descartadas:* seguir con Tkinter (no se parece lo suficiente al borrador); un servidor
+local abierto en el navegador o en modo app de Edge (se ve como navegador y exige cuidar un puerto local); abrir el borrador tal cual
+(sus reglas en JavaScript duplicarían el dominio y no guardan en SQLite).
 
 **Deuda nueva TD-15, TD-16 y TD-17 (FPI-31).** El texto completo de la FPI-31 **no está** en el repositorio ni en las carpetas del
 proyecto; lo que sigue sale de `Dossier_Final.md` (secciones 3 y 6) y debe confirmarse con la ficha:
