@@ -158,7 +158,8 @@ function pintarCarrito(carrito) {
   estado.carrito = carrito;
   if (!$('pos-ticket')) return;
   const filas = carrito.lineas.map((l, i) => `<tr><td>${i + 1}</td><td><b>${esc(l.nombre)}</b><div class="sec">Disponibles: ${esc(l.disponibles)}</div></td>
-    <td class="num">${esc(l.precio)}</td><td class="num"><b>${esc(l.cantidad)}</b></td><td class="num"><b>${esc(l.importe)}</b></td>
+    <td class="num">${esc(l.precio)}</td><td class="num"><span class="cantidad-ctl"><button data-accion="menos" data-id="${esc(l.id)}" aria-label="Quitar una unidad de ${esc(l.nombre)}">−</button>
+    <b>${esc(l.cantidad)}</b><button data-accion="mas" data-id="${esc(l.id)}" aria-label="Agregar una unidad de ${esc(l.nombre)}">+</button></span></td><td class="num"><b>${esc(l.importe)}</b></td>
     <td><button class="btn btn-ch btn-quitar" data-accion="quitar" data-id="${esc(l.id)}">Quitar</button></td></tr>`);
   $('pos-ticket').innerHTML = tabla(['#', 'Producto', '>Precio', '>Cantidad', '>Importe', ''], filas, 'La venta está vacía. Busca un producto para empezar.');
   $('pos-total').textContent = carrito.total;
@@ -440,6 +441,8 @@ const ACCIONES = {
   'cerrar-modal': cerrarModal,
   'limpiar-carrito': async () => { pintarCarrito(await llamar('limpiar')); $('pos-q').focus(); },
   quitar: async el => pintarCarrito(await llamar('quitar', el.dataset.id)),
+  menos: async el => pintarCarrito(await llamar('quitar_uno', el.dataset.id)),
+  mas: async el => { const r = await llamar('agregar', el.dataset.id, '1'); if (!r.exito) aviso(r.mensaje, true); pintarCarrito(r.carrito); },
   'elegir-sug': el => agregarProducto(estado.sugerencias[Number(el.dataset.indice)]),
   cobrar: el => abrirCobro(el.dataset.modo),
   'cobro-modo': el => { estado.cobro.modo = el.dataset.modo; pintarCobro(); },

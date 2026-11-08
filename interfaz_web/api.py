@@ -79,6 +79,9 @@ class ApiDeLaTienda:
     def quitar(self, id_producto):
         return self._ejecutar(lambda: self._despues_de(self._venta.quitar, _id(id_producto)))
 
+    def quitar_uno(self, id_producto):
+        return self._ejecutar(lambda: self._despues_de(self._venta.quitar_uno, _id(id_producto)))
+
     def limpiar(self):
         return self._ejecutar(lambda: self._despues_de(self._venta.limpiar))
 
