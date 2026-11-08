@@ -212,23 +212,36 @@ async function teclaEnBusqueda(ev) {
   }
 }
 
-/* ---- cobro: de contado (solo efectivo, CU-02) o a crédito (CU-01) */
+/* ---- cobro: de contado en efectivo, transferencia o mixto (CU-02, respuesta 1.2) o a crédito (CU-01) */
+const FORMAS_DE_COBRO = [['EFECTIVO', 'Efectivo'], ['TRANSFERENCIA', 'Transferencia'], ['MIXTO', 'Mixto'], ['CREDITO', 'A crédito (fiado)']];
+
 function abrirCobro(modo) {
   if (!estado.carrito || estado.carrito.vacio) { aviso('Agrega al menos un producto antes de cobrar.', true); return; }
-  estado.cobro = { modo, clientes: [] };
+  estado.cobro = { modo: modo === 'CONTADO' ? 'EFECTIVO' : modo, clientes: [] };
   pintarCobro();
+}
+
+function cuerpoDeContado(modo, carrito) {
+  if (modo === 'EFECTIVO') {
+    return campo('Efectivo recibido', 'c-recibido', `<input id="c-recibido" type="number" min="0" data-entrada="cobro-recibido" placeholder="${esc(carrito.total_numero)}">`,
+      'Si lo dejas vacío se toma el valor exacto.');
+  }
+  if (modo === 'TRANSFERENCIA') {
+    return `<div class="nota-pie">Revisa en el celular que llegó la transferencia (Nequi, Daviplata) por el total. No se da cambio.</div>`;
+  }
+  return `<div class="dos">${campo('Por transferencia', 'c-transferencia', '<input id="c-transferencia" type="number" min="0" data-entrada="cobro-recibido">', 'No puede pasar del total.')}
+    ${campo('Efectivo recibido', 'c-efectivo', '<input id="c-efectivo" type="number" min="0" data-entrada="cobro-recibido">', 'El cambio sale de aquí.')}</div>`;
 }
 
 async function pintarCobro() {
   const { modo } = estado.cobro;
   const carrito = estado.carrito;
-  const pestanas = `<div class="pestañas"><button class="${modo === 'CONTADO' ? 'sel' : ''}" data-accion="cobro-modo" data-modo="CONTADO">De contado (efectivo)</button>
-    <button class="${modo === 'CREDITO' ? 'sel' : ''}" data-accion="cobro-modo" data-modo="CREDITO">A crédito (fiado)</button></div>`;
+  const pestanas = `<div class="pestañas">${FORMAS_DE_COBRO.map(([valor, texto]) =>
+    `<button class="${modo === valor ? 'sel' : ''}" data-accion="cobro-modo" data-modo="${valor}">${texto}</button>`).join('')}</div>`;
   const total = `<div class="total-grande"><div class="sec">Total a cobrar</div><div class="m">${esc(carrito.total)}</div></div>`;
   let cuerpo;
-  if (modo === 'CONTADO') {
-    cuerpo = campo('Efectivo recibido', 'c-recibido', `<input id="c-recibido" type="number" min="0" data-entrada="cobro-recibido" placeholder="${esc(carrito.total_numero)}">`,
-      'Si lo dejas vacío se toma el valor exacto.');
+  if (modo !== 'CREDITO') {
+    cuerpo = cuerpoDeContado(modo, carrito);
   } else {
     estado.cobro.clientes = await llamar('clientes_para_credito');
     const opciones = estado.cobro.clientes.map(k => `<option value="${esc(k.id)}">${esc(k.nombres)}</option>`).join('');
@@ -241,11 +254,19 @@ async function pintarCobro() {
 
 const recibido = () => val('c-recibido').trim() || String(estado.carrito.total_numero);
 
+/* [efectivo, transferencia] según la pestaña elegida */
+function pagos() {
+  const total = String(estado.carrito.total_numero);
+  if (estado.cobro.modo === 'TRANSFERENCIA') return ['0', total];
+  if (estado.cobro.modo === 'MIXTO') return [val('c-efectivo').trim() || '0', val('c-transferencia').trim() || '0'];
+  return [recibido(), '0'];
+}
+
 async function actualizarCobro() {
   if (!estado.cobro || !$('btn-confirmar')) return;
-  if (estado.cobro.modo === 'CONTADO') {
+  if (estado.cobro.modo !== 'CREDITO') {
     const turno = ++estado.turno;
-    const r = await llamar('cambio', recibido());
+    const r = await llamar('cambio', ...pagos());
     if (turno !== estado.turno || !$('c-info')) return;
     $('c-info').innerHTML = `<div class="${r.exito ? 'ok-caja' : 'error-caja'}">${esc(r.mensaje)}</div>`;
     $('btn-confirmar').disabled = !r.exito;
@@ -259,8 +280,8 @@ async function actualizarCobro() {
 async function confirmarCobro() {
   const boton = $('btn-confirmar');
   boton.disabled = true;
-  const r = estado.cobro.modo === 'CONTADO'
-    ? await llamar('cobrar_de_contado', recibido())
+  const r = estado.cobro.modo !== 'CREDITO'
+    ? await llamar('cobrar_de_contado', ...pagos())
     : await llamar('vender_a_credito', val('c-cliente'));
   pintarCarrito(r.carrito);
   if (!r.exito) { errorModal(r.mensaje); boton.disabled = false; return; }
@@ -277,7 +298,7 @@ function mostrarTicket(titulo, ticket, boton = 'Cerrar') {
 VISTAS.ventas = async () => {
   const filas = (await llamar('ventas')).map(f => {
     const [numero, fecha, tipo, cliente, total] = f.valores;
-    return `<tr><td><b>${esc(numero)}</b></td><td>${esc(fecha)}</td><td>${insignia(tipo === 'Crédito' ? 'i-av' : 'i-ok', tipo === 'Crédito' ? 'Fiado' : 'Efectivo')}</td>
+    return `<tr><td><b>${esc(numero)}</b></td><td>${esc(fecha)}</td><td>${insignia(tipo === 'Crédito' ? 'i-av' : tipo === 'Efectivo' ? 'i-ok' : 'i-info', tipo === 'Crédito' ? 'Fiado' : tipo)}</td>
       <td>${cliente === '—' ? '<span class="sec">Mostrador</span>' : esc(cliente)}</td><td class="num"><b>${esc(total)}</b></td>
       <td><button class="btn btn-s btn-ch" data-accion="ver-venta" data-id="${esc(f.id)}">Ver ticket</button></td></tr>`;
   });

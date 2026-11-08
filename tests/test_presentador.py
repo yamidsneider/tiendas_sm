@@ -192,7 +192,7 @@ class PruebasDeQueSoloLlamaAlServicio(unittest.TestCase):
         pv = PresentadorPuntoDeVenta(app)
         pv.agregar(1, "2")
         pv.cobrar_de_contado("5000")
-        app.ventas.registrar_venta_de_contado.assert_called_once_with([(1, 2)], 5000)
+        app.ventas.registrar_venta_de_contado.assert_called_once_with([(1, 2)], 5000, 0)
 
 
 if __name__ == "__main__":

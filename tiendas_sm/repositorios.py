@@ -130,10 +130,10 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
     def _insertar_venta(self, venta):
         forma_pago = venta.forma_pago.value if venta.forma_pago else None
         cursor = self.conexion.execute(
-            "INSERT INTO ventas (id_cliente, fecha, estado, total, tipo, forma_pago, valor_recibido) "
-            "VALUES (?,?,?,?,?,?,?)",
+            "INSERT INTO ventas (id_cliente, fecha, estado, total, tipo, forma_pago, valor_recibido, valor_transferencia) "
+            "VALUES (?,?,?,?,?,?,?,?)",
             (venta.id_cliente, venta.fecha.isoformat(), venta.estado.value, venta.total,
-             venta.tipo.value, forma_pago, venta.valor_recibido))
+             venta.tipo.value, forma_pago, venta.valor_recibido, venta.valor_transferencia))
         venta.id_venta = cursor.lastrowid
 
     def _insertar_detalles(self, venta):
@@ -215,6 +215,7 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
         venta.total = fila["total"]
         venta.forma_pago = FormaDePago(fila["forma_pago"]) if fila["forma_pago"] else None
         venta.valor_recibido = fila["valor_recibido"]
+        venta.valor_transferencia = fila["valor_transferencia"] or 0 if venta.forma_pago else None
         detalles = self.conexion.execute(
             "SELECT * FROM detalles_venta WHERE id_venta=? ORDER BY numero_linea", (venta.id_venta,)).fetchall()
         venta.detalles = [DetalleVenta(d["numero_linea"], d["id_producto"], d["cantidad"], d["precio_unitario_venta"])

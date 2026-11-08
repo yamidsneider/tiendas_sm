@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS ventas (
     id_venta INTEGER PRIMARY KEY AUTOINCREMENT,
     id_cliente INTEGER REFERENCES clientes(id_cliente),
     fecha TEXT NOT NULL, estado TEXT NOT NULL, total INTEGER NOT NULL,
-    tipo TEXT NOT NULL, forma_pago TEXT, valor_recibido INTEGER);
+    tipo TEXT NOT NULL, forma_pago TEXT, valor_recibido INTEGER, valor_transferencia INTEGER);
 CREATE TABLE IF NOT EXISTS detalles_venta (
     id_detalle INTEGER PRIMARY KEY AUTOINCREMENT,
     id_venta INTEGER NOT NULL REFERENCES ventas(id_venta),
@@ -49,6 +49,7 @@ COLUMNAS_NUEVAS_DE_VENTAS = (
     ("tipo", "TEXT NOT NULL DEFAULT 'CREDITO'"),
     ("forma_pago", "TEXT"),
     ("valor_recibido", "INTEGER"),
+    ("valor_transferencia", "INTEGER"),       # respuesta 1.2: pago por transferencia o mixto
 )
 # Respuesta 3.1 del propietario: teléfono y dirección (opcionales). Los clientes viejos quedan con texto vacío.
 COLUMNAS_NUEVAS_DE_CLIENTES = (
