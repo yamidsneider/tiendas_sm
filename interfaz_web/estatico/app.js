@@ -145,7 +145,7 @@ VISTAS.pos = async () => ({
     </div><div>
       <div class="total-caja"><div class="t">TOTAL A COBRAR</div><div class="m" id="pos-total">$ 0</div><div class="s" id="pos-items">Sin productos</div></div>
       <div class="pos-botones">
-        <button class="btn btn-claro" id="btn-contado" data-accion="cobrar" data-modo="CONTADO">Cobrar de contado <span class="tecla">F9</span></button>
+        <button class="btn btn-p" id="btn-contado" data-accion="cobrar" data-modo="CONTADO">Cobrar de contado <span class="tecla">F9</span></button>
         <button class="btn btn-o" id="btn-credito" data-accion="cobrar" data-modo="CREDITO">Vender a crédito (fiado) <span class="tecla">F4</span></button>
       </div>
       <div class="tarjeta arriba"><h3>Atajos</h3><div class="sec atajos"><span class="tecla">F2</span> buscar producto · <span class="tecla">Enter</span> agregar<br>

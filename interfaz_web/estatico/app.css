@@ -147,7 +147,8 @@ svg text{font-family:'Segoe UI',sans-serif;fill:var(--tenue);font-size:11px}
 .leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--tenue);margin-top:8px}
 .leyenda i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 
-@media(max-width:1100px){.cols.c2,.cols.c21,.cols.c12,.cols.c3,.pos{grid-template-columns:1fr}}
+@media(max-width:1100px){.cols.c2,.cols.c21,.cols.c12,.cols.c3{grid-template-columns:1fr}}
+@media(max-width:900px){.pos{grid-template-columns:1fr}}
 @media(max-width:900px){
   .lateral{width:64px}.lateral-cab h1{font-size:0}.lateral-cab h1::before{font-size:26px}.lateral-cab p,.nav .texto,.nav .cr,.grupo,.lateral-pie{display:none}
   .nav{padding:12px 0;justify-content:center}.nav .etiqueta{position:absolute;margin:-18px 0 0 18px}.principal{margin-left:64px;padding:18px 14px 30px}
@@ -174,3 +175,11 @@ input,textarea,.papel{user-select:text}
 .tabla-caja.sin-margen{margin-bottom:0}
 .cargando{padding:60px;text-align:center;color:var(--tenue)}
 .btn-quitar{color:var(--rojo);background:var(--rojo-f)}
+/* pantallas bajas (1024 x 600, E-01): menos aire para que el cobro se vea sin bajar */
+@media(max-height:700px){
+  .principal{padding:16px 22px 24px}.encabezado{margin-bottom:14px}.encabezado h2{font-size:22px}
+  .lateral{padding:10px 0}.lateral-cab{padding-bottom:12px}.grupo{padding:10px 22px 4px}.nav{padding:9px 22px}
+  .tarjeta.margen{margin-bottom:12px}.tarjeta,.tabla-caja{padding:14px 18px}
+  .pos-fila .grande,.pos-fila .cant{padding:10px 14px;font-size:16px}
+  .total-caja{padding:16px}.total-caja .m{font-size:36px}.pos-botones .btn{padding:11px}.tarjeta.arriba{margin-top:10px}
+}
