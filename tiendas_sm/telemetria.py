@@ -96,10 +96,10 @@ class VentasObservadas:
             atributos["venta.total"] = venta.calcular_total()
             return venta
 
-    def registrar_venta_de_contado(self, lineas, recibido):
+    def registrar_venta_de_contado(self, lineas, recibido, transferencia=0):
         lineas = list(lineas)
         with self._telemetria.span("registrar_venta", **_describir("CONTADO", lineas)) as atributos:
-            venta = self._ventas.registrar_venta_de_contado(lineas, recibido)
+            venta = self._ventas.registrar_venta_de_contado(lineas, recibido, transferencia)
             atributos["venta.total"] = venta.calcular_total()
             return venta
 

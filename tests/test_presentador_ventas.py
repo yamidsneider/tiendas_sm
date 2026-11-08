@@ -45,7 +45,7 @@ class PruebasDeLaTabla(BaseDeVentas):
         self.assertEqual(credito[0], "#2")
         self.assertRegex(credito[1], r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}$")
         self.assertEqual(credito[2:], ("Crédito", "Cliente ficticio Ana", "$ 2.500"))
-        self.assertEqual(contado[2:], ("Contado", "—", "$ 5.000"))
+        self.assertEqual(contado[2:], ("Efectivo", "—", "$ 5.000"))
 
 
 class PruebasDelTicket(BaseDeVentas):

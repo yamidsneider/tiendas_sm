@@ -170,10 +170,11 @@ class ServicioDeVentas:
         self.repo_ventas.guardar_transaccion(venta, cuenta, existencias)
         return venta
 
-    def registrar_venta_de_contado(self, lineas, recibido):
-        """UC-02: mismas validaciones de existencias que CU-01, pero sin cliente ni cuenta por cobrar."""
+    def registrar_venta_de_contado(self, lineas, recibido, transferencia=0):
+        """UC-02: mismas validaciones de existencias que CU-01, pero sin cliente ni cuenta por cobrar.
+        recibido es el efectivo; transferencia, lo pagado por Nequi o Daviplata (respuesta 1.2)."""
         venta, pedido = self._armar_venta(Venta(tipo=TipoVenta.CONTADO), lineas)
-        venta.registrar_pago_en_efectivo(recibido)
+        venta.registrar_pago(recibido, transferencia)
         existencias = self._descontar_existencias(pedido)
         venta.confirmar()
         self.repo_ventas.guardar_transaccion(venta, None, existencias)

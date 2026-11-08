@@ -86,7 +86,7 @@ class PruebasDeLasSecciones(BaseDeLaApi):
         self.api.agregar(self.arroz.id_producto, "1")
         ticket = self.api.cobrar_de_contado("2500")["ticket"]
         (fila,) = self.api.ventas()
-        self.assertEqual((fila["id"], fila["valores"][0], fila["valores"][2:]), (1, "#1", ["Contado", "—", "$ 2.500"]))
+        self.assertEqual((fila["id"], fila["valores"][0], fila["valores"][2:]), (1, "#1", ["Efectivo", "—", "$ 2.500"]))
         self.assertEqual(self.api.ticket(1), ticket)
 
     def test_productos_registrar_y_cambiar_precio(self):

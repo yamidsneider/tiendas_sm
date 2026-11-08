@@ -10,7 +10,7 @@ import sqlite3
 import textwrap
 from collections import namedtuple
 
-from tiendas_sm.dominio import CreditoNoPermitido, EfectivoInsuficiente, StockInsuficiente, Venta
+from tiendas_sm.dominio import CreditoNoPermitido, EfectivoInsuficiente, FormaDePago, StockInsuficiente, Venta
 from tiendas_sm.validaciones import exigir_mayor_a_cero
 
 ERRORES_DEL_NEGOCIO = (StockInsuficiente, CreditoNoPermitido, EfectivoInsuficiente, ValueError)
@@ -55,8 +55,15 @@ def _lineas_del_producto(detalle, nombre):
 
 
 def pie_de_contado(venta):
-    return [f"Forma de pago: {venta.forma_pago.value}", f"Recibido: {formato_pesos(venta.valor_recibido)}",
-            f"Cambio: {formato_pesos(venta.calcular_cambio())}"]
+    """Respuesta 1.3: con transferencia no hay cambio; en el mixto el cambio sale solo del efectivo."""
+    forma = [f"Forma de pago: {venta.forma_pago.value}"]
+    cambio = f"Cambio: {formato_pesos(venta.calcular_cambio())}"
+    if venta.forma_pago == FormaDePago.TRANSFERENCIA:
+        return forma + [f"Pagado por transferencia: {formato_pesos(venta.valor_transferencia)}"]
+    if venta.forma_pago == FormaDePago.MIXTO:
+        return forma + [f"Transferencia: {formato_pesos(venta.valor_transferencia)}",
+                        f"Efectivo recibido: {formato_pesos(venta.valor_recibido)}", cambio]
+    return forma + [f"Recibido: {formato_pesos(venta.valor_recibido)}", cambio]
 
 
 def pie_de_credito(nombres_del_cliente, fecha_vencimiento):
@@ -151,26 +158,29 @@ class PresentadorPuntoDeVenta:
         return DatosDelCliente(cliente.id_cliente, cliente.nombres, cliente.limite_credito, deuda, disponible, texto)
 
     # ------------------------------------------------------------------ cobro
-    def cambio_previo(self, recibido_texto):
+    def cambio_previo(self, recibido_texto, transferencia_texto="0"):
         """CU-02 paso 2: muestra el cambio mientras se escribe lo recibido, con las reglas del dominio y sin guardar."""
         try:
             venta = self._venta_previa()
-            venta.registrar_pago_en_efectivo(a_entero(recibido_texto, "El valor recibido"))
+            venta.registrar_pago(a_entero(recibido_texto, "El valor recibido"),
+                                 a_entero(transferencia_texto, "La transferencia"))
         except ERRORES_DEL_NEGOCIO as error:
             return Resultado(False, str(error))
         return Resultado(True, f"Cambio: {formato_pesos(venta.calcular_cambio())}")
 
-    def cobrar_de_contado(self, recibido_texto):
+    def cobrar_de_contado(self, recibido_texto, transferencia_texto="0"):
         try:
             recibido = a_entero(recibido_texto, "El valor recibido")
+            transferencia = a_entero(transferencia_texto, "La transferencia")
         except ValueError as error:
             return Resultado(False, str(error))
         venta, error = self._registrar(lambda: self.app.ventas.registrar_venta_de_contado(self._lineas_para_vender(),
-                                                                                           recibido))
+                                                                                           recibido, transferencia))
         if error:
             return Resultado(False, error)
-        cambio = formato_pesos(venta.calcular_cambio())
-        return self._cerrar(venta, f"Venta #{venta.id_venta} registrada. Cambio: {cambio}", pie_de_contado(venta))
+        final = ("Pagada por transferencia" if venta.forma_pago == FormaDePago.TRANSFERENCIA
+                 else f"Cambio: {formato_pesos(venta.calcular_cambio())}")
+        return self._cerrar(venta, f"Venta #{venta.id_venta} registrada. {final}", pie_de_contado(venta))
 
     def vender_a_credito(self, id_cliente):
         venta, error = self._registrar(lambda: self.app.ventas.registrar_venta_a_credito(id_cliente,

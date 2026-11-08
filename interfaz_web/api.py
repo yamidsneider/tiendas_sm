@@ -89,11 +89,11 @@ class ApiDeLaTienda:
         return self._ejecutar(lambda: [{"id": c.id_cliente, "nombres": c.nombres, "texto": c.texto}
                                        for c in self._venta.clientes()])
 
-    def cambio(self, recibido):
-        return self._ejecutar(lambda: _resultado(self._venta.cambio_previo(recibido)))
+    def cambio(self, recibido, transferencia="0"):
+        return self._ejecutar(lambda: _resultado(self._venta.cambio_previo(recibido, transferencia)))
 
-    def cobrar_de_contado(self, recibido):
-        return self._ejecutar(lambda: self._con_carrito(self._venta.cobrar_de_contado(recibido)))
+    def cobrar_de_contado(self, recibido, transferencia="0"):
+        return self._ejecutar(lambda: self._con_carrito(self._venta.cobrar_de_contado(recibido, transferencia)))
 
     def vender_a_credito(self, id_cliente):
         return self._ejecutar(lambda: self._con_carrito(self._venta.vender_a_credito(_id(id_cliente))))

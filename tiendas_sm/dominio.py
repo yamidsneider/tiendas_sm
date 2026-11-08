@@ -28,7 +28,9 @@ class TipoVenta(str, Enum):
 
 
 class FormaDePago(str, Enum):
-    EFECTIVO = "EFECTIVO"   # transferencia y pago mixto son ampliación CR-02 (sin aprobar)
+    EFECTIVO = "EFECTIVO"
+    TRANSFERENCIA = "TRANSFERENCIA"   # Nequi, Daviplata: se confirma mirando el celular (respuesta 1.2)
+    MIXTO = "MIXTO"                   # parte por transferencia y parte en efectivo
 
 
 class EstadoVenta(str, Enum):
@@ -132,7 +134,8 @@ class Venta:
         self.id_cliente = id_cliente
         self.tipo = tipo
         self.forma_pago = None       # solo se llena en las ventas de contado
-        self.valor_recibido = None
+        self.valor_recibido = None   # efectivo recibido
+        self.valor_transferencia = None
         self.fecha = datetime.now()
         self.estado = EstadoVenta.ABIERTA
         self.detalles = []
@@ -148,14 +151,26 @@ class Venta:
         return self.total
 
     def registrar_pago_en_efectivo(self, recibido):
+        self.registrar_pago(recibido, 0)
+
+    def registrar_pago(self, efectivo, transferencia=0):
+        """Respuesta 1.2: efectivo, transferencia o las dos (mixto). La transferencia no puede pasar del total
+        (no se da cambio por transferencia); el efectivo cubre lo que falta y de él sale el cambio."""
         total = self.calcular_total()
-        if recibido < total:
-            raise EfectivoInsuficiente(f"El efectivo recibido ({recibido}) no alcanza para el total, que es {total}")
-        self.forma_pago = FormaDePago.EFECTIVO
-        self.valor_recibido = recibido
+        exigir_no_negativo(transferencia, "La transferencia no puede ser negativa")
+        if transferencia > total:
+            raise ValueError(f"La transferencia ({transferencia}) no puede ser mayor al total, que es {total}")
+        if efectivo + transferencia < total:
+            if not transferencia:
+                raise EfectivoInsuficiente(f"El efectivo recibido ({efectivo}) no alcanza para el total, que es {total}")
+            raise EfectivoInsuficiente(f"El pago ({efectivo + transferencia}) no alcanza para el total, que es {total}")
+        self.forma_pago = (FormaDePago.EFECTIVO if not transferencia else
+                           FormaDePago.TRANSFERENCIA if not efectivo else FormaDePago.MIXTO)
+        self.valor_recibido = efectivo
+        self.valor_transferencia = transferencia
 
     def calcular_cambio(self):
-        return self.valor_recibido - self.total
+        return self.valor_recibido + (self.valor_transferencia or 0) - self.total
 
     def confirmar(self):
         if not self.detalles:
