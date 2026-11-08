@@ -28,17 +28,19 @@ class RepositorioDeProductos(PuertoDeProductos):
 
     def _insertar(self, producto):
         cursor = self.conexion.execute(
-            "INSERT INTO productos (nombre, precio_compra, precio_venta, stock_minimo) VALUES (?,?,?,?)",
-            (producto.nombre, producto.precio_compra, producto.precio_venta, producto.stock_minimo))
+            "INSERT INTO productos (nombre, precio_compra, precio_venta, stock_minimo, codigo) VALUES (?,?,?,?,?)",
+            (producto.nombre, producto.precio_compra, producto.precio_venta, producto.stock_minimo,
+             producto.codigo or None))
         producto.id_producto = cursor.lastrowid
         self.conexion.execute("INSERT INTO existencias (id_producto, cantidad_actual) VALUES (?, 0)",
                               (producto.id_producto,))
 
     def _actualizar(self, producto):
         self.conexion.execute(
-            "UPDATE productos SET nombre=?, precio_compra=?, precio_venta=?, stock_minimo=? WHERE id_producto=?",
+            "UPDATE productos SET nombre=?, precio_compra=?, precio_venta=?, stock_minimo=?, codigo=? "
+            "WHERE id_producto=?",
             (producto.nombre, producto.precio_compra, producto.precio_venta, producto.stock_minimo,
-             producto.id_producto))
+             producto.codigo or None, producto.id_producto))
 
     def obtener(self, id_producto):
         fila = self.conexion.execute("SELECT * FROM productos WHERE id_producto=?", (id_producto,)).fetchone()
@@ -48,10 +50,14 @@ class RepositorioDeProductos(PuertoDeProductos):
         filas = self.conexion.execute("SELECT * FROM productos ORDER BY nombre").fetchall()
         return [self._a_producto(fila) for fila in filas]
 
+    def obtener_por_codigo(self, codigo):
+        fila = self.conexion.execute("SELECT * FROM productos WHERE codigo=?", (codigo,)).fetchone()
+        return self._a_producto(fila) if fila else None
+
     @staticmethod
     def _a_producto(fila):
         return Producto(fila["id_producto"], fila["nombre"], fila["precio_compra"],
-                        fila["precio_venta"], fila["stock_minimo"])
+                        fila["precio_venta"], fila["stock_minimo"], fila["codigo"] or "")
 
     def obtener_existencia(self, id_producto):
         fila = self.conexion.execute("SELECT * FROM existencias WHERE id_producto=?", (id_producto,)).fetchone()

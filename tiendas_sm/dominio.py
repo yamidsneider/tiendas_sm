@@ -47,7 +47,8 @@ MovimientoDeInventario = namedtuple("MovimientoDeInventario", "id_movimiento id_
 
 
 class Producto:
-    def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0):
+    def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0, codigo=""):
+        """codigo: código de barras opcional (respuesta 1.4); vacío si el producto no tiene."""
         exigir_texto_obligatorio(nombre, "El nombre es obligatorio")
         if precio_compra < 0 or precio_venta < 0:
             raise ValueError("Los precios no pueden ser negativos")
@@ -57,6 +58,7 @@ class Producto:
         self.precio_compra = precio_compra
         self.precio_venta = precio_venta
         self.stock_minimo = stock_minimo
+        self.codigo = (codigo or "").strip()
 
     def actualizar_precio(self, nuevo_precio):
         if nuevo_precio < 0:

@@ -77,12 +77,15 @@ class PresentadorPuntoDeVenta:
 
     # ------------------------------------------------------------------ búsqueda y carrito
     def buscar(self, texto):
-        """Busca solo por nombre (el código de barras no está aprobado)."""
+        """Si el texto es el código de barras de un producto, solo ese (respuesta 1.4); si no, busca por nombre."""
         buscado = texto.strip().lower()
         if not buscado:
             return []
+        por_codigo = self.app.productos.buscar_por_codigo(texto)
+        encontrados = ([por_codigo] if por_codigo else
+                       [p for p in self.app.productos.listar() if buscado in p.nombre.lower()])
         return [FilaDeProducto(p.id_producto, p.nombre, p.precio_venta, self.app.cantidad_en_inventario(p.id_producto))
-                for p in self.app.productos.listar() if buscado in p.nombre.lower()]
+                for p in encontrados]
 
     def agregar(self, id_producto, cantidad_texto):
         """Agrega al carrito sin validar el stock: eso lo hace el dominio al confirmar la venta."""

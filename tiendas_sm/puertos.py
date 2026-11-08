@@ -60,6 +60,10 @@ class PuertoDeProductos(ABC):
         ...
 
     @abstractmethod
+    def obtener_por_codigo(self, codigo):
+        """Respuesta 1.4: el producto con ese código de barras, o None."""
+
+    @abstractmethod
     def obtener_existencia(self, id_producto):
         ...
 
