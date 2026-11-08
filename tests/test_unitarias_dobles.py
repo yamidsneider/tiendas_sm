@@ -180,6 +180,7 @@ def armar_servicio_de_ventas(hay_stock=True, credito_permitido=True):
     control_inventario.descontar.return_value = Existencia(1, 8)
     control_credito = Mock()
     control_credito.puede_comprar_a_credito.return_value = credito_permitido
+    control_credito.tiene_cuentas_vencidas.return_value = False        # cliente al día (respuesta 2.3)
     control_credito.crear_cuenta.return_value = cuenta_con_saldo(5000)
     servicio = ServicioDeVentas(repo_productos, repo_clientes, repo_ventas, control_inventario, control_credito)
     return servicio, repo_ventas

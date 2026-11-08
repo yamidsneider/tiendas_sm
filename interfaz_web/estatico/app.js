@@ -420,14 +420,27 @@ TABLAS.creditos = async () => {
   if ($('resumen-creditos')) $('resumen-creditos').textContent = respuesta.resumen;
   const filas = respuesta.filas.map(f => {
     const [cliente, saldo, vence, estadoCuenta] = f.valores;
-    const abierta = estadoCuenta === 'Abierta';
+    const abierta = estadoCuenta !== 'Pagada';
+    const clase = { Abierta: 'i-av', Vencida: 'i-mal', Pagada: 'i-ok' }[estadoCuenta];
     return `<tr><td><b>${esc(cliente)}</b></td><td class="num"><b>${esc(saldo)}</b></td><td>${esc(vence)}</td>
-      <td>${insignia(abierta ? 'i-av' : 'i-ok', estadoCuenta)}</td>
+      <td>${insignia(clase, estadoCuenta)}</td>
       <td><button class="btn btn-s btn-ch" data-accion="ver-credito" data-id="${esc(f.id)}">Detalle</button>
       ${abierta ? `<button class="btn btn-p btn-ch" data-accion="abonar" data-id="${esc(f.id)}">Abonar</button>` : ''}</td></tr>`;
   });
   return tabla(['Cliente', '>Saldo', 'Vence', 'Estado', ''], filas, estado.verPagadas ? 'No hay cuentas por cobrar.' : 'No hay cuentas pendientes.');
 };
+
+async function panelDeAtrasados() {
+  const filas = (await llamar('atrasados')).map(f => {
+    const [cliente, saldo, vencia, atraso] = f.valores;
+    return `<tr><td><b>${esc(cliente)}</b></td><td class="num"><b>${esc(saldo)}</b></td><td>${esc(vencia)}</td><td>${insignia('i-mal', atraso)}</td>
+      <td><button class="btn btn-p btn-ch" data-accion="abonar" data-id="${esc(f.id)}">Abonar</button></td></tr>`;
+  });
+  if (!filas.length) return '';
+  return `<div class="tabla-caja"><div class="cab-tabla"><h3>Atrasados (${filas.length})</h3></div>
+    ${tabla(['Cliente', '>Saldo', 'Vencía', 'Atraso', ''], filas, '')}
+    <div class="nota-pie">Cuentas que pasaron el plazo del cliente sin pagarse. A estos clientes no se les puede fiar hasta que paguen. No se cobran intereses.</div></div>`;
+}
 
 VISTAS.creditos = async () => {
   const resumen = (await llamar('creditos', false)).resumen;
@@ -436,9 +449,10 @@ VISTAS.creditos = async () => {
     sub: 'Qué le deben a la tienda y cuánto va pagando cada cliente',
     html: `<div class="kpis"><div class="kpi azul"><div class="ic">${svg('creditos')}</div><div class="valor" id="resumen-creditos">${esc(resumen)}</div>
       <div class="rotulo">Cuentas abiertas</div></div></div>
+      ${await panelDeAtrasados()}
       <div class="tabla-caja"><div class="cab-tabla"><h3>Cuentas por cobrar</h3><div class="filtros">${filtro(false, 'Pendientes')}${filtro(true, 'Todas (con pagadas)')}</div></div>
       <div id="tabla">${await TABLAS.creditos()}</div>
-      <div class="nota-pie">El saldo es la deuda menos los abonos; un abono no puede ser mayor al saldo. El vencimiento usa el plazo de cada cliente.</div></div>`,
+      <div class="nota-pie">El saldo es la deuda menos los abonos; un abono no puede ser mayor al saldo. El vencimiento usa el plazo máximo de cada cliente.</div></div>`,
   };
 };
 

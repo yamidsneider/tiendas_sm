@@ -143,6 +143,8 @@ class PresentadorPuntoDeVenta:
                  f"Crédito disponible: {formato_pesos(disponible)}")
         if not cliente.credito_habilitado:
             texto = "No tiene crédito habilitado\n" + texto
+        elif self.app.credito.tiene_cuentas_vencidas(cliente):
+            texto = "Tiene cuentas vencidas: no se le puede fiar\n" + texto
         return DatosDelCliente(cliente.id_cliente, cliente.nombres, cliente.limite_credito, deuda, disponible, texto)
 
     # ------------------------------------------------------------------ cobro
