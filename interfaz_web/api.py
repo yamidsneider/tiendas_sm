@@ -98,7 +98,8 @@ class ApiDeLaTienda:
     def _carrito(self):
         lineas = [{"id": l.id_producto, "nombre": l.nombre, "precio": formato_pesos(l.precio), "cantidad": l.cantidad,
                    "importe": formato_pesos(l.importe), "disponibles": l.disponibles} for l in self._venta.lineas()]
-        return {"lineas": lineas, "total": formato_pesos(self._venta.total()), "resumen": self._venta.resumen(),
+        total = self._venta.total()
+        return {"lineas": lineas, "total": formato_pesos(total), "total_numero": total, "resumen": self._venta.resumen(),
                 "vacio": not lineas}
 
     def _despues_de(self, accion, *argumentos):
