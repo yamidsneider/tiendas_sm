@@ -110,6 +110,11 @@ class ControlCredito:
     def puede_comprar_a_credito(self, cliente, monto):
         return cliente.puede_endeudarse(monto, self.saldo_pendiente(cliente))
 
+    def tiene_cuentas_vencidas(self, cliente, ahora=None):
+        """Respuesta 2.3: a quien tiene una cuenta vencida sin pagar no se le fía más."""
+        ahora = ahora or datetime.now()
+        return any(cuenta.esta_vencida(ahora) for cuenta in self.cuentas_del_cliente(cliente.id_cliente))
+
     def crear_cuenta(self, venta, plazo_dias=PLAZO_POR_DEFECTO_DIAS):
         apertura = datetime.now()
         vencimiento = apertura + timedelta(days=plazo_dias)
@@ -186,6 +191,8 @@ class ServicioDeVentas:
         return venta, pedido
 
     def _validar_credito(self, cliente, total):
+        if self.control_credito.tiene_cuentas_vencidas(cliente):
+            raise CreditoNoPermitido(f"No se le puede fiar a {cliente.nombres}: tiene cuentas vencidas sin pagar")
         if not self.control_credito.puede_comprar_a_credito(cliente, total):
             raise CreditoNoPermitido(f"El cliente no puede comprar a crédito por {total}")
 

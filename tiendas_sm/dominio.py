@@ -178,3 +178,11 @@ class CuentaPorCobrar:
         self.abonos.append(monto)
         if self.calcular_saldo() == 0:
             self.estado = EstadoCuenta.PAGADA
+
+    def esta_vencida(self, ahora):
+        """Respuesta 2.3: una cuenta ABIERTA cuya fecha de vencimiento ya pasó. Una pagada nunca está vencida."""
+        return self.estado == EstadoCuenta.ABIERTA and ahora > self.fecha_vencimiento
+
+    def dias_de_atraso(self, ahora):
+        """Días de calendario desde el vencimiento (0 si todavía no vence). Solo informa: no hay intereses."""
+        return max(0, (ahora.date() - self.fecha_vencimiento.date()).days)

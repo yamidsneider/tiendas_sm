@@ -190,6 +190,9 @@ class ApiDeLaTienda:
         return self._ejecutar(lambda: {"filas": _filas(self._creditos.tabla(bool(ver_pagadas))),
                                        "resumen": self._creditos.resumen()})
 
+    def atrasados(self):
+        return self._ejecutar(lambda: _filas(self._creditos.atrasados()))
+
     def detalle_credito(self, id_cuenta):
         return self._ejecutar(lambda: self._creditos.detalle(_id(id_cuenta)))
 
