@@ -39,6 +39,14 @@ class PruebasDeLaPagina(unittest.TestCase):
         titulos = re.findall(r"titulo: '([^']+)'", self.codigo)
         self.assertEqual(tuple(titulos), SECCIONES_APROBADAS)
 
+    def test_el_ticket_se_puede_imprimir_solo(self):
+        """Botón «Imprimir» en la ventana del ticket; al imprimir se ocultan el menú y la sección: sale solo el ticket."""
+        self.assertIn("imprimir: () => window.print()", self.codigo)
+        self.assertIn("texto: 'Imprimir'", self.codigo)
+        impresion = self.pagina[self.pagina.index("@media print"):]
+        for oculto in (".lateral", ".principal", ".modal-pie"):
+            self.assertIn(oculto, impresion[:impresion.index("}")])
+
     def test_cada_metodo_que_llama_la_pagina_existe_en_la_api(self):
         llamados = set(re.findall(r"llamar\('(\w+)'", self.codigo))
         self.assertGreaterEqual(len(llamados), 20)
