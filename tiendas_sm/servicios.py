@@ -34,6 +34,16 @@ class ServicioDeProductos:
         self.repo_productos.guardar(producto)
         return producto
 
+    def actualizar_producto(self, id_producto, nombre, precio_compra, precio_venta):
+        """Editar producto: se arma un Producto con el mismo id para que el dominio valide igual que al registrar.
+        Las existencias no se tocan (cambian con entradas y ventas) y el stock mínimo se conserva (TD-04)."""
+        actual = self.repo_productos.obtener(id_producto)
+        if actual is None:
+            raise ValueError("El producto no existe")
+        producto = Producto(id_producto, nombre, precio_compra, precio_venta, actual.stock_minimo)
+        self.repo_productos.guardar(producto)
+        return producto
+
     def registrar_entrada(self, id_producto, cantidad):
         existencia = self.repo_productos.obtener_existencia(id_producto)
         if existencia is None:

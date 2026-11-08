@@ -130,6 +130,16 @@ class ApiDeLaTienda:
     def cambiar_precio(self, id_producto, nuevo):
         return self._ejecutar(lambda: _resultado(self._productos.cambiar_precio(_id(id_producto), nuevo)))
 
+    def datos_producto(self, id_producto):
+        """Lo guardado, para llenar el formulario de Editar producto; None si no existe."""
+        datos = self._ejecutar(lambda: self._productos.datos_para_editar(_id(id_producto)))
+        if datos is None:
+            return None
+        return {"nombre": datos.nombre, "compra": datos.compra, "venta": datos.venta}
+
+    def editar_producto(self, id_producto, nombre, compra, venta):
+        return self._ejecutar(lambda: _resultado(self._productos.editar(_id(id_producto), str(nombre), compra, venta)))
+
     # ------------------------------------------------------------------ existencias (HU-03, RF-04)
     def existencias(self, texto=""):
         return self._ejecutar(lambda: _filas(self._existencias.tabla(str(texto))))
