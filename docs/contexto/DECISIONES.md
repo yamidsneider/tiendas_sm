@@ -216,6 +216,8 @@ el respaldo verificado (FPI-30). `interfaz_tk/` se conserva hasta que el desarro
 local abierto en el navegador o en modo app de Edge (se ve como navegador y exige cuidar un puerto local); abrir el borrador tal cual
 (sus reglas en JavaScript duplicarían el dominio y no guardan en SQLite).
 
+**Editar cliente y editar producto (aprobado por el desarrollador, noviembre de 2026).** *Cliente:* los mismos 4 datos del registro (nombre, crédito, límite y plazo), con las mismas reglas del dominio; las cuentas ya abiertas conservan su vencimiento. *Producto:* nombre, precio de compra y precio de venta; las existencias solo cambian con entradas y ventas, el stock mínimo se conserva (TD-04) y las ventas anteriores guardan su precio (HU-02). `RepositorioDeClientes.guardar` ahora actualiza si el cliente ya tiene id (el puerto no cambia). *Preliminar, por confirmar con el propietario:* se permite dejar el límite por debajo de la deuda; solo impide fiar más hasta que abone (el «disponible» se ve negativo).
+
 **Deuda nueva TD-15, TD-16 y TD-17 (FPI-31).** El texto completo de la FPI-31 **no está** en el repositorio ni en las carpetas del
 proyecto; lo que sigue sale de `Dossier_Final.md` (secciones 3 y 6) y debe confirmarse con la ficha:
 - **TD-15 — movimiento de inventario sin `id_venta`** (bajo impacto con una caja; H2/H3). Es el hallazgo de E-05 (tarea 8): no se puede
