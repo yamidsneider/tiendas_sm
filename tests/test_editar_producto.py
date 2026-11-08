@@ -74,7 +74,7 @@ class PruebasDeLaApi(BaseDeEdicion):
     def test_datos_y_editar_desde_la_pagina(self):
         api = ApiDeLaTienda(self.app)
         self.assertEqual(api.datos_producto(self.arroz.id_producto),
-                         {"nombre": "Arroz ficticio 500 g", "compra": "2000", "venta": "2500"})
+                         {"nombre": "Arroz ficticio 500 g", "compra": "2000", "venta": "2500", "minimo": "0"})
         self.assertIsNone(api.datos_producto(999))
         self.assertTrue(api.editar_producto(self.arroz.id_producto, "Arroz ficticio", "2100", "2600")["exito"])
         self.assertEqual(self.guardado().precio_compra, 2100)
