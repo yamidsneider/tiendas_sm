@@ -1,8 +1,9 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
 
-from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente,
-                                CreditoNoPermitido, TipoVenta, PLAZO_POR_DEFECTO_DIAS)
+from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion,
+                                CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS)
+from tiendas_sm.validaciones import exigir_mayor_a_cero
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
 MOVIMIENTOS_A_MOSTRAR = 50          # RF-04: el historial muestra los últimos, no toda la historia
@@ -151,6 +152,9 @@ class ControlCredito:
     def cuentas_del_cliente(self, id_cliente):
         return self.repo_ventas.cuentas_del_cliente(id_cliente)
 
+    def obtener_cuenta(self, id_cuenta):
+        return self.repo_ventas.obtener_cuenta(id_cuenta)
+
 
 class ServicioDeVentas:
     def __init__(self, repo_productos, repo_clientes, repo_ventas, control_inventario, control_credito):
@@ -182,6 +186,72 @@ class ServicioDeVentas:
 
     def obtener(self, id_venta):
         return self.repo_ventas.obtener(id_venta)
+
+    # ------------------------------------------------------------------ devoluciones (respuesta 1.5, cambia DT-08)
+    def devolver(self, id_venta, lineas, motivo):
+        """Devuelve productos de una venta ya cobrada: vuelven al inventario y se devuelve el dinero o se
+        descuenta de la deuda. Si ya no queda nada por devolver, la venta queda ANULADA. Todo o nada (RNF-04)."""
+        venta = self._venta_que_se_puede_devolver(id_venta)
+        devolucion = Devolucion(venta.id_venta, motivo)
+        pendientes = self.pendientes_por_devolver(venta)
+        for id_producto, cantidad in lineas:
+            self._agregar_a_la_devolucion(devolucion, venta, pendientes, id_producto, cantidad)
+        if not devolucion.lineas:
+            raise ValueError("Elige al menos un producto para devolver")
+        cuenta = self._cuenta_de(venta)
+        devolucion.repartir(cuenta)
+        if not any(pendientes.values()):
+            venta.anular()
+        self.repo_ventas.guardar_devolucion(devolucion, venta, cuenta, self._existencias_que_regresan(devolucion))
+        return devolucion
+
+    def anular(self, id_venta, motivo):
+        """Anular = devolver todo lo que queda de la venta."""
+        venta = self._venta_que_se_puede_devolver(id_venta)
+        return self.devolver(id_venta, list(self.pendientes_por_devolver(venta).items()), motivo)
+
+    def pendientes_por_devolver(self, venta):
+        """{id_producto: unidades vendidas que todavía no se han devuelto}."""
+        devueltas = self.repo_ventas.unidades_devueltas(venta.id_venta)
+        return {id_producto: vendidas - devueltas.get(id_producto, 0)
+                for id_producto, vendidas in venta.unidades_por_producto().items()}
+
+    def unidades_devueltas(self, id_venta):
+        return self.repo_ventas.unidades_devueltas(id_venta)
+
+    def devoluciones_de_la_venta(self, id_venta):
+        return self.repo_ventas.devoluciones_de_la_venta(id_venta)
+
+    def _venta_que_se_puede_devolver(self, id_venta):
+        venta = self.repo_ventas.obtener(id_venta)
+        if venta is None:
+            raise ValueError("La venta no existe")
+        if venta.estado == EstadoVenta.ANULADA:
+            raise ValueError(f"La venta #{venta.id_venta} ya está anulada")
+        return venta
+
+    def _agregar_a_la_devolucion(self, devolucion, venta, pendientes, id_producto, cantidad):
+        if id_producto not in pendientes:
+            raise ValueError(f"Ese producto no está en la venta #{venta.id_venta}")
+        exigir_mayor_a_cero(cantidad)
+        if cantidad > pendientes[id_producto]:
+            nombre = self._obtener_producto(id_producto).nombre
+            raise ValueError(f"De {nombre} solo se pueden devolver {pendientes[id_producto]}")
+        devolucion.agregar(id_producto, cantidad, venta.precio_de(id_producto))
+        pendientes[id_producto] -= cantidad
+
+    def _cuenta_de(self, venta):
+        if venta.tipo != TipoVenta.CREDITO:
+            return None
+        return next(c for c in self.repo_ventas.cuentas_del_cliente(venta.id_cliente) if c.id_venta == venta.id_venta)
+
+    def _existencias_que_regresan(self, devolucion):
+        existencias = {}
+        for linea in devolucion.lineas:
+            existencia = existencias.get(linea.id_producto) or self.repo_productos.obtener_existencia(linea.id_producto)
+            existencia.aumentar(linea.cantidad)
+            existencias[linea.id_producto] = existencia
+        return list(existencias.values())
 
     def listar(self, limite=VENTAS_A_MOSTRAR):
         return self.repo_ventas.listar(limite)

@@ -180,6 +180,48 @@ class Venta:
     def anular(self):
         self.estado = EstadoVenta.ANULADA
 
+    def unidades_por_producto(self):
+        """Unidades vendidas de cada producto (suma sus líneas), en el orden en que se vendieron."""
+        vendidas = {}
+        for detalle in self.detalles:
+            vendidas[detalle.id_producto] = vendidas.get(detalle.id_producto, 0) + detalle.cantidad
+        return vendidas
+
+    def precio_de(self, id_producto):
+        """El precio con que se vendió ese producto (HU-02): es el que se devuelve."""
+        return next(d.precio_unitario for d in self.detalles if d.id_producto == id_producto)
+
+
+# Respuesta 1.5: una línea de una devolución (producto, unidades y el precio con que se vendió).
+DetalleDevolucion = namedtuple("DetalleDevolucion", "id_producto cantidad precio_unitario")
+
+
+class Devolucion:
+    """Respuesta 1.5: productos que regresan de una venta ya cobrada. La venta no se borra (cambia DT-08)."""
+
+    def __init__(self, id_venta, motivo, fecha=None):
+        exigir_texto_obligatorio(motivo, "Escribe el motivo de la devolución")
+        self.id_devolucion = None
+        self.id_venta = id_venta
+        self.motivo = motivo.strip()
+        self.fecha = fecha or datetime.now()
+        self.lineas = []
+        self.descontado_de_la_deuda = 0
+        self.efectivo_devuelto = 0
+
+    def agregar(self, id_producto, cantidad, precio_unitario):
+        exigir_mayor_a_cero(cantidad)
+        self.lineas.append(DetalleDevolucion(id_producto, cantidad, precio_unitario))
+
+    def valor(self):
+        return sum(linea.cantidad * linea.precio_unitario for linea in self.lineas)
+
+    def repartir(self, cuenta):
+        """En un fiado se descuenta de la deuda hasta dejarla en 0; lo que sobre se devuelve en efectivo
+        (no hay saldo a favor, respuesta 2.5). En contado todo se devuelve en dinero."""
+        self.descontado_de_la_deuda = cuenta.aplicar_devolucion(self.valor()) if cuenta else 0
+        self.efectivo_devuelto = self.valor() - self.descontado_de_la_deuda
+
 
 class CuentaPorCobrar:
     def __init__(self, id_cuenta, id_venta, id_cliente, monto_original, fecha_apertura, fecha_vencimiento):
@@ -190,10 +232,19 @@ class CuentaPorCobrar:
         self.fecha_apertura = fecha_apertura
         self.fecha_vencimiento = fecha_vencimiento
         self.abonos = []
+        self.valor_devuelto = 0          # lo que se descontó por devoluciones (respuesta 1.5)
         self.estado = EstadoCuenta.ABIERTA
 
     def calcular_saldo(self):
-        return self.monto_original - sum(self.abonos)
+        return self.monto_original - sum(self.abonos) - self.valor_devuelto
+
+    def aplicar_devolucion(self, valor):
+        """Descuenta lo devuelto hasta dejar el saldo en 0 y dice cuánto descontó; el resto va en efectivo."""
+        descontado = min(valor, self.calcular_saldo())
+        self.valor_devuelto += descontado
+        if self.calcular_saldo() == 0:
+            self.estado = EstadoCuenta.PAGADA
+        return descontado
 
     def aplicar_pago(self, monto):
         exigir_mayor_a_cero(monto)

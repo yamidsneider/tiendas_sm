@@ -40,6 +40,18 @@ class RepositorioDeVentas(ABC):
         """Las últimas ventas, de la más reciente a la más vieja, con sus detalles (sección Ventas)."""
 
     @abstractmethod
+    def unidades_devueltas(self, id_venta):
+        """Respuesta 1.5: {id_producto: unidades ya devueltas} de esa venta."""
+
+    @abstractmethod
+    def devoluciones_de_la_venta(self, id_venta):
+        """Las devoluciones (Devolucion) de esa venta, de la más vieja a la más nueva."""
+
+    @abstractmethod
+    def guardar_devolucion(self, devolucion, venta, cuenta, existencias):
+        """Guarda la devolución, el estado de la venta, la cuenta (si es fiado) y las existencias: todo o nada."""
+
+    @abstractmethod
     def saldo_pendiente_del_cliente(self, id_cliente):
         """TD-13: suma de (monto original − abonos) de todas las cuentas del cliente (regla de calcular_saldo)."""
 

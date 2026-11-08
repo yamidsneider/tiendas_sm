@@ -115,7 +115,22 @@ class ApiDeLaTienda:
 
     # ------------------------------------------------------------------ ventas (RF-05)
     def ventas(self):
-        return self._ejecutar(lambda: _filas(self._ventas.tabla()))
+        """Filas de ventas; «estado» dice si está Anulada o Con devolución (respuesta 1.5)."""
+        def consultar():
+            estados = self._ventas.estados()
+            return [{**fila, "estado": estados.get(fila["id"], "")} for fila in _filas(self._ventas.tabla())]
+        return self._ejecutar(consultar)
+
+    def para_devolver(self, id_venta):
+        return self._ejecutar(lambda: _filas(self._ventas.para_devolver(_id(id_venta))))
+
+    def devolver(self, id_venta, cantidades, motivo):
+        """cantidades llega de JavaScript como {"id_producto": "texto"}."""
+        por_producto = {_id(id_producto): texto for id_producto, texto in dict(cantidades or {}).items()}
+        return self._ejecutar(lambda: _resultado(self._ventas.devolver(_id(id_venta), por_producto, str(motivo))))
+
+    def anular(self, id_venta, motivo):
+        return self._ejecutar(lambda: _resultado(self._ventas.anular(_id(id_venta), str(motivo))))
 
     def ticket(self, id_venta):
         return self._ejecutar(lambda: self._ventas.ticket(_id(id_venta)))

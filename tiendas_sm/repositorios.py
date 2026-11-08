@@ -1,13 +1,14 @@
 from datetime import datetime
 
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
-                                Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago)
+                                Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion)
 from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, RepositorioDeVentas
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
 __all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes"]
 
 MOVIMIENTO_SALIDA_VENTA = "SALIDA_VENTA"
+MOVIMIENTO_DEVOLUCION = "DEVOLUCION"
 
 
 def _ahora():
@@ -171,7 +172,8 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
     def saldo_pendiente_del_cliente(self, id_cliente):
         """TD-13: misma regla que CuentaPorCobrar.calcular_saldo (monto original − abonos), sumada en una consulta."""
         fila = self.conexion.execute(
-            "SELECT COALESCE(SUM(c.monto_credito_original - COALESCE(a.pagado, 0)), 0) FROM cuentas_por_cobrar c "
+            "SELECT COALESCE(SUM(c.monto_credito_original - COALESCE(a.pagado, 0) - c.valor_devuelto), 0) "
+            "FROM cuentas_por_cobrar c "
             "LEFT JOIN (SELECT id_cuenta, SUM(valor) AS pagado FROM abonos GROUP BY id_cuenta) a "
             "ON a.id_cuenta = c.id_cuenta WHERE c.id_cliente = ?", (id_cliente,)).fetchone()
         return fila[0]
@@ -190,10 +192,55 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                                  fila["monto_credito_original"], datetime.fromisoformat(fila["fecha_apertura"]),
                                  datetime.fromisoformat(fila["fecha_vencimiento"]))  # TD-14: se guardan como texto ISO
         cuenta.estado = EstadoCuenta(fila["estado"])
+        cuenta.valor_devuelto = fila["valor_devuelto"]
         abonos = self.conexion.execute(
             "SELECT valor FROM abonos WHERE id_cuenta=? ORDER BY id_abono", (cuenta.id_cuenta,)).fetchall()
         cuenta.abonos = [abono["valor"] for abono in abonos]
         return cuenta
+
+    def unidades_devueltas(self, id_venta):
+        filas = self.conexion.execute(
+            "SELECT d.id_producto, SUM(d.cantidad) AS cantidad FROM detalles_devolucion d "
+            "JOIN devoluciones v ON v.id_devolucion = d.id_devolucion WHERE v.id_venta=? GROUP BY d.id_producto",
+            (id_venta,)).fetchall()
+        return {fila["id_producto"]: fila["cantidad"] for fila in filas}
+
+    def devoluciones_de_la_venta(self, id_venta):
+        filas = self.conexion.execute("SELECT * FROM devoluciones WHERE id_venta=? ORDER BY id_devolucion",
+                                      (id_venta,)).fetchall()
+        return [self._a_devolucion(fila) for fila in filas]
+
+    def _a_devolucion(self, fila):
+        devolucion = Devolucion(fila["id_venta"], fila["motivo"], datetime.fromisoformat(fila["fecha"]))
+        devolucion.id_devolucion = fila["id_devolucion"]
+        devolucion.descontado_de_la_deuda = fila["descontado_de_la_deuda"]
+        devolucion.efectivo_devuelto = fila["efectivo_devuelto"]
+        for linea in self.conexion.execute("SELECT * FROM detalles_devolucion WHERE id_devolucion=? ORDER BY id_detalle",
+                                           (devolucion.id_devolucion,)):
+            devolucion.agregar(linea["id_producto"], linea["cantidad"], linea["precio_unitario"])
+        return devolucion
+
+    def guardar_devolucion(self, devolucion, venta, cuenta, existencias):
+        """RNF-04: devolución, movimientos, existencias, cuenta y estado de la venta en una sola transacción."""
+        fecha = devolucion.fecha.isoformat()
+        with self.conexion:
+            cursor = self.conexion.execute(
+                "INSERT INTO devoluciones (id_venta, fecha, motivo, valor, descontado_de_la_deuda, efectivo_devuelto) "
+                "VALUES (?,?,?,?,?,?)", (devolucion.id_venta, fecha, devolucion.motivo, devolucion.valor(),
+                                         devolucion.descontado_de_la_deuda, devolucion.efectivo_devuelto))
+            devolucion.id_devolucion = cursor.lastrowid
+            for linea in devolucion.lineas:
+                self.conexion.execute(
+                    "INSERT INTO detalles_devolucion (id_devolucion, id_producto, cantidad, precio_unitario) VALUES (?,?,?,?)",
+                    (devolucion.id_devolucion, linea.id_producto, linea.cantidad, linea.precio_unitario))
+                self.conexion.execute(
+                    "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha) VALUES (?,?,?,?)",
+                    (linea.id_producto, MOVIMIENTO_DEVOLUCION, linea.cantidad, fecha))
+            self._actualizar_existencias(existencias)
+            if cuenta is not None:
+                self.conexion.execute("UPDATE cuentas_por_cobrar SET valor_devuelto=?, estado=? WHERE id_cuenta=?",
+                                      (cuenta.valor_devuelto, cuenta.estado.value, cuenta.id_cuenta))
+            self.conexion.execute("UPDATE ventas SET estado=? WHERE id_venta=?", (venta.estado.value, venta.id_venta))
 
     def contar_ventas(self):
         return self.conexion.execute("SELECT COUNT(*) FROM ventas").fetchone()[0]

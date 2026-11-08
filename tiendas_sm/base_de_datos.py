@@ -34,7 +34,18 @@ CREATE TABLE IF NOT EXISTS cuentas_por_cobrar (
     id_venta INTEGER NOT NULL REFERENCES ventas(id_venta),
     id_cliente INTEGER NOT NULL REFERENCES clientes(id_cliente),
     fecha_apertura TEXT NOT NULL, fecha_vencimiento TEXT NOT NULL,
-    monto_credito_original INTEGER NOT NULL, estado TEXT NOT NULL);
+    monto_credito_original INTEGER NOT NULL, estado TEXT NOT NULL, valor_devuelto INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS devoluciones (
+    id_devolucion INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_venta INTEGER NOT NULL REFERENCES ventas(id_venta),
+    fecha TEXT NOT NULL, motivo TEXT NOT NULL, valor INTEGER NOT NULL,
+    descontado_de_la_deuda INTEGER NOT NULL, efectivo_devuelto INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS detalles_devolucion (
+    id_detalle INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_devolucion INTEGER NOT NULL REFERENCES devoluciones(id_devolucion),
+    id_producto INTEGER NOT NULL REFERENCES productos(id_producto),
+    cantidad INTEGER NOT NULL, precio_unitario INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_devoluciones_por_venta ON devoluciones(id_venta);
 CREATE TABLE IF NOT EXISTS abonos (
     id_abono INTEGER PRIMARY KEY AUTOINCREMENT,
     id_cuenta INTEGER NOT NULL REFERENCES cuentas_por_cobrar(id_cuenta),
@@ -58,6 +69,8 @@ COLUMNAS_NUEVAS_DE_CLIENTES = (
 )
 # Respuesta 1.4: código de barras opcional. NULL cuando no hay, así el índice único deja varios productos sin código.
 COLUMNAS_NUEVAS_DE_PRODUCTOS = (("codigo", "TEXT"),)
+# Respuesta 1.5: lo que se descontó de la deuda por devoluciones (0 en las cuentas viejas).
+COLUMNAS_NUEVAS_DE_CUENTAS = (("valor_devuelto", "INTEGER NOT NULL DEFAULT 0"),)
 INDICE_DEL_CODIGO = "CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)"
 
 
@@ -70,6 +83,7 @@ class BaseDeDatos:
         self._agregar_columnas("ventas", COLUMNAS_NUEVAS_DE_VENTAS)
         self._agregar_columnas("clientes", COLUMNAS_NUEVAS_DE_CLIENTES)
         self._agregar_columnas("productos", COLUMNAS_NUEVAS_DE_PRODUCTOS)
+        self._agregar_columnas("cuentas_por_cobrar", COLUMNAS_NUEVAS_DE_CUENTAS)
         with self.conexion:
             self.conexion.execute(INDICE_DEL_CODIGO)            # después de la migración: la columna ya existe
 

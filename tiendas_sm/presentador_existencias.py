@@ -8,8 +8,8 @@ from tiendas_sm.presentador import Resultado, a_entero
 
 MENSAJE_SIN_PRODUCTO = "Elige un producto de la lista"
 FORMATO_FECHA_Y_HORA = "%d/%m/%Y %H:%M"
-NOMBRE_DEL_MOVIMIENTO = {"ENTRADA": "Entrada", "SALIDA_VENTA": "Salida por venta"}
-SIGNO_DEL_MOVIMIENTO = {"ENTRADA": "+", "SALIDA_VENTA": "-"}
+NOMBRE_DEL_MOVIMIENTO = {"ENTRADA": "Entrada", "SALIDA_VENTA": "Salida por venta", "DEVOLUCION": "Devolución"}
+SIGNO_DEL_MOVIMIENTO = {"ENTRADA": "+", "SALIDA_VENTA": "-", "DEVOLUCION": "+"}
 
 
 def _unidades(cantidad):

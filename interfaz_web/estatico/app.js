@@ -299,17 +299,46 @@ VISTAS.ventas = async () => {
   const filas = (await llamar('ventas')).map(f => {
     const [numero, fecha, tipo, cliente, total] = f.valores;
     return `<tr><td><b>${esc(numero)}</b></td><td>${esc(fecha)}</td><td>${insignia(tipo === 'Crédito' ? 'i-av' : tipo === 'Efectivo' ? 'i-ok' : 'i-info', tipo === 'Crédito' ? 'Fiado' : tipo)}</td>
-      <td>${cliente === '—' ? '<span class="sec">Mostrador</span>' : esc(cliente)}</td><td class="num"><b>${esc(total)}</b></td>
-      <td><button class="btn btn-s btn-ch" data-accion="ver-venta" data-id="${esc(f.id)}">Ver ticket</button></td></tr>`;
+      <td>${cliente === '—' ? '<span class="sec">Mostrador</span>' : esc(cliente)} ${f.estado ? insignia(f.estado === 'Anulada' ? 'i-mal' : 'i-gris', f.estado) : ''}</td>
+      <td class="num"><b>${esc(total)}</b></td>
+      <td><button class="btn btn-s btn-ch" data-accion="ver-venta" data-id="${esc(f.id)}">Ver ticket</button>
+      ${f.estado === 'Anulada' ? '' : `<button class="btn btn-s btn-ch" data-accion="abrir-devolucion" data-id="${esc(f.id)}">Devolver</button>`}</td></tr>`;
   });
   return {
     sub: 'Las ventas registradas, de la más reciente a la más antigua',
     acciones: '<button class="btn btn-p" data-accion="ir" data-id="pos">Nueva venta</button>',
     html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Últimas ventas</h3></div>
       ${tabla(['N.º', 'Fecha y hora', 'Tipo', 'Cliente', '>Total', ''], filas, 'Todavía no hay ventas registradas.')}
-      <div class="nota-pie">Se muestran las 50 más recientes. Las ventas no se borran ni se anulan.</div></div>`,
+      <div class="nota-pie">Se muestran las 50 más recientes. Las ventas no se borran: una devolución o una anulación queda registrada con su motivo.</div></div>`,
   };
 };
+
+/* Devolver productos o anular la venta (respuesta 1.5). El motivo es obligatorio. */
+async function abrirDevolucion(id) {
+  const filas = (await llamar('para_devolver', id)).map(f => {
+    const [nombre, vendidas, devueltas, pendientes, precio] = f.valores;
+    return `<tr><td><b>${esc(nombre)}</b><div class="sec">Vendidas ${esc(vendidas)} · devueltas ${esc(devueltas)}</div></td><td class="num">${esc(precio)}</td>
+      <td class="num">${pendientes > 0 ? `<input class="cant" type="number" min="0" max="${esc(pendientes)}" value="0" data-producto="${esc(f.id)}" aria-label="Unidades de ${esc(nombre)} a devolver">` : '<span class="sec">Nada</span>'}</td></tr>`;
+  });
+  abrirModal(`Devolver productos de la venta #${id}`, `${tabla(['Producto', '>Precio', '>Devolver'], filas, '')}
+    ${campo('Motivo', 'd-motivo', '<input id="d-motivo" placeholder="Ej.: producto en mal estado">', 'Obligatorio. Queda guardado con la devolución.')}
+    <div class="nota-pie">Lo devuelto vuelve al inventario. Si fue fiado, se descuenta de la deuda; si sobra, se devuelve en efectivo.</div>`,
+  [{ texto: 'Cancelar', accion: 'cerrar-modal' }, { texto: 'Anular toda la venta', accion: 'anular-venta', datos: ` data-id="${esc(id)}"` },
+   { texto: 'Devolver lo marcado', clase: 'btn-p', accion: 'guardar-devolucion', datos: ` data-id="${esc(id)}"` }]);
+}
+
+function cantidadesADevolver() {
+  const cantidades = {};
+  document.querySelectorAll('#modal-raiz [data-producto]').forEach(campo => { cantidades[campo.dataset.producto] = campo.value; });
+  return cantidades;
+}
+
+async function terminarDevolucion(r, id) {
+  if (!r.exito) { errorModal(r.mensaje); return; }
+  aviso(r.mensaje);
+  await render();
+  mostrarTicket(`Venta #${id}`, r.ticket);
+}
 
 /* ------------------------------------------------------------------ productos (HU-01, HU-02) */
 TABLAS.productos = async () => {
@@ -504,6 +533,13 @@ const ACCIONES = {
   'confirmar-cobro': confirmarCobro,
   imprimir: () => window.print(),
   'ver-venta': async el => mostrarTicket(`Venta #${el.dataset.id}`, await llamar('ticket', el.dataset.id)),
+  'abrir-devolucion': el => abrirDevolucion(el.dataset.id),
+  'guardar-devolucion': async el => terminarDevolucion(await llamar('devolver', el.dataset.id, cantidadesADevolver(), val('d-motivo')), el.dataset.id),
+  'anular-venta': async el => {
+    if (!val('d-motivo').trim()) { errorModal('Escribe el motivo de la devolución'); return; }
+    if (!el.dataset.confirmado) { el.dataset.confirmado = '1'; el.textContent = 'Sí, anular toda la venta'; el.classList.add('btn-p'); return; }  // segundo clic confirma
+    terminarDevolucion(await llamar('anular', el.dataset.id, val('d-motivo')), el.dataset.id);
+  },
   'nuevo-producto': abrirNuevoProducto,
   'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad'), val('f-minimo'), val('f-codigo')),
   'editar-producto': el => abrirEdicionDeProducto(el.dataset.id),
