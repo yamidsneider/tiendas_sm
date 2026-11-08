@@ -396,9 +396,11 @@ VISTAS.clientes = async () => ({
 
 function formularioDeCliente(datos, ayudaDelLimite = '') {
   return `${campo('Nombre', 'k-nombre', `<input id="k-nombre" value="${esc(datos.nombres)}">`)}
+    <div class="dos">${campo('Teléfono (opcional)', 'k-telefono', `<input id="k-telefono" inputmode="tel" value="${esc(datos.telefono || '')}">`)}
+    ${campo('Dirección (opcional)', 'k-direccion', `<input id="k-direccion" value="${esc(datos.direccion || '')}">`)}</div>
     <div class="campo"><label class="check"><input type="checkbox" id="k-credito"${datos.credito ? ' checked' : ''}> Puede comprar a crédito (fiado)</label></div>
     <div class="dos">${campo('Límite de crédito', 'k-limite', `<input id="k-limite" type="number" min="0" value="${esc(datos.limite)}">`, ayudaDelLimite)}
-    ${campo('Plazo para pagar (días)', 'k-plazo', `<input id="k-plazo" type="number" min="1" value="${esc(datos.plazo)}">`)}</div>`;
+    ${campo('Plazo máximo para pagar (días)', 'k-plazo', `<input id="k-plazo" type="number" min="1" value="${esc(datos.plazo)}">`)}</div>`;
 }
 
 async function abrirNuevoCliente() {
@@ -484,9 +486,9 @@ const ACCIONES = {
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
   'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
   'nuevo-cliente': abrirNuevoCliente,
-  'guardar-cliente': () => guardar('registrar_cliente', val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo')),
+  'guardar-cliente': () => guardar('registrar_cliente', val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo'), val('k-telefono'), val('k-direccion')),
   'editar-cliente': el => abrirEdicionDeCliente(el.dataset.id),
-  'guardar-edicion-cliente': el => guardar('editar_cliente', el.dataset.id, val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo')),
+  'guardar-edicion-cliente': el => guardar('editar_cliente', el.dataset.id, val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo'), val('k-telefono'), val('k-direccion')),
   'ver-cliente': async el => abrirModal('Detalle del cliente', papel(await llamar('detalle_cliente', el.dataset.id)), [{ texto: 'Cerrar', clase: 'btn-p', accion: 'cerrar-modal' }]),
   'filtro-pagadas': el => { estado.verPagadas = el.dataset.valor === 'true'; render(); },
   'ver-credito': async el => abrirModal('Detalle de la cuenta', papel(await llamar('detalle_credito', el.dataset.id)), [{ texto: 'Cerrar', clase: 'btn-p', accion: 'cerrar-modal' }]),

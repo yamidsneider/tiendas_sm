@@ -62,20 +62,25 @@ class ServicioDeClientes:
         self.repo_clientes = repo_clientes
 
     def registrar_cliente(self, nombres, credito_habilitado, limite_credito,
-                          plazo_credito_dias=PLAZO_POR_DEFECTO_DIAS):
-        cliente = Cliente(None, nombres, credito_habilitado, limite_credito, plazo_credito_dias)
+                          plazo_credito_dias=PLAZO_POR_DEFECTO_DIAS, telefono="", direccion=""):
+        cliente = Cliente(None, nombres, credito_habilitado, limite_credito, plazo_credito_dias, telefono, direccion)
         self.repo_clientes.guardar(cliente)
         return cliente
 
     def obtener(self, id_cliente):
         return self.repo_clientes.obtener(id_cliente)
 
-    def actualizar_cliente(self, id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias):
+    def actualizar_cliente(self, id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias,
+                           telefono=None, direccion=None):
         """Editar cliente: se arma un Cliente nuevo con el mismo id para que el dominio valide igual que al registrar.
-        Las cuentas ya abiertas no cambian (su vencimiento se calculó al vender)."""
-        if self.repo_clientes.obtener(id_cliente) is None:
+        Las cuentas ya abiertas no cambian (su vencimiento se calculó al vender). Si no llegan teléfono o
+        dirección (None), se conserva lo guardado."""
+        actual = self.repo_clientes.obtener(id_cliente)
+        if actual is None:
             raise ValueError("El cliente no existe")
-        cliente = Cliente(id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias)
+        telefono = actual.telefono if telefono is None else telefono
+        direccion = actual.direccion if direccion is None else direccion
+        cliente = Cliente(id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias, telefono, direccion)
         self.repo_clientes.guardar(cliente)
         return cliente
 

@@ -80,17 +80,18 @@ class RepositorioDeClientes(PuertoDeClientes):
 
     def guardar(self, cliente):
         """Si el cliente no tiene id es nuevo (INSERT); si ya lo tiene, se actualizan sus datos (Editar cliente)."""
-        datos = (cliente.nombres, int(cliente.credito_habilitado), cliente.limite_credito, cliente.plazo_credito_dias)
+        datos = (cliente.nombres, int(cliente.credito_habilitado), cliente.limite_credito, cliente.plazo_credito_dias,
+                 cliente.telefono, cliente.direccion)
         with self.conexion:
             if cliente.id_cliente is None:
                 cursor = self.conexion.execute(
-                    "INSERT INTO clientes (nombres, credito_habilitado, limite_credito, plazo_credito_dias) "
-                    "VALUES (?,?,?,?)", datos)
+                    "INSERT INTO clientes (nombres, credito_habilitado, limite_credito, plazo_credito_dias, telefono, "
+                    "direccion) VALUES (?,?,?,?,?,?)", datos)
                 cliente.id_cliente = cursor.lastrowid
             else:
                 self.conexion.execute(
-                    "UPDATE clientes SET nombres=?, credito_habilitado=?, limite_credito=?, plazo_credito_dias=? "
-                    "WHERE id_cliente=?", (*datos, cliente.id_cliente))
+                    "UPDATE clientes SET nombres=?, credito_habilitado=?, limite_credito=?, plazo_credito_dias=?, "
+                    "telefono=?, direccion=? WHERE id_cliente=?", (*datos, cliente.id_cliente))
         return cliente.id_cliente
 
     def obtener(self, id_cliente):
@@ -104,7 +105,7 @@ class RepositorioDeClientes(PuertoDeClientes):
     @staticmethod
     def _a_cliente(fila):
         return Cliente(fila["id_cliente"], fila["nombres"], bool(fila["credito_habilitado"]),
-                       fila["limite_credito"], fila["plazo_credito_dias"])
+                       fila["limite_credito"], fila["plazo_credito_dias"], fila["telefono"], fila["direccion"])
 
 
 class RepositorioDeVentasSqlite(RepositorioDeVentas):

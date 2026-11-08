@@ -2,10 +2,12 @@ from collections import namedtuple
 from datetime import datetime
 from enum import Enum
 
-from tiendas_sm.validaciones import exigir_mayor_a_cero, exigir_no_negativo, exigir_texto_obligatorio
+from tiendas_sm.validaciones import (exigir_mayor_a_cero, exigir_no_negativo, exigir_solo_caracteres,
+                                     exigir_texto_obligatorio)
 
 PLAZO_POR_DEFECTO_DIAS = 30
 PLAZO_MINIMO_DIAS = 1   # UC-05 del DDS: el plazo de crédito es de al menos un día
+CARACTERES_DEL_TELEFONO = set("0123456789 +-")   # respuesta 3.1: el teléfono es opcional
 
 
 class StockInsuficiente(Exception):
@@ -87,8 +89,12 @@ class Existencia:
 
 
 class Cliente:
-    def __init__(self, id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias):
+    def __init__(self, id_cliente, nombres, credito_habilitado, limite_credito, plazo_credito_dias,
+                 telefono="", direccion=""):
+        """telefono y direccion (respuesta 3.1) son opcionales y son datos personales."""
         exigir_texto_obligatorio(nombres, "El nombre es obligatorio")
+        telefono, direccion = (telefono or "").strip(), (direccion or "").strip()
+        exigir_solo_caracteres(telefono, CARACTERES_DEL_TELEFONO, "El teléfono solo puede tener números, espacios, + y -")
         exigir_no_negativo(limite_credito, "El límite de crédito no puede ser negativo")
         if plazo_credito_dias < PLAZO_MINIMO_DIAS:
             raise ValueError(f"El plazo de crédito debe ser de al menos {PLAZO_MINIMO_DIAS} día")
@@ -97,6 +103,8 @@ class Cliente:
         self.credito_habilitado = credito_habilitado
         self.limite_credito = limite_credito
         self.plazo_credito_dias = plazo_credito_dias
+        self.telefono = telefono
+        self.direccion = direccion
 
     def credito_disponible(self, saldo_pendiente):
         return self.limite_credito - saldo_pendiente
