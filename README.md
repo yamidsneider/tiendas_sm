@@ -3,23 +3,29 @@
 MVP académico (Ingeniería de Software I, Universidad de Pamplona). Autor: Yamid Sneider Merchan Castro.
 
 ## Tecnología (decisión registrada en la FPI-12)
-- Lenguaje: **Python 3** (solo biblioteca estándar, no hay que instalar nada).
+- Lenguaje: **Python 3**. El núcleo y las pruebas usan solo la biblioteca estándar.
 - Base de datos: **SQLite** (viene con Python; un solo archivo, sin servidor).
-- Tipo de aplicación: **escritorio** con **Tkinter** (viene con Python), con el diseño del borrador HTML del autor: menú lateral con
-  Punto de venta, Ventas, Productos, Existencias, Clientes y Créditos y abonos.
+- Tipo de aplicación: **escritorio**, con la visual del borrador HTML del autor (opción B en `docs/contexto/DECISIONES.md`):
+  ventana nativa de Windows con **pywebview** y archivo **TIENDAS_SM.exe** armado con **PyInstaller**. Secciones: Punto de venta,
+  Ventas, Productos, Existencias, Clientes y Créditos y abonos. La versión anterior en Tkinter sigue disponible con `--tkinter`.
 - Pruebas: `unittest`.
 - Dinero: números enteros en pesos colombianos (sin centavos).
 
 ## Cómo abrir la aplicación
-Desde esta carpeta, con Python 3.12 en Windows:
+**Con el .exe:** doble clic en `dist\TIENDAS_SM.exe` (no necesita Python). Para armarlo, una sola vez en esta carpeta:
 
-    python iniciar_tienda.py --datos-de-ejemplo
+    python -m venv .venv
+    .venv\Scripts\python -m pip install -r requirements-escritorio.txt
+    .venv\Scripts\python construir_exe.py
 
-- `--datos-de-ejemplo` carga productos y clientes **ficticios**, solo si la base está vacía. Sin esa opción se abre con los datos guardados.
-- Los datos se guardan en `%LOCALAPPDATA%\TIENDAS_SM\tiendas_sm.db` (la ruta exacta aparece en la consola al abrir).
-  Al cerrar, la aplicación crea un respaldo verificado en esa misma carpeta (conserva los 7 más recientes).
-- Atajos del punto de venta: **F2** buscar producto · **Enter** agregar · **F9** cobrar de contado · **F4** vender a crédito · **Supr** quitar ·
-  **Esc** cerrar diálogo. Solo actúan con el punto de venta a la vista.
+**Desde el código:** `.venv\Scripts\python iniciar_tienda.py --datos-de-ejemplo`
+
+- `--datos-de-ejemplo` carga productos y clientes **ficticios**, solo si la base está vacía. Sin esa opción se abre con los datos guardados
+  (también sirve con el .exe: `TIENDAS_SM.exe --datos-de-ejemplo`).
+- Los datos se guardan en `%LOCALAPPDATA%\TIENDAS_SM\tiendas_sm.db`. Al cerrar la ventana se crea un respaldo verificado en esa misma
+  carpeta (conserva los 7 más recientes).
+- Atajos del punto de venta: **F2** buscar producto · **Enter** agregar · **F9** cobrar de contado · **F4** vender a crédito · **Esc** cerrar
+  la ventana emergente o limpiar la búsqueda.
 
 ## Cómo correr las pruebas
 Desde esta carpeta:
@@ -45,7 +51,9 @@ allí las 37 pruebas de pantallas se saltan porque el servidor no tiene pantalla
       ventana_principal.py       Menú lateral con las 6 secciones
       tema.py · pantalla.py      Colores del borrador HTML y base común de cada sección
       ventana_punto_de_venta.py · pantalla_*.py  Pantallas (solo dibujan y llaman a su presentador)
-    iniciar_tienda.py     Abre la aplicación de escritorio
+    iniciar_tienda.py     Abre la aplicación de escritorio (ventana pywebview; --tkinter abre la anterior)
+    construir_exe.py      Arma dist/TIENDAS_SM.exe con PyInstaller
+    interfaz_web/         api.py (lo que la página pide a Python), pagina.py y estatico/ (HTML, CSS y JS con la visual del borrador)
     tests/
       test_comportamiento.py          Pruebas de flujo completo con SQLite real (escenarios de la FPI-06)
       test_unitarias_dobles.py        Pruebas unitarias aisladas con stubs y mocks (FPI-14)

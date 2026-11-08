@@ -11,3 +11,4 @@ tablero*.html
 .venv/
 build/
 dist/
+TIENDAS_SM.spec
