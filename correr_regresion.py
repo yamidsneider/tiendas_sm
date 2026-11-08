@@ -49,6 +49,7 @@ PRUEBAS = {
     "escritorio_pagina": "tests.test_pagina_escritorio",
     "editar_cliente": "tests.test_editar_cliente",
     "editar_producto": "tests.test_editar_producto",
+    "icono": "tests.test_icono",
 }
 TODAS = list(PRUEBAS.values())
 PRUEBAS_DE_PANTALLAS = [PRUEBAS[k] for k in PRUEBAS if k in ("ventana", "principal") or k.startswith("pantalla_")]
@@ -85,6 +86,8 @@ MAPA = {
     "interfaz_web/api.py": [PRUEBAS[k] for k in ("escritorio_api", "escritorio_pagina", "arranque", "editar_cliente",
                                                  "editar_producto")],
     "interfaz_web/pagina.py": [PRUEBAS["escritorio_pagina"]],
+    "construir_exe.py": [PRUEBAS["icono"]],
+    "scripts/generar_icono.py": [PRUEBAS["icono"]],
     "interfaz_web/estatico/app.js": [PRUEBAS["escritorio_pagina"]],
     "interfaz_web/estatico/app.css": [PRUEBAS["escritorio_pagina"]],
     "interfaz_web/estatico/index.html": [PRUEBAS["escritorio_pagina"]],
