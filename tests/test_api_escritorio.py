@@ -40,6 +40,12 @@ class PruebasDelPuntoDeVenta(BaseDeLaApi):
         self.assertEqual((respuesta["exito"], respuesta["mensaje"]), (False, "La cantidad debe ser un número entero"))
         self.assertTrue(respuesta["carrito"]["vacio"])
 
+    def test_botones_mas_y_menos_del_carrito(self):
+        self.api.agregar(self.arroz.id_producto, "1")
+        self.assertEqual(self.api.agregar(self.arroz.id_producto, "1")["carrito"]["lineas"][0]["cantidad"], 2)   # «+»
+        self.assertEqual(self.api.quitar_uno(self.arroz.id_producto)["lineas"][0]["cantidad"], 1)               # «−»
+        self.assertTrue(self.api.quitar_uno(self.arroz.id_producto)["vacio"])
+
     def test_quitar_y_limpiar(self):
         self.api.agregar(self.arroz.id_producto, "1")
         self.assertTrue(self.api.quitar(self.arroz.id_producto)["vacio"])
