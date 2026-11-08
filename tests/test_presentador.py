@@ -73,6 +73,19 @@ class PruebasDeBusquedaYCarrito(BaseDelPresentador):
         self.pv.limpiar()
         self.assertEqual((self.pv.lineas(), self.pv.total(), self.pv.resumen()), ([], 0, "Sin productos"))
 
+    def test_quitar_uno_resta_una_unidad_y_en_cero_saca_la_linea(self):
+        """Botón «−» del carrito: baja la cantidad de a uno; al llegar a 0 la línea desaparece (no queda en 0)."""
+        self.pv.agregar(self.arroz.id_producto, "2")
+        self.pv.quitar_uno(self.arroz.id_producto)
+        self.assertEqual(self.pv.lineas()[0].cantidad, 1)
+        self.pv.quitar_uno(self.arroz.id_producto)
+        self.assertEqual(self.pv.lineas(), [])
+
+    def test_quitar_uno_de_un_producto_que_no_esta_no_hace_nada(self):
+        self.pv.agregar(self.arroz.id_producto, "1")
+        self.pv.quitar_uno(self.panela.id_producto)
+        self.assertEqual([(l.nombre, l.cantidad) for l in self.pv.lineas()], [("Arroz 500 g", 1)])
+
 
 class PruebasDelCobroDeContado(BaseDelPresentador):
     def test_venta_de_contado_devuelve_ticket_con_cambio_y_vacia_el_carrito(self):

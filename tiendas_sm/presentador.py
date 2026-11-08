@@ -89,6 +89,15 @@ class PresentadorPuntoDeVenta:
     def quitar(self, id_producto):
         self.carrito.pop(id_producto, None)
 
+    def quitar_uno(self, id_producto):
+        """Botón «−»: resta una unidad; si queda en 0, la línea sale del carrito. Si no está, no hace nada."""
+        if id_producto not in self.carrito:
+            return
+        if self.carrito[id_producto] > 1:
+            self.carrito[id_producto] -= 1
+        else:
+            self.quitar(id_producto)
+
     def limpiar(self):
         self.carrito.clear()
 
