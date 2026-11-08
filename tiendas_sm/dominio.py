@@ -49,12 +49,15 @@ MovimientoDeInventario = namedtuple("MovimientoDeInventario", "id_movimiento id_
 
 
 class Producto:
-    def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0, codigo=""):
-        """codigo: código de barras opcional (respuesta 1.4); vacío si el producto no tiene."""
+    def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0, codigo="", dias_aviso=0):
+        """codigo: código de barras opcional (respuesta 1.4); vacío si el producto no tiene.
+        dias_aviso: con cuántos días de anticipación avisar que un lote de este producto va a vencer (RF-13)."""
         exigir_texto_obligatorio(nombre, "El nombre es obligatorio")
         if precio_compra < 0 or precio_venta < 0:
             raise ValueError("Los precios no pueden ser negativos")
         exigir_no_negativo(stock_minimo, "El stock mínimo no puede ser negativo")
+        exigir_no_negativo(dias_aviso, "Los días de aviso no pueden ser negativos")
+        self.dias_aviso = dias_aviso
         self.id_producto = id_producto
         self.nombre = nombre
         self.precio_compra = precio_compra
@@ -70,6 +73,37 @@ class Producto:
     def necesita_reponer(self, disponibles):
         """RF-12: avisa cuando quedan el stock mínimo o menos. Un mínimo de 0 quiere decir «sin aviso»."""
         return self.stock_minimo > 0 and disponibles <= self.stock_minimo
+
+
+class Lote:
+    """RF-10 y RF-13: un lote que llegó con su fecha de vencimiento. Es solo un registro para avisar: NO está
+    ligado a las existencias (decisión del grupo B). La cantidad es informativa (lo que traía el lote)."""
+    VENCIDO, POR_VENCER, AL_DIA = "Vencido", "Por vencer", "Al día"
+
+    def __init__(self, id_lote, id_producto, numero, fecha_vencimiento, cantidad, activo=True):
+        exigir_mayor_a_cero(cantidad)
+        self.id_lote = id_lote
+        self.id_producto = id_producto
+        self.numero = (numero or "").strip()
+        self.fecha_vencimiento = fecha_vencimiento      # date (sin hora)
+        self.cantidad = cantidad
+        self.activo = activo
+
+    def dias_para_vencer(self, hoy):
+        """Negativo si ya venció."""
+        return (self.fecha_vencimiento - hoy).days
+
+    def estado(self, hoy, dias_aviso):
+        dias = self.dias_para_vencer(hoy)
+        if dias < 0:
+            return self.VENCIDO
+        return self.POR_VENCER if dias <= dias_aviso else self.AL_DIA
+
+    def retirar(self):
+        """«Ya no está»: se vendió, se botó o se devolvió al proveedor. Sale de la lista de alertas."""
+        if not self.activo:
+            raise ValueError("Ese lote ya no está en la lista")
+        self.activo = False
 
 
 class Existencia:

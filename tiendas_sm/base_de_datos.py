@@ -52,6 +52,11 @@ CREATE TABLE IF NOT EXISTS abonos (
     valor INTEGER NOT NULL, fecha TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_cuentas_por_cliente ON cuentas_por_cobrar(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_abonos_por_cuenta ON abonos(id_cuenta);
+CREATE TABLE IF NOT EXISTS lotes (
+    id_lote INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_producto INTEGER NOT NULL REFERENCES productos(id_producto),
+    numero TEXT NOT NULL DEFAULT '', fecha_vencimiento TEXT NOT NULL,
+    cantidad INTEGER NOT NULL, activo INTEGER NOT NULL DEFAULT 1);
 """
 
 # Columnas que la venta de contado (UC-02) agregó a ventas. Una base creada antes no las tiene: se agregan
@@ -68,7 +73,11 @@ COLUMNAS_NUEVAS_DE_CLIENTES = (
     ("direccion", "TEXT NOT NULL DEFAULT ''"),
 )
 # Respuesta 1.4: código de barras opcional. NULL cuando no hay, así el índice único deja varios productos sin código.
-COLUMNAS_NUEVAS_DE_PRODUCTOS = (("codigo", "TEXT"),)
+COLUMNAS_NUEVAS_DE_PRODUCTOS = (
+    ("codigo", "TEXT"),
+    ("stock_minimo", "INTEGER NOT NULL DEFAULT 0"),
+    ("dias_aviso", "INTEGER NOT NULL DEFAULT 0"),     # RF-13: días de aviso de vencimiento, uno por producto
+)
 # Respuesta 1.5: lo que se descontó de la deuda por devoluciones (0 en las cuentas viejas).
 COLUMNAS_NUEVAS_DE_CUENTAS = (("valor_devuelto", "INTEGER NOT NULL DEFAULT 0"),)
 INDICE_DEL_CODIGO = "CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)"

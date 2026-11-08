@@ -139,9 +139,9 @@ class ApiDeLaTienda:
     def productos(self, texto=""):
         return self._ejecutar(lambda: _filas(self._productos.tabla(str(texto))))
 
-    def registrar_producto(self, nombre, compra, venta, cantidad, minimo="0", codigo=""):
+    def registrar_producto(self, nombre, compra, venta, cantidad, minimo="0", codigo="", aviso="0"):
         return self._ejecutar(lambda: _resultado(self._productos.registrar(str(nombre), compra, venta, cantidad, minimo,
-                                                                           str(codigo))))
+                                                                           str(codigo), aviso)))
 
     def precio_actual(self, id_producto):
         return self._ejecutar(lambda: self._productos.precio_actual(_id(id_producto)))
@@ -155,11 +155,11 @@ class ApiDeLaTienda:
         if datos is None:
             return None
         return {"nombre": datos.nombre, "compra": datos.compra, "venta": datos.venta, "minimo": datos.minimo,
-                "codigo": datos.codigo}
+                "codigo": datos.codigo, "aviso": datos.aviso}
 
-    def editar_producto(self, id_producto, nombre, compra, venta, minimo=None, codigo=None):
+    def editar_producto(self, id_producto, nombre, compra, venta, minimo=None, codigo=None, aviso=None):
         return self._ejecutar(lambda: _resultado(self._productos.editar(_id(id_producto), str(nombre), compra, venta,
-                                                                        minimo, codigo)))
+                                                                        minimo, codigo, aviso)))
 
     # ------------------------------------------------------------------ existencias (HU-03, RF-04)
     def existencias(self, texto=""):
@@ -177,6 +177,19 @@ class ApiDeLaTienda:
 
     def registrar_entrada(self, id_producto, cantidad):
         return self._ejecutar(lambda: _resultado(self._existencias.registrar_entrada(_id(id_producto), cantidad)))
+
+    # ------------------------------------------------------------------ lotes por vencer (RF-10, RF-13)
+    def lotes(self):
+        """Lotes activos y cuántos están vencidos o por vencer (para el número del panel)."""
+        return self._ejecutar(lambda: {"filas": _filas(self._existencias.lotes()),
+                                       "alerta": self._existencias.cuantos_en_alerta()})
+
+    def registrar_lote(self, id_producto, numero, fecha, cantidad):
+        return self._ejecutar(lambda: _resultado(self._existencias.registrar_lote(_id(id_producto), str(numero),
+                                                                                   str(fecha), cantidad)))
+
+    def retirar_lote(self, id_lote):
+        return self._ejecutar(lambda: _resultado(self._existencias.retirar_lote(_id(id_lote))))
 
     # ------------------------------------------------------------------ clientes (HU-05, RF-07)
     def clientes(self, texto=""):

@@ -3,17 +3,46 @@
 No usa Tkinter. Muestra cuántas unidades hay de cada producto, registra entradas de mercancía con
 ServicioDeProductos.registrar_entrada (el dominio rechaza 0 o negativo, HU-03) y arma el historial de
 movimientos. No hay salida manual (mermas, daños): está por confirmar con el propietario (H-1).
+También lleva los lotes por vencer (RF-10, RF-13): son solo un aviso y no cambian las existencias.
 """
+from datetime import date
+
+from tiendas_sm.dominio import Lote
 from tiendas_sm.presentador import Resultado, a_entero
 
 MENSAJE_SIN_PRODUCTO = "Elige un producto de la lista"
 FORMATO_FECHA_Y_HORA = "%d/%m/%Y %H:%M"
 NOMBRE_DEL_MOVIMIENTO = {"ENTRADA": "Entrada", "SALIDA_VENTA": "Salida por venta", "DEVOLUCION": "Devolución"}
 SIGNO_DEL_MOVIMIENTO = {"ENTRADA": "+", "SALIDA_VENTA": "-", "DEVOLUCION": "+"}
+FORMATO_FECHA = "%d/%m/%Y"
+SIN_NUMERO = "Sin número"
 
 
 def _unidades(cantidad):
     return f"{cantidad} {'unidad' if cantidad == 1 else 'unidades'}"
+
+
+def _dias(cantidad):
+    return f"{cantidad} {'día' if cantidad == 1 else 'días'}"
+
+
+def _texto_de_los_dias(dias):
+    """Cuánto falta para que venza, en palabras."""
+    if dias < 0:
+        return f"Venció hace {_dias(-dias)}"
+    if dias == 0:
+        return "Vence hoy"
+    return f"{'Falta' if dias == 1 else 'Faltan'} {_dias(dias)}"
+
+
+def _leer_fecha(texto):
+    """El campo de fecha de la página manda AAAA-MM-DD."""
+    if not texto.strip():
+        raise ValueError("Escribe la fecha de vencimiento")
+    try:
+        return date.fromisoformat(texto.strip())
+    except ValueError:
+        raise ValueError("La fecha de vencimiento no es válida") from None
 
 
 class PresentadorDeExistencias:
@@ -49,6 +78,43 @@ class PresentadorDeExistencias:
             return Resultado(False, str(error))
         return Resultado(True, f"Entrada de {_unidades(cantidad)} de {self.nombre(id_producto)}. "
                                f"Ahora hay {existencia.cantidad_disponible()}")
+
+    def lotes(self):
+        """Filas (id, (producto, lote, vence, cantidad, estado, cuánto falta)), del que vence primero al último."""
+        hoy = date.today()
+        productos = {p.id_producto: p for p in self.app.productos.listar()}
+        filas = []
+        for lote in self.app.productos.lotes_activos():
+            producto = productos[lote.id_producto]
+            filas.append((lote.id_lote, (producto.nombre, lote.numero or SIN_NUMERO,
+                                         f"{lote.fecha_vencimiento:{FORMATO_FECHA}}", lote.cantidad,
+                                         lote.estado(hoy, producto.dias_aviso),
+                                         _texto_de_los_dias(lote.dias_para_vencer(hoy)))))
+        return filas
+
+    def cuantos_en_alerta(self):
+        """Lotes vencidos o por vencer (los que no están «Al día»)."""
+        return sum(1 for _, fila in self.lotes() if fila[4] != Lote.AL_DIA)
+
+    def registrar_lote(self, id_producto, numero, fecha_texto, cantidad_texto):
+        if id_producto is None:
+            return Resultado(False, MENSAJE_SIN_PRODUCTO)
+        try:
+            fecha = _leer_fecha(fecha_texto)
+            cantidad = a_entero(cantidad_texto, "La cantidad")
+            lote = self.app.productos.registrar_lote(id_producto, numero, fecha, cantidad)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        return Resultado(True, f"Lote {lote.numero or SIN_NUMERO.lower()} de {self.nombre(id_producto)} registrado. "
+                               f"Vence el {fecha:{FORMATO_FECHA}}")
+
+    def retirar_lote(self, id_lote):
+        try:
+            lote = self.app.productos.retirar_lote(id_lote)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        return Resultado(True, f"Lote {lote.numero or SIN_NUMERO.lower()} de {self.nombre(lote.id_producto)} "
+                               "quitado de la lista")
 
     def movimientos(self):
         """Filas (id, (fecha y hora, producto, movimiento, cantidad con signo)), del más reciente al más viejo."""
