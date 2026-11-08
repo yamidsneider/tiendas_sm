@@ -154,7 +154,8 @@ svg text{font-family:'Segoe UI',sans-serif;fill:var(--tenue);font-size:11px}
   .nav{padding:12px 0;justify-content:center}.nav .etiqueta{position:absolute;margin:-18px 0 0 18px}.principal{margin-left:64px;padding:18px 14px 30px}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media print{.lateral,.acciones,.modal-pie,.aviso-flotante{display:none!important}.principal{margin:0}.velo{position:static;background:none}.modal{box-shadow:none}}
+/* al imprimir sale solo el ticket: se ocultan el menú, la sección, el título y los botones de la ventana */
+@media print{.lateral,.principal,.modal-pie,.modal h3,.aviso-flotante{display:none!important}body{display:block;background:#fff}.velo{position:static;background:none;padding:0;display:block}.modal{box-shadow:none;max-width:none;max-height:none;padding:0;overflow:visible}.papel{border:none;background:#fff;padding:0}}
 
 /* ---- agregado para la app de escritorio (sin estilos en línea, todo por clase) ---- */
 html,body{height:100%}
@@ -183,3 +184,4 @@ input,textarea,.papel{user-select:text}
   .pos-fila .grande,.pos-fila .cant{padding:10px 14px;font-size:16px}
   .total-caja{padding:16px}.total-caja .m{font-size:36px}.pos-botones .btn{padding:11px}.tarjeta.arriba{margin-top:10px}
 }
+td.num{white-space:nowrap}

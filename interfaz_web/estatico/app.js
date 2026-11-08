@@ -267,7 +267,7 @@ async function confirmarCobro() {
 
 function mostrarTicket(titulo, ticket, boton = 'Cerrar') {
   estado.cobro = null;
-  abrirModal(titulo, papel(ticket), [{ texto: boton, clase: 'btn-p', accion: 'cerrar-modal' }]);
+  abrirModal(titulo, papel(ticket), [{ texto: 'Imprimir', accion: 'imprimir' }, { texto: boton, clase: 'btn-p', accion: 'cerrar-modal' }]);
 }
 
 /* ------------------------------------------------------------------ ventas (RF-05) */
@@ -447,6 +447,7 @@ const ACCIONES = {
   cobrar: el => abrirCobro(el.dataset.modo),
   'cobro-modo': el => { estado.cobro.modo = el.dataset.modo; pintarCobro(); },
   'confirmar-cobro': confirmarCobro,
+  imprimir: () => window.print(),
   'ver-venta': async el => mostrarTicket(`Venta #${el.dataset.id}`, await llamar('ticket', el.dataset.id)),
   'nuevo-producto': abrirNuevoProducto,
   'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad')),
