@@ -87,6 +87,18 @@ class PuertoDeProductos(ABC):
     def listar_movimientos(self, limite):
         """RF-04: los últimos movimientos de inventario (MovimientoDeInventario), del más reciente al más viejo."""
 
+    @abstractmethod
+    def guardar_lote(self, lote):
+        """RF-10: guarda un lote nuevo o su estado (activo). No toca las existencias."""
+
+    @abstractmethod
+    def obtener_lote(self, id_lote):
+        ...
+
+    @abstractmethod
+    def lotes_activos(self):
+        """Los lotes que siguen en la lista, del que vence primero al último (FEFO manual)."""
+
 
 class PuertoDeClientes(ABC):
     """Lo que el núcleo necesita para clientes."""

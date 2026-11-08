@@ -364,13 +364,15 @@ function abrirNuevoProducto() {
   botonesGuardar('Guardar producto', 'guardar-producto'));
 }
 
-function formularioDeProducto(datos = { nombre: '', compra: '', venta: '', minimo: '0', codigo: '' }) {
+function formularioDeProducto(datos = { nombre: '', compra: '', venta: '', minimo: '0', codigo: '', aviso: '0' }) {
   return `${campo('Código de barras (opcional)', 'f-codigo', `<input id="f-codigo" data-lector autocomplete="off" placeholder="Pase el lector por el código" value="${esc(datos.codigo)}">`)}
     ${campo('Nombre del producto', 'f-nombre', `<input id="f-nombre" placeholder="Ej.: Arroz 500 g" value="${esc(datos.nombre)}">`)}
     <div class="dos">${campo('Precio de compra', 'f-compra', `<input id="f-compra" type="number" min="0" value="${esc(datos.compra)}">`)}
     ${campo('Precio de venta', 'f-venta', `<input id="f-venta" type="number" min="0" value="${esc(datos.venta)}">`)}</div>
-    ${campo('Stock mínimo', 'f-minimo', `<input id="f-minimo" type="number" min="0" value="${esc(datos.minimo)}">`,
-    'Cuando queden estas unidades o menos, el producto sale «por reponer». 0 = sin aviso.')}`;
+    <div class="dos">${campo('Stock mínimo', 'f-minimo', `<input id="f-minimo" type="number" min="0" value="${esc(datos.minimo)}">`,
+    'Con estas unidades o menos sale «por reponer». 0 = sin aviso.')}
+    ${campo('Días de aviso de vencimiento', 'f-aviso', `<input id="f-aviso" type="number" min="0" value="${esc(datos.aviso)}">`,
+    'Cuántos días antes avisar que un lote va a vencer.')}</div>`;
 }
 
 async function abrirEdicionDeProducto(id) {
@@ -402,6 +404,35 @@ async function panelPorReponer() {
     <div class="nota-pie">Productos que llegaron a su stock mínimo o menos. Salen de la lista al registrar una entrada.</div></div>`;
 }
 
+/* Lotes por vencer (RF-10, RF-13): solo un aviso; no cambian las existencias. El primero es el que vence antes. */
+const CLASE_DEL_LOTE = { 'Vencido': 'i-mal', 'Por vencer': 'i-av', 'Al día': 'i-ok' };
+
+async function panelDeLotes() {
+  const lotes = await llamar('lotes');
+  const filas = lotes.filas.map(f => {
+    const [producto, numero, vence, cantidad, estadoLote, falta] = f.valores;
+    return `<tr><td><b>${esc(producto)}</b><div class="sec">Lote ${esc(numero)} · ${esc(cantidad)} u.</div></td><td>${esc(vence)}<div class="sec">${esc(falta)}</div></td>
+      <td>${insignia(CLASE_DEL_LOTE[estadoLote] || 'i-gris', estadoLote)}</td>
+      <td><button class="btn btn-s btn-ch" data-accion="retirar-lote" data-id="${esc(f.id)}">Ya no está</button></td></tr>`;
+  });
+  return `<div class="tabla-caja"><div class="cab-tabla"><h3>Lotes por vencer${lotes.alerta ? ` (${lotes.alerta} en alerta)` : ''}</h3>
+    <button class="btn btn-s btn-ch" data-accion="nuevo-lote">+ Registrar lote</button></div>
+    ${tabla(['Producto', 'Vence', 'Estado', ''], filas, 'No hay lotes registrados.')}
+    <div class="nota-pie">Ordenados por fecha: venda primero los de arriba. Es solo un aviso, no cambia las existencias. «Ya no está» lo quita de la lista.</div></div>`;
+}
+
+async function abrirLote() {
+  const productos = await llamar('existencias', '');
+  if (!productos.length) { aviso('Primero registra un producto en la sección Productos.', true); return; }
+  const opciones = productos.map(f => `<option value="${esc(f.id)}">${esc(f.valores[0])}</option>`).join('');
+  abrirModal('Registrar lote', `${campo('Producto', 'l-producto', `<select id="l-producto">${opciones}</select>`)}
+    <div class="dos">${campo('Número de lote (opcional)', 'l-numero', '<input id="l-numero" placeholder="Ej.: L-2045">')}
+    ${campo('Unidades del lote', 'l-cantidad', '<input id="l-cantidad" type="number" min="1" value="1">')}</div>
+    ${campo('Fecha de vencimiento', 'l-fecha', '<input id="l-fecha" type="date">')}
+    <div class="nota-pie">El lote no suma ni resta existencias: para eso está «Registrar entrada».</div>`,
+  botonesGuardar('Registrar lote', 'guardar-lote'));
+}
+
 VISTAS.existencias = async () => {
   const movimientos = (await llamar('movimientos')).map(f => {
     const [fecha, producto, movimiento, cantidad] = f.valores;
@@ -410,7 +441,7 @@ VISTAS.existencias = async () => {
   return {
     sub: 'Cuánto hay de cada producto y qué entró o salió',
     acciones: '<button class="btn btn-p" data-accion="nueva-entrada" data-id="">+ Registrar entrada</button>',
-    html: `${await panelPorReponer()}<div class="tabla-caja"><div class="cab-tabla"><h3>Existencias por producto</h3>${buscador('existencias', 'Buscar producto')}</div>
+    html: `${await panelPorReponer()}${await panelDeLotes()}<div class="tabla-caja"><div class="cab-tabla"><h3>Existencias por producto</h3>${buscador('existencias', 'Buscar producto')}</div>
       <div id="tabla">${await TABLAS.existencias()}</div></div>
       <div class="tabla-caja"><div class="cab-tabla"><h3>Movimientos de inventario</h3></div>
       ${tabla(['Fecha y hora', 'Producto', 'Movimiento', '>Cantidad'], movimientos, 'Aún no hay movimientos.')}
@@ -541,11 +572,14 @@ const ACCIONES = {
     terminarDevolucion(await llamar('anular', el.dataset.id, val('d-motivo')), el.dataset.id);
   },
   'nuevo-producto': abrirNuevoProducto,
-  'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad'), val('f-minimo'), val('f-codigo')),
+  'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad'), val('f-minimo'), val('f-codigo'), val('f-aviso')),
   'editar-producto': el => abrirEdicionDeProducto(el.dataset.id),
-  'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta'), val('f-minimo'), val('f-codigo')),
+  'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta'), val('f-minimo'), val('f-codigo'), val('f-aviso')),
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
   'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
+  'nuevo-lote': abrirLote,
+  'guardar-lote': () => guardar('registrar_lote', val('l-producto'), val('l-numero'), val('l-fecha'), val('l-cantidad')),
+  'retirar-lote': async el => { const r = await llamar('retirar_lote', el.dataset.id); aviso(r.mensaje, !r.exito); render(); },
   'nuevo-cliente': abrirNuevoCliente,
   'guardar-cliente': () => guardar('registrar_cliente', val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo'), val('k-telefono'), val('k-direccion')),
   'editar-cliente': el => abrirEdicionDeCliente(el.dataset.id),

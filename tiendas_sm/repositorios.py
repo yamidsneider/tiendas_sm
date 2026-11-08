@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
-                                Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion)
+                                Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote)
 from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, RepositorioDeVentas
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
@@ -29,19 +29,20 @@ class RepositorioDeProductos(PuertoDeProductos):
 
     def _insertar(self, producto):
         cursor = self.conexion.execute(
-            "INSERT INTO productos (nombre, precio_compra, precio_venta, stock_minimo, codigo) VALUES (?,?,?,?,?)",
+            "INSERT INTO productos (nombre, precio_compra, precio_venta, stock_minimo, codigo, dias_aviso) "
+            "VALUES (?,?,?,?,?,?)",
             (producto.nombre, producto.precio_compra, producto.precio_venta, producto.stock_minimo,
-             producto.codigo or None))
+             producto.codigo or None, producto.dias_aviso))
         producto.id_producto = cursor.lastrowid
         self.conexion.execute("INSERT INTO existencias (id_producto, cantidad_actual) VALUES (?, 0)",
                               (producto.id_producto,))
 
     def _actualizar(self, producto):
         self.conexion.execute(
-            "UPDATE productos SET nombre=?, precio_compra=?, precio_venta=?, stock_minimo=?, codigo=? "
+            "UPDATE productos SET nombre=?, precio_compra=?, precio_venta=?, stock_minimo=?, codigo=?, dias_aviso=? "
             "WHERE id_producto=?",
             (producto.nombre, producto.precio_compra, producto.precio_venta, producto.stock_minimo,
-             producto.codigo or None, producto.id_producto))
+             producto.codigo or None, producto.dias_aviso, producto.id_producto))
 
     def obtener(self, id_producto):
         fila = self.conexion.execute("SELECT * FROM productos WHERE id_producto=?", (id_producto,)).fetchone()
@@ -58,7 +59,7 @@ class RepositorioDeProductos(PuertoDeProductos):
     @staticmethod
     def _a_producto(fila):
         return Producto(fila["id_producto"], fila["nombre"], fila["precio_compra"],
-                        fila["precio_venta"], fila["stock_minimo"], fila["codigo"] or "")
+                        fila["precio_venta"], fila["stock_minimo"], fila["codigo"] or "", fila["dias_aviso"])
 
     def obtener_existencia(self, id_producto):
         fila = self.conexion.execute("SELECT * FROM existencias WHERE id_producto=?", (id_producto,)).fetchone()
@@ -79,6 +80,31 @@ class RepositorioDeProductos(PuertoDeProductos):
             "SELECT * FROM movimientos_inventario ORDER BY id_movimiento DESC LIMIT ?", (limite,)).fetchall()
         return [MovimientoDeInventario(fila["id_movimiento"], fila["id_producto"], fila["tipo"], fila["cantidad"],
                                        datetime.fromisoformat(fila["fecha"])) for fila in filas]
+
+    def guardar_lote(self, lote):
+        with self.conexion:
+            if lote.id_lote is None:
+                cursor = self.conexion.execute(
+                    "INSERT INTO lotes (id_producto, numero, fecha_vencimiento, cantidad, activo) VALUES (?,?,?,?,?)",
+                    (lote.id_producto, lote.numero, lote.fecha_vencimiento.isoformat(), lote.cantidad, int(lote.activo)))
+                lote.id_lote = cursor.lastrowid
+            else:
+                self.conexion.execute("UPDATE lotes SET activo=? WHERE id_lote=?", (int(lote.activo), lote.id_lote))
+        return lote.id_lote
+
+    def obtener_lote(self, id_lote):
+        fila = self.conexion.execute("SELECT * FROM lotes WHERE id_lote=?", (id_lote,)).fetchone()
+        return self._a_lote(fila) if fila else None
+
+    def lotes_activos(self):
+        filas = self.conexion.execute(
+            "SELECT * FROM lotes WHERE activo=1 ORDER BY fecha_vencimiento, id_lote").fetchall()
+        return [self._a_lote(fila) for fila in filas]
+
+    @staticmethod
+    def _a_lote(fila):
+        return Lote(fila["id_lote"], fila["id_producto"], fila["numero"], date.fromisoformat(fila["fecha_vencimiento"]),
+                    fila["cantidad"], bool(fila["activo"]))
 
 
 class RepositorioDeClientes(PuertoDeClientes):

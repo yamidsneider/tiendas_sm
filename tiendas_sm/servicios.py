@@ -1,7 +1,7 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
 
-from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion,
+from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion, Lote,
                                 CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS)
 from tiendas_sm.validaciones import exigir_mayor_a_cero
 
@@ -14,8 +14,9 @@ class ServicioDeProductos:
     def __init__(self, repo_productos):
         self.repo_productos = repo_productos
 
-    def registrar_producto(self, nombre, precio_compra, precio_venta, cantidad_inicial=0, stock_minimo=0, codigo=""):
-        producto = Producto(None, nombre, precio_compra, precio_venta, stock_minimo, codigo)
+    def registrar_producto(self, nombre, precio_compra, precio_venta, cantidad_inicial=0, stock_minimo=0, codigo="",
+                           dias_aviso=0):
+        producto = Producto(None, nombre, precio_compra, precio_venta, stock_minimo, codigo, dias_aviso)
         self._exigir_codigo_libre(producto)
         self.repo_productos.guardar(producto)
         if cantidad_inicial > 0:
@@ -47,16 +48,16 @@ class ServicioDeProductos:
         self.repo_productos.guardar(producto)
         return producto
 
-    def actualizar_producto(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=None, codigo=None):
+    def actualizar_producto(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=None, codigo=None,
+                            dias_aviso=None):
         """Editar producto: se arma un Producto con el mismo id para que el dominio valide igual que al registrar.
-        Las existencias no se tocan (cambian con entradas y ventas). Sin stock_minimo o sin codigo (None) se
-        conserva lo guardado."""
-        actual = self.repo_productos.obtener(id_producto)
-        if actual is None:
-            raise ValueError("El producto no existe")
+        Las existencias no se tocan (cambian con entradas y ventas). Lo que llegue en None (stock mínimo, código,
+        días de aviso) conserva lo guardado."""
+        actual = self._exigir_producto(id_producto)
         minimo = actual.stock_minimo if stock_minimo is None else stock_minimo
         codigo = actual.codigo if codigo is None else codigo
-        producto = Producto(id_producto, nombre, precio_compra, precio_venta, minimo, codigo)
+        aviso = actual.dias_aviso if dias_aviso is None else dias_aviso
+        producto = Producto(id_producto, nombre, precio_compra, precio_venta, minimo, codigo, aviso)
         self._exigir_codigo_libre(producto)
         self.repo_productos.guardar(producto)
         return producto
@@ -71,6 +72,30 @@ class ServicioDeProductos:
 
     def movimientos(self, limite=MOVIMIENTOS_A_MOSTRAR):
         return self.repo_productos.listar_movimientos(limite)
+
+    def _exigir_producto(self, id_producto):
+        producto = self.repo_productos.obtener(id_producto)
+        if producto is None:
+            raise ValueError("El producto no existe")
+        return producto
+
+    # Lotes (RF-10, RF-13): solo un registro para avisar del vencimiento. No cambian las existencias.
+    def registrar_lote(self, id_producto, numero, fecha_vencimiento, cantidad):
+        self._exigir_producto(id_producto)
+        lote = Lote(None, id_producto, numero, fecha_vencimiento, cantidad)
+        self.repo_productos.guardar_lote(lote)
+        return lote
+
+    def retirar_lote(self, id_lote):
+        lote = self.repo_productos.obtener_lote(id_lote)
+        if lote is None:
+            raise ValueError("Ese lote ya no está en la lista")
+        lote.retirar()
+        self.repo_productos.guardar_lote(lote)
+        return lote
+
+    def lotes_activos(self):
+        return self.repo_productos.lotes_activos()
 
 
 class ServicioDeClientes:
