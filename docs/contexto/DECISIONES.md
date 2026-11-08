@@ -218,6 +218,18 @@ local abierto en el navegador o en modo app de Edge (se ve como navegador y exig
 
 **Editar cliente y editar producto (aprobado por el desarrollador, noviembre de 2026).** *Cliente:* los mismos 4 datos del registro (nombre, crédito, límite y plazo), con las mismas reglas del dominio; las cuentas ya abiertas conservan su vencimiento. *Producto:* nombre, precio de compra y precio de venta; las existencias solo cambian con entradas y ventas, el stock mínimo se conserva (TD-04) y las ventas anteriores guardan su precio (HU-02). `RepositorioDeClientes.guardar` ahora actualiza si el cliente ya tiene id (el puerto no cambia). *Preliminar, por confirmar con el propietario:* se permite dejar el límite por debajo de la deuda; solo impide fiar más hasta que abone (el «disponible» se ve negativo).
 
+**Respuestas del propietario y grupo A (noviembre de 2026; *preliminar* hasta confirmar la fecha y que la entrevista fue con un propietario real).**
+Fuente: `docs/contexto/PREGUNTAS_PROPIETARIO.docx` (fecha anotada como «irrelevante»; E-01 sin medir). Programado, cada uno con su prueba:
+- 1.3 Ticket para impresora térmica de 80 mm (42 caracteres por renglón, `@page` de 80 mm). El cambio solo sale en contado.
+- 3.1 Teléfono y dirección del cliente, opcionales (datos personales; columnas nuevas con migración).
+- 4.1 Stock mínimo por producto al crearlo y lista «Por reponer» (RF-12; cierra TD-04 como mínimo *por producto*). Avisa con el mínimo o menos; 0 = sin aviso.
+- 2.2/2.3 Plazo máximo por cliente (ya existía), cuenta «Vencida», lista de atrasados y **no fiar a quien tiene una cuenta vencida**. Sin intereses.
+- 1.4 Código de barras opcional y único; el lector escribe el código y Enter lo agrega. La búsqueda por nombre sigue.
+Sin cambio (la app ya lo hace): 1.1 stock insuficiente, 2.1 límite por cliente, 2.5 abono ≤ saldo, 3.2 apodo entre paréntesis.
+*Recomendación (no pedida):* el teléfono solo acepta números, espacios, + y -. *Ambigua:* 2.4 se interpreta como «solo fiar en lo disponible» (como hoy).
+**Pendiente de aprobación (grupos B y C):** transferencia y pago mixto (1.2), anular/devolver (1.5, hoy DT-08), lotes con vencimiento y FEFO (4.2, 4.3; faltan los días de aviso),
+salida manual con clave del jefe y roles jefe/empleado (4.4, 5.1, CR-01), respaldo al cerrar turno (5.2), proveedores y pedidos (5.3, CR-02).
+
 **Deuda nueva TD-15, TD-16 y TD-17 (FPI-31).** El texto completo de la FPI-31 **no está** en el repositorio ni en las carpetas del
 proyecto; lo que sigue sale de `Dossier_Final.md` (secciones 3 y 6) y debe confirmarse con la ficha:
 - **TD-15 — movimiento de inventario sin `id_venta`** (bajo impacto con una caja; H2/H3). Es el hallazgo de E-05 (tarea 8): no se puede
