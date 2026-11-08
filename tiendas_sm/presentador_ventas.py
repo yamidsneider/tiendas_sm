@@ -3,10 +3,14 @@
 No usa Tkinter. Solo consulta: lista las últimas ventas guardadas y vuelve a armar su ticket con las mismas
 funciones del punto de venta (armar_ticket y su pie), así sale idéntico al que se entregó al cobrar.
 El ticket usa el precio guardado en cada línea, no el precio actual (HU-02).
-No anula ventas (DT-08) ni calcula totales o reportes (no aprobados).
+Desde aquí se devuelven productos o se anula una venta (respuesta 1.5, cambia DT-08); el ticket muestra las
+devoluciones. No calcula totales ni reportes (no aprobados).
 """
-from tiendas_sm.dominio import FormaDePago, TipoVenta
-from tiendas_sm.presentador import armar_ticket, formato_pesos, pie_de_contado, pie_de_credito
+import textwrap
+
+from tiendas_sm.dominio import EstadoVenta, FormaDePago, TipoVenta
+from tiendas_sm.presentador import (ANCHO_DEL_TICKET, Resultado, a_entero, armar_ticket, formato_pesos,
+                                    pie_de_contado, pie_de_credito)
 
 FORMATO_FECHA_Y_HORA = "%d/%m/%Y %H:%M"
 NOMBRE_DEL_TIPO = {TipoVenta.CONTADO: "Contado", TipoVenta.CREDITO: "Crédito"}
@@ -35,7 +39,66 @@ class PresentadorDeVentas:
         venta = self.app.ventas.obtener(id_venta)
         if venta is None:
             return ""
-        return armar_ticket(venta, self._nombre_de_producto, self._pie(venta))
+        return armar_ticket(venta, self._nombre_de_producto, self._pie(venta) + self._devoluciones(venta))
+
+    # ------------------------------------------------------------------ devoluciones (respuesta 1.5)
+    def estados(self):
+        """{id_venta: «Anulada» o «Con devolución»} de las ventas listadas que tienen alguna devolución."""
+        estados = {}
+        for venta in self.app.ventas.listar():
+            if venta.estado == EstadoVenta.ANULADA:
+                estados[venta.id_venta] = "Anulada"
+            elif self.app.ventas.devoluciones_de_la_venta(venta.id_venta):
+                estados[venta.id_venta] = "Con devolución"
+        return estados
+
+    def para_devolver(self, id_venta):
+        """Filas (id_producto, (producto, vendidas, devueltas, pendientes, precio con que se vendió))."""
+        venta = self.app.ventas.obtener(id_venta)
+        if venta is None:
+            return []
+        devueltas = self.app.ventas.unidades_devueltas(id_venta)
+        return [(id_producto, (self._nombre_de_producto(id_producto), vendidas, devueltas.get(id_producto, 0),
+                               vendidas - devueltas.get(id_producto, 0), formato_pesos(venta.precio_de(id_producto))))
+                for id_producto, vendidas in venta.unidades_por_producto().items()]
+
+    def devolver(self, id_venta, cantidades, motivo):
+        """cantidades: {id_producto: texto}; las vacías o en 0 no se devuelven."""
+        try:
+            lineas = [(id_producto, a_entero(texto, "La cantidad")) for id_producto, texto in cantidades.items()
+                      if str(texto).strip() not in ("", "0")]
+            devolucion = self.app.ventas.devolver(id_venta, lineas, motivo)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        return self._resultado(f"Devolución registrada en la venta #{id_venta}", devolucion)
+
+    def anular(self, id_venta, motivo):
+        try:
+            devolucion = self.app.ventas.anular(id_venta, motivo)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        return self._resultado(f"Venta #{id_venta} anulada", devolucion)
+
+    def _resultado(self, inicio, devolucion):
+        partes = [inicio]
+        if devolucion.descontado_de_la_deuda:
+            partes.append(f"Se descontó de la deuda: {formato_pesos(devolucion.descontado_de_la_deuda)}")
+        if devolucion.efectivo_devuelto or not devolucion.descontado_de_la_deuda:
+            partes.append(f"Devolver en efectivo: {formato_pesos(devolucion.efectivo_devuelto)}")
+        return Resultado(True, ". ".join(partes), self.ticket(devolucion.id_venta))
+
+    def _devoluciones(self, venta):
+        """Líneas del ticket con cada devolución (a 42 columnas, como el resto del ticket de 80 mm)."""
+        lineas = []
+        for devolucion in self.app.ventas.devoluciones_de_la_venta(venta.id_venta):
+            lineas += ["", f"DEVOLUCIÓN {devolucion.fecha:%Y-%m-%d %H:%M}"]
+            lineas += [f"  -{linea.cantidad} x {self._nombre_de_producto(linea.id_producto)}"[:ANCHO_DEL_TICKET]
+                       for linea in devolucion.lineas]
+            lineas.append(f"Valor devuelto: {formato_pesos(devolucion.valor())}")
+            lineas += textwrap.wrap(f"Motivo: {devolucion.motivo}", ANCHO_DEL_TICKET)
+        if venta.estado == EstadoVenta.ANULADA:
+            lineas += ["", "*** VENTA ANULADA ***"]
+        return lineas
 
     def _pie(self, venta):
         if venta.tipo == TipoVenta.CONTADO:
