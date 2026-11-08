@@ -228,8 +228,17 @@ E-01 sigue sin medir. Programado, cada uno con su prueba:
 - 1.4 Código de barras opcional y único; el lector escribe el código y Enter lo agrega. La búsqueda por nombre sigue.
 Sin cambio (la app ya lo hace): 1.1 stock insuficiente, 2.1 límite por cliente, 2.5 abono ≤ saldo, 3.2 apodo entre paréntesis.
 *Recomendación (no pedida):* el teléfono solo acepta números, espacios, + y -. *Ambigua:* 2.4 se interpreta como «solo fiar en lo disponible» (como hoy).
-**Pendiente de aprobación (grupos B y C):** transferencia y pago mixto (1.2), anular/devolver (1.5, hoy DT-08), lotes con vencimiento y FEFO (4.2, 4.3; faltan los días de aviso),
-salida manual con clave del jefe y roles jefe/empleado (4.4, 5.1, CR-01), respaldo al cerrar turno (5.2), proveedores y pedidos (5.3, CR-02).
+**Pendiente de aprobación (grupo C):** salida manual con clave del jefe y roles jefe/empleado (4.4, 5.1, CR-01), respaldo al cerrar turno (5.2),
+proveedores y pedidos (5.3, CR-02).
+
+**Grupo B (*aprobado* por el desarrollador el 8 de noviembre de 2026).** Programado, cada uno con su prueba:
+- 1.2 Pago por transferencia (Nequi, Daviplata; se confirma mirando el celular) y mixto. La transferencia no puede pasar del total; el cambio sale solo del efectivo.
+- 1.5 Anular una venta o devolver parte, con motivo obligatorio. **Cambia DT-08** (antes no se anulaba): la venta no se borra; queda la devolución
+  con su motivo y un movimiento «Devolución» que regresa las unidades. Si fue fiada, primero baja la deuda hasta 0 y el resto se devuelve en
+  efectivo (no hay saldo a favor). Todo en una transacción (RNF-04). Por ahora cualquiera puede hacerlo; la clave del jefe llega con CR-01.
+- 4.2/4.3 Lotes con vencimiento (RF-10, RF-13) como **registro de aviso, no ligado al inventario**: registrar o quitar un lote no cambia las
+  existencias. Días de aviso **por producto** (0 = solo avisa el día que vence). FEFO manual: el panel «Lotes por vencer» los ordena por fecha;
+  «Ya no está» lo quita de la lista. *Decisión del desarrollador:* el número de lote es opcional y se permite registrar un lote ya vencido.
 
 **Deuda nueva TD-15, TD-16 y TD-17 (FPI-31).** El texto completo de la FPI-31 **no está** en el repositorio ni en las carpetas del
 proyecto; lo que sigue sale de `Dossier_Final.md` (secciones 3 y 6) y debe confirmarse con la ficha:
