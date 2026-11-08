@@ -7,6 +7,7 @@ valida el dominio al confirmar, y sus mensajes se muestran tal como llegan (str(
 Lo único propio de aquí: convertir texto a número, dar formato a los pesos y armar el ticket.
 """
 import sqlite3
+import textwrap
 from collections import namedtuple
 
 from tiendas_sm.dominio import CreditoNoPermitido, EfectivoInsuficiente, StockInsuficiente, Venta
@@ -14,6 +15,8 @@ from tiendas_sm.validaciones import exigir_mayor_a_cero
 
 ERRORES_DEL_NEGOCIO = (StockInsuficiente, CreditoNoPermitido, EfectivoInsuficiente, ValueError)
 MENSAJE_FALLA_AL_GUARDAR = "No se pudo guardar la venta; no quedó nada a medias. Intente de nuevo."
+# Una impresora térmica de 80 mm imprime unos 42 caracteres por renglón con la letra normal (respuesta 1.3).
+ANCHO_DEL_TICKET = 42
 
 Resultado = namedtuple("Resultado", "exito mensaje ticket", defaults=(None,))
 FilaDeProducto = namedtuple("FilaDeProducto", "id_producto nombre precio disponibles")
@@ -36,13 +39,19 @@ def armar_ticket(venta, nombre_de_producto, pie):
     nombre_de_producto es una función id_producto -> nombre; pie son las líneas finales (forma de pago, etc.).
     La usan el punto de venta (al cobrar) y la sección Ventas (para ver el ticket de una venta pasada).
     """
-    lineas = ["TIENDAS S.M — Comprobante interno (no es factura)",
+    lineas = ["TIENDAS S.M", "Comprobante interno (no es factura)",
               f"Venta #{venta.id_venta} · {venta.fecha:%Y-%m-%d %H:%M}", ""]
     for detalle in venta.detalles:
-        lineas.append(f"{detalle.cantidad} x {nombre_de_producto(detalle.id_producto)}  "
-                      f"{formato_pesos(detalle.precio_unitario)}  {formato_pesos(detalle.subtotal())}")
+        lineas += _lineas_del_producto(detalle, nombre_de_producto(detalle.id_producto))
     lineas += ["", f"TOTAL: {formato_pesos(venta.total)}", *pie]
     return "\n".join(lineas)
+
+
+def _lineas_del_producto(detalle, nombre):
+    """Ticket de 80 mm: «2 x nombre» (partido si es largo) y debajo el precio unitario y el valor a la derecha."""
+    renglones = textwrap.wrap(f"{detalle.cantidad} x {nombre}", ANCHO_DEL_TICKET)
+    precio = f"  {formato_pesos(detalle.precio_unitario)} c/u"
+    return renglones + [precio + formato_pesos(detalle.subtotal()).rjust(ANCHO_DEL_TICKET - len(precio))]
 
 
 def pie_de_contado(venta):
