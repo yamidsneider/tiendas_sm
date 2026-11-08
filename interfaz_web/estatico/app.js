@@ -311,10 +311,12 @@ function abrirNuevoProducto() {
   botonesGuardar('Guardar producto', 'guardar-producto'));
 }
 
-function formularioDeProducto(datos = { nombre: '', compra: '', venta: '' }) {
+function formularioDeProducto(datos = { nombre: '', compra: '', venta: '', minimo: '0' }) {
   return `${campo('Nombre del producto', 'f-nombre', `<input id="f-nombre" placeholder="Ej.: Arroz 500 g" value="${esc(datos.nombre)}">`)}
     <div class="dos">${campo('Precio de compra', 'f-compra', `<input id="f-compra" type="number" min="0" value="${esc(datos.compra)}">`)}
-    ${campo('Precio de venta', 'f-venta', `<input id="f-venta" type="number" min="0" value="${esc(datos.venta)}">`)}</div>`;
+    ${campo('Precio de venta', 'f-venta', `<input id="f-venta" type="number" min="0" value="${esc(datos.venta)}">`)}</div>
+    ${campo('Stock mínimo', 'f-minimo', `<input id="f-minimo" type="number" min="0" value="${esc(datos.minimo)}">`,
+    'Cuando queden estas unidades o menos, el producto sale «por reponer». 0 = sin aviso.')}`;
 }
 
 async function abrirEdicionDeProducto(id) {
@@ -328,11 +330,23 @@ async function abrirEdicionDeProducto(id) {
 TABLAS.existencias = async () => {
   const filas = (await llamar('existencias', estado.busquedas.existencias || '')).map(f => {
     const [nombre, disponibles] = f.valores;
-    return `<tr><td><b>${esc(nombre)}</b></td><td class="num"><b>${esc(disponibles)}</b></td>
+    return `<tr><td><b>${esc(nombre)}</b> ${f.reponer ? insignia('i-av', 'Por reponer') : ''}</td><td class="num"><b>${esc(disponibles)}</b></td>
       <td><button class="btn btn-s btn-ch" data-accion="nueva-entrada" data-id="${esc(f.id)}">+ Entrada</button></td></tr>`;
   });
   return tabla(['Producto', '>Disponibles', ''], filas, 'No hay productos con esa búsqueda.');
 };
+
+async function panelPorReponer() {
+  const filas = (await llamar('por_reponer')).map(f => {
+    const [nombre, disponibles, minimo] = f.valores;
+    return `<tr><td><b>${esc(nombre)}</b></td><td class="num">${esc(disponibles)}</td><td class="num">${esc(minimo)}</td>
+      <td><button class="btn btn-s btn-ch" data-accion="nueva-entrada" data-id="${esc(f.id)}">+ Entrada</button></td></tr>`;
+  });
+  if (!filas.length) return '';
+  return `<div class="tabla-caja"><div class="cab-tabla"><h3>Por reponer (${filas.length})</h3></div>
+    ${tabla(['Producto', '>Quedan', '>Stock mínimo', ''], filas, '')}
+    <div class="nota-pie">Productos que llegaron a su stock mínimo o menos. Salen de la lista al registrar una entrada.</div></div>`;
+}
 
 VISTAS.existencias = async () => {
   const movimientos = (await llamar('movimientos')).map(f => {
@@ -342,7 +356,7 @@ VISTAS.existencias = async () => {
   return {
     sub: 'Cuánto hay de cada producto y qué entró o salió',
     acciones: '<button class="btn btn-p" data-accion="nueva-entrada" data-id="">+ Registrar entrada</button>',
-    html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Existencias por producto</h3>${buscador('existencias', 'Buscar producto')}</div>
+    html: `${await panelPorReponer()}<div class="tabla-caja"><div class="cab-tabla"><h3>Existencias por producto</h3>${buscador('existencias', 'Buscar producto')}</div>
       <div id="tabla">${await TABLAS.existencias()}</div></div>
       <div class="tabla-caja"><div class="cab-tabla"><h3>Movimientos de inventario</h3></div>
       ${tabla(['Fecha y hora', 'Producto', 'Movimiento', '>Cantidad'], movimientos, 'Aún no hay movimientos.')}
@@ -450,9 +464,9 @@ const ACCIONES = {
   imprimir: () => window.print(),
   'ver-venta': async el => mostrarTicket(`Venta #${el.dataset.id}`, await llamar('ticket', el.dataset.id)),
   'nuevo-producto': abrirNuevoProducto,
-  'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad')),
+  'guardar-producto': () => guardar('registrar_producto', val('f-nombre'), val('f-compra'), val('f-venta'), val('f-cantidad'), val('f-minimo')),
   'editar-producto': el => abrirEdicionDeProducto(el.dataset.id),
-  'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta')),
+  'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta'), val('f-minimo')),
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
   'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
   'nuevo-cliente': abrirNuevoCliente,

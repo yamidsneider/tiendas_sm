@@ -61,6 +61,10 @@ class Producto:
             raise ValueError("El precio no puede ser negativo")
         self.precio_venta = nuevo_precio
 
+    def necesita_reponer(self, disponibles):
+        """RF-12: avisa cuando quedan el stock mínimo o menos. Un mínimo de 0 quiere decir «sin aviso»."""
+        return self.stock_minimo > 0 and disponibles <= self.stock_minimo
+
 
 class Existencia:
     def __init__(self, id_producto, cantidad_actual=0, cantidad_reservada=0):

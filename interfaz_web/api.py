@@ -124,8 +124,8 @@ class ApiDeLaTienda:
     def productos(self, texto=""):
         return self._ejecutar(lambda: _filas(self._productos.tabla(str(texto))))
 
-    def registrar_producto(self, nombre, compra, venta, cantidad):
-        return self._ejecutar(lambda: _resultado(self._productos.registrar(str(nombre), compra, venta, cantidad)))
+    def registrar_producto(self, nombre, compra, venta, cantidad, minimo="0"):
+        return self._ejecutar(lambda: _resultado(self._productos.registrar(str(nombre), compra, venta, cantidad, minimo)))
 
     def precio_actual(self, id_producto):
         return self._ejecutar(lambda: self._productos.precio_actual(_id(id_producto)))
@@ -138,14 +138,22 @@ class ApiDeLaTienda:
         datos = self._ejecutar(lambda: self._productos.datos_para_editar(_id(id_producto)))
         if datos is None:
             return None
-        return {"nombre": datos.nombre, "compra": datos.compra, "venta": datos.venta}
+        return {"nombre": datos.nombre, "compra": datos.compra, "venta": datos.venta, "minimo": datos.minimo}
 
-    def editar_producto(self, id_producto, nombre, compra, venta):
-        return self._ejecutar(lambda: _resultado(self._productos.editar(_id(id_producto), str(nombre), compra, venta)))
+    def editar_producto(self, id_producto, nombre, compra, venta, minimo=None):
+        return self._ejecutar(lambda: _resultado(self._productos.editar(_id(id_producto), str(nombre), compra, venta,
+                                                                        minimo)))
 
     # ------------------------------------------------------------------ existencias (HU-03, RF-04)
     def existencias(self, texto=""):
-        return self._ejecutar(lambda: _filas(self._existencias.tabla(str(texto))))
+        """Filas de existencias; «reponer» marca las que llegaron a su stock mínimo (RF-12)."""
+        def consultar():
+            reponer = {id_producto for id_producto, _ in self._existencias.por_reponer()}
+            return [{**fila, "reponer": fila["id"] in reponer} for fila in _filas(self._existencias.tabla(str(texto)))]
+        return self._ejecutar(consultar)
+
+    def por_reponer(self):
+        return self._ejecutar(lambda: _filas(self._existencias.por_reponer()))
 
     def movimientos(self):
         return self._ejecutar(lambda: _filas(self._existencias.movimientos()))

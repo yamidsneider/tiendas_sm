@@ -26,6 +26,15 @@ class PresentadorDeExistencias:
         return [(p.id_producto, (p.nombre, self.app.cantidad_en_inventario(p.id_producto)))
                 for p in self.app.productos.listar() if buscado in p.nombre.lower()]
 
+    def por_reponer(self):
+        """RF-12: filas (id, (producto, disponibles, stock mínimo)) de los que llegaron a su mínimo o menos."""
+        filas = []
+        for producto in self.app.productos.listar():
+            disponibles = self.app.cantidad_en_inventario(producto.id_producto)
+            if producto.necesita_reponer(disponibles):
+                filas.append((producto.id_producto, (producto.nombre, disponibles, producto.stock_minimo)))
+        return filas
+
     def nombre(self, id_producto):
         producto = self.app.productos.obtener(id_producto)
         return producto.nombre if producto else ""
