@@ -81,7 +81,8 @@ class PruebasDeLaApi(BaseDeEdicion):
     def test_datos_y_editar_desde_la_pagina(self):
         api = ApiDeLaTienda(self.app)
         self.assertEqual(api.datos_cliente(self.ana.id_cliente),
-                         {"nombres": "Cliente ficticia Ana", "credito": True, "limite": "100000", "plazo": "15"})
+                         {"nombres": "Cliente ficticia Ana", "credito": True, "limite": "100000", "plazo": "15",
+                          "telefono": "", "direccion": ""})
         self.assertIsNone(api.datos_cliente(999))
         self.assertTrue(api.editar_cliente(self.ana.id_cliente, "Cliente ficticia Ana", False, "0", "15")["exito"])
         self.assertFalse(self.guardado().credito_habilitado)

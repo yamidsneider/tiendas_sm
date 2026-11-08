@@ -8,6 +8,11 @@ def exigir_no_negativo(valor, mensaje):
         raise ValueError(mensaje)
 
 
+def exigir_solo_caracteres(texto, permitidos, mensaje):
+    if any(caracter not in permitidos for caracter in texto):
+        raise ValueError(mensaje)
+
+
 def exigir_texto_obligatorio(texto, mensaje):
     if texto is None or texto.strip() == "":
         raise ValueError(mensaje)

@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS movimientos_inventario (
 CREATE TABLE IF NOT EXISTS clientes (
     id_cliente INTEGER PRIMARY KEY AUTOINCREMENT,
     nombres TEXT NOT NULL, credito_habilitado INTEGER NOT NULL,
-    limite_credito INTEGER NOT NULL, plazo_credito_dias INTEGER NOT NULL);
+    limite_credito INTEGER NOT NULL, plazo_credito_dias INTEGER NOT NULL,
+    telefono TEXT NOT NULL DEFAULT '', direccion TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS ventas (
     id_venta INTEGER PRIMARY KEY AUTOINCREMENT,
     id_cliente INTEGER REFERENCES clientes(id_cliente),
@@ -49,6 +50,11 @@ COLUMNAS_NUEVAS_DE_VENTAS = (
     ("forma_pago", "TEXT"),
     ("valor_recibido", "INTEGER"),
 )
+# Respuesta 3.1 del propietario: teléfono y dirección (opcionales). Los clientes viejos quedan con texto vacío.
+COLUMNAS_NUEVAS_DE_CLIENTES = (
+    ("telefono", "TEXT NOT NULL DEFAULT ''"),
+    ("direccion", "TEXT NOT NULL DEFAULT ''"),
+)
 
 
 class BaseDeDatos:
@@ -57,11 +63,14 @@ class BaseDeDatos:
         self.conexion.row_factory = sqlite3.Row
         self.conexion.execute("PRAGMA foreign_keys = ON")
         self.conexion.executescript(ESQUEMA_SQL)
-        self._migrar_ventas()
+        self._agregar_columnas("ventas", COLUMNAS_NUEVAS_DE_VENTAS)
+        self._agregar_columnas("clientes", COLUMNAS_NUEVAS_DE_CLIENTES)
 
-    def _migrar_ventas(self):
-        existentes = {fila["name"] for fila in self.conexion.execute("PRAGMA table_info(ventas)")}
+    def _agregar_columnas(self, tabla, columnas):
+        """Migración: agrega a una base vieja las columnas que le falten, sin perder datos.
+        tabla y columnas son constantes de este archivo (nunca texto del usuario)."""
+        existentes = {fila["name"] for fila in self.conexion.execute(f"PRAGMA table_info({tabla})")}
         with self.conexion:
-            for nombre, definicion in COLUMNAS_NUEVAS_DE_VENTAS:
+            for nombre, definicion in columnas:
                 if nombre not in existentes:
-                    self.conexion.execute(f"ALTER TABLE ventas ADD COLUMN {nombre} {definicion}")
+                    self.conexion.execute(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {definicion}")

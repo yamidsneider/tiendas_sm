@@ -168,8 +168,9 @@ class ApiDeLaTienda:
     def plazo_por_defecto(self):
         return self._clientes.plazo_por_defecto()
 
-    def registrar_cliente(self, nombres, credito, limite, plazo):
-        return self._ejecutar(lambda: _resultado(self._clientes.registrar(str(nombres), bool(credito), limite, plazo)))
+    def registrar_cliente(self, nombres, credito, limite, plazo, telefono="", direccion=""):
+        return self._ejecutar(lambda: _resultado(self._clientes.registrar(str(nombres), bool(credito), limite, plazo,
+                                                                          str(telefono), str(direccion))))
 
     def detalle_cliente(self, id_cliente):
         return self._ejecutar(lambda: self._clientes.detalle(_id(id_cliente)))
@@ -179,11 +180,12 @@ class ApiDeLaTienda:
         datos = self._ejecutar(lambda: self._clientes.datos_para_editar(_id(id_cliente)))
         if datos is None:
             return None
-        return {"nombres": datos.nombres, "credito": datos.credito_habilitado, "limite": datos.limite, "plazo": datos.plazo}
+        return {"nombres": datos.nombres, "credito": datos.credito_habilitado, "limite": datos.limite, "plazo": datos.plazo,
+                "telefono": datos.telefono, "direccion": datos.direccion}
 
-    def editar_cliente(self, id_cliente, nombres, credito, limite, plazo):
+    def editar_cliente(self, id_cliente, nombres, credito, limite, plazo, telefono=None, direccion=None):
         return self._ejecutar(lambda: _resultado(self._clientes.editar(_id(id_cliente), str(nombres), bool(credito),
-                                                                       limite, plazo)))
+                                                                       limite, plazo, telefono, direccion)))
 
     # ------------------------------------------------------------------ créditos y abonos (HU-06, RF-09)
     def creditos(self, ver_pagadas=False):
