@@ -218,8 +218,9 @@ local abierto en el navegador o en modo app de Edge (se ve como navegador y exig
 
 **Editar cliente y editar producto (aprobado por el desarrollador, noviembre de 2026).** *Cliente:* los mismos 4 datos del registro (nombre, crédito, límite y plazo), con las mismas reglas del dominio; las cuentas ya abiertas conservan su vencimiento. *Producto:* nombre, precio de compra y precio de venta; las existencias solo cambian con entradas y ventas, el stock mínimo se conserva (TD-04) y las ventas anteriores guardan su precio (HU-02). `RepositorioDeClientes.guardar` ahora actualiza si el cliente ya tiene id (el puerto no cambia). *Preliminar, por confirmar con el propietario:* se permite dejar el límite por debajo de la deuda; solo impide fiar más hasta que abone (el «disponible» se ve negativo).
 
-**Respuestas del propietario y grupo A (noviembre de 2026; *preliminar* hasta confirmar la fecha y que la entrevista fue con un propietario real).**
-Fuente: `docs/contexto/PREGUNTAS_PROPIETARIO.docx` (fecha anotada como «irrelevante»; E-01 sin medir). Programado, cada uno con su prueba:
+**Respuestas del propietario y grupo A (*validado*: el desarrollador confirmó el 8 de noviembre de 2026 que respondió el propietario real de una tienda).**
+Fuente: `docs/contexto/PREGUNTAS_PROPIETARIO.docx`. La fecha de la entrevista no se anotó («irrelevante»); se registra la de la confirmación.
+E-01 sigue sin medir. Programado, cada uno con su prueba:
 - 1.3 Ticket para impresora térmica de 80 mm (42 caracteres por renglón, `@page` de 80 mm). El cambio solo sale en contado.
 - 3.1 Teléfono y dirección del cliente, opcionales (datos personales; columnas nuevas con migración).
 - 4.1 Stock mínimo por producto al crearlo y lista «Por reponer» (RF-12; cierra TD-04 como mínimo *por producto*). Avisa con el mínimo o menos; 0 = sin aviso.
