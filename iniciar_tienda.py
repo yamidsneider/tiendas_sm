@@ -1,7 +1,9 @@
-"""Abre la aplicación de escritorio de TIENDAS S.M (punto de venta, tarea 8).
+"""Abre la aplicación de escritorio de TIENDAS S.M (opción B: ventana con la visual del borrador HTML).
 
 Uso:  python iniciar_tienda.py                      abre la tienda con los datos guardados
       python iniciar_tienda.py --datos-de-ejemplo   además carga datos FICTICIOS si la base está vacía
+      python iniciar_tienda.py --tkinter            abre la versión anterior en Tkinter (opción A)
+También funciona igual desde TIENDAS_SM.exe (armado con construir_exe.py).
 
 Los datos se guardan en la carpeta de datos del usuario (DDS §14):
 %LOCALAPPDATA%\\TIENDAS_SM\\tiendas_sm.db en Windows. Al cerrar se crea un respaldo verificado en la misma carpeta (FPI-30).
@@ -9,6 +11,7 @@ Los datos se guardan en la carpeta de datos del usuario (DDS §14):
 import logging
 import os
 import sys
+from collections import namedtuple
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -20,9 +23,15 @@ from tiendas_sm.telemetria import Telemetria
 CARPETA_DE_DATOS = "TIENDAS_SM"
 ARCHIVO_DE_DATOS = "tiendas_sm.db"
 OPCION_DATOS_DE_EJEMPLO = "--datos-de-ejemplo"
+OPCION_TKINTER = "--tkinter"
+TITULO = "TIENDAS S.M"
+TAMANO_DE_LA_VENTANA = (1280, 780)
+TAMANO_MINIMO = (1000, 600)                  # cabe en una pantalla de 1024 x 600 (E-01)
+COLOR_DE_FONDO = "#eef5f1"                   # el --fondo del borrador: no se ve un destello blanco al abrir
 ARCHIVO_DE_TELEMETRIA = "telemetria.jsonl"
 TASA_DE_MUESTREO = 0.2                       # ADR-13: errores al 100 %, ventas exitosas al 20 %
 TAMANO_MAXIMO_LOG = 1_000_000                # ADR-13: 1 MB por archivo...
+MENSAJE_DE_ERROR_DE_WINDOWS = 0x10           # MB_ICONERROR: ventana de aviso con el ícono de error
 ARCHIVOS_DE_RESPALDO = 3                     # ...y 3 anteriores: máximo 4 MB (≈ 14 a 19 meses a 80 ventas/día)
 
 
@@ -58,6 +67,25 @@ def cerrar_y_respaldar(app, ruta, telemetria=None, ahora=None):
     return respaldar(ruta, telemetria, ahora)
 
 
+Tienda = namedtuple("Tienda", "hilo app api cargo_ejemplo")
+
+
+def preparar_tienda(ruta, con_datos_de_ejemplo, telemetria=None):
+    """Abre la base DENTRO del hilo de la base (SQLite solo acepta ese hilo) y arma la API para la página."""
+    from interfaz_web.api import ApiDeLaTienda, HiloDeLaBase
+    hilo = HiloDeLaBase()
+    app, cargo_ejemplo = hilo.ejecutar(lambda: abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria))
+    return Tienda(hilo, app, ApiDeLaTienda(app, hilo.ejecutar), cargo_ejemplo)
+
+
+def cerrar_tienda(tienda, ruta, telemetria=None):
+    """Cierra la base en su mismo hilo y hace el respaldo verificado (FPI-30). Devuelve el respaldo o None."""
+    try:
+        return tienda.hilo.ejecutar(lambda: cerrar_y_respaldar(tienda.app, ruta, telemetria))
+    finally:
+        tienda.hilo.cerrar()
+
+
 def usar_escala_de_windows():
     """En Windows con escala de pantalla (125 %, 150 %…) evita que la ventana se vea borrosa."""
     try:
@@ -68,36 +96,68 @@ def usar_escala_de_windows():
 
 
 def main(argumentos):
-    import tkinter as tk                                      # se importa aquí para que las pruebas no lo necesiten
-    from interfaz_tk.ventana_principal import VentanaPrincipal
-
     usar_escala_de_windows()
     ruta = ruta_de_datos()
     ruta.parent.mkdir(parents=True, exist_ok=True)
     telemetria = configurar_telemetria(ruta.parent)
     problema = revisar_al_abrir(ruta, telemetria)            # FPI-30: no se vende sobre una base dañada
     if problema:
-        mostrar_base_danada(tk, problema)
+        mostrar_base_danada(problema)
         return
-    app, cargo_ejemplo = abrir_aplicacion(ruta, OPCION_DATOS_DE_EJEMPLO in argumentos, telemetria)
-    print(f"Base de datos: {ruta}")
-    if cargo_ejemplo:
-        print("Se cargaron datos de ejemplo ficticios.")
+    con_datos_de_ejemplo = OPCION_DATOS_DE_EJEMPLO in argumentos
+    if OPCION_TKINTER in argumentos:
+        abrir_version_tkinter(ruta, con_datos_de_ejemplo, telemetria)
+    else:
+        abrir_ventana(ruta, con_datos_de_ejemplo, telemetria)
+
+
+def abrir_ventana(ruta, con_datos_de_ejemplo, telemetria):
+    """Ventana nativa de Windows (pywebview) con la página del borrador; al cerrarla se respalda la base."""
+    import webview                                            # se importa aquí: las pruebas y el CI no lo necesitan
+    from interfaz_web.pagina import armar_pagina
+
+    tienda = preparar_tienda(ruta, con_datos_de_ejemplo, telemetria)
+    informar_inicio(ruta, tienda.cargo_ejemplo)
+    try:
+        webview.create_window(TITULO, html=armar_pagina(), js_api=tienda.api, width=TAMANO_DE_LA_VENTANA[0],
+                              height=TAMANO_DE_LA_VENTANA[1], min_size=TAMANO_MINIMO, background_color=COLOR_DE_FONDO)
+        webview.start()                                       # se queda aquí hasta que se cierra la ventana
+    finally:
+        informar_respaldo(cerrar_tienda(tienda, ruta, telemetria))
+
+
+def abrir_version_tkinter(ruta, con_datos_de_ejemplo, telemetria):
+    """La interfaz anterior (opción A); se conserva hasta que el desarrollador decida retirarla."""
+    import tkinter as tk
+    from interfaz_tk.ventana_principal import VentanaPrincipal
+
+    app, cargo_ejemplo = abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria)
+    informar_inicio(ruta, cargo_ejemplo)
     raiz = tk.Tk()
-    VentanaPrincipal(raiz, app)                               # menú lateral; abre en el punto de venta
+    VentanaPrincipal(raiz, app)
     try:
         raiz.mainloop()
     finally:
-        respaldo = cerrar_y_respaldar(app, ruta, telemetria)
-        print(f"Respaldo: {respaldo}" if respaldo else "No se creó el respaldo: revise la base con el Runbook.")
+        informar_respaldo(cerrar_y_respaldar(app, ruta, telemetria))
 
 
-def mostrar_base_danada(tk, mensaje):
-    from tkinter import messagebox
-    raiz = tk.Tk()
-    raiz.withdraw()
-    messagebox.showerror("TIENDAS S.M", mensaje, parent=raiz)
-    raiz.destroy()
+def informar_inicio(ruta, cargo_ejemplo):
+    print(f"Base de datos: {ruta}")                           # en el .exe no hay consola: print no hace nada
+    if cargo_ejemplo:
+        print("Se cargaron datos de ejemplo ficticios.")
+
+
+def informar_respaldo(respaldo):
+    print(f"Respaldo: {respaldo}" if respaldo else "No se creó el respaldo: revise la base con el Runbook.")
+
+
+def mostrar_base_danada(mensaje):
+    """Aviso de Windows (sin Tkinter ni pywebview); en otro sistema se escribe en la consola."""
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(None, mensaje, TITULO, MENSAJE_DE_ERROR_DE_WINDOWS)
+    except (ImportError, AttributeError, OSError):
+        print(mensaje, file=sys.stderr)
 
 
 if __name__ == "__main__":

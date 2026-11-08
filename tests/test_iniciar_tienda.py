@@ -3,10 +3,11 @@
 No abren ventanas. La base se crea en una carpeta temporal que se borra al terminar.
 """
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
-from iniciar_tienda import abrir_aplicacion, ruta_de_datos
+from iniciar_tienda import abrir_aplicacion, cerrar_tienda, preparar_tienda, ruta_de_datos
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.datos_de_ejemplo import CLIENTES_DE_EJEMPLO, PRODUCTOS_DE_EJEMPLO, cargar_datos_de_ejemplo
 
@@ -47,6 +48,24 @@ class PruebasDeAbrirLaAplicacion(unittest.TestCase):
             self.assertFalse(cargo_otra_vez)
             self.assertEqual(len(otra_vez.productos.listar()), len(PRODUCTOS_DE_EJEMPLO))
             otra_vez.conexion.close()
+
+
+class PruebasDeLaAppDeEscritorio(unittest.TestCase):
+    """Opción B: la base se abre y se cierra en el hilo de la base; al cerrar queda el respaldo verificado (FPI-30)."""
+
+    def test_preparar_usar_desde_otro_hilo_y_cerrar_con_respaldo(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as carpeta:
+            ruta = Path(carpeta) / "TIENDAS_SM" / "tiendas_sm.db"
+            tienda = preparar_tienda(ruta, con_datos_de_ejemplo=True)
+            self.assertTrue(tienda.cargo_ejemplo)
+            filas = []
+            otro = threading.Thread(target=lambda: filas.extend(tienda.api.productos("")))   # como lo hace pywebview
+            otro.start()
+            otro.join()
+            self.assertEqual(len(filas), len(PRODUCTOS_DE_EJEMPLO))
+            respaldo = cerrar_tienda(tienda, ruta)
+            self.assertIsNotNone(respaldo)
+            self.assertTrue(Path(respaldo).exists())
 
 
 if __name__ == "__main__":
