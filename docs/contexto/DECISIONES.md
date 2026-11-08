@@ -13,7 +13,7 @@
 | FPI-09 | Modelo de dominio de 29 entidades; CR-02 sin aprobar | Adoptado |
 | FPI-10 | UML selectivo: solo CU-01 (8 clases + secuencia). Tipos genéricos | Implementado |
 | FPI-11 | SOLID donde hay riesgo: `ControlInventario`, `ControlCredito` y la interfaz `RepositorioDeVentas` | Implementado |
-| FPI-12 | **Python + SQLite + Tkinter**, dinero entero, refactor de 8 code smells, deuda DT-01..DT-05 | Tkinter: las 6 pantallas del MVP (noviembre de 2026) |
+| FPI-12 | **Python + SQLite + Tkinter**, dinero entero, refactor de 8 code smells, deuda DT-01..DT-05 | Tkinter: las 6 pantallas del MVP; en curso el paso a HTML local (opción B, noviembre de 2026) |
 | FPI-13 | GitHub Flow, `main` protegida, commits atómicos, conflicto simulado, release v0.1.0 | Evidencia en GitHub por confirmar |
 | FPI-14 | Pruebas unitarias con stubs/mocks, caja negra, integración ascendente, cobertura | Implementado |
 | FPI-15 | CI con GitHub Actions, regresión, BUG-01 y BUG-02 corregidos | Pipeline verde por confirmar |
@@ -198,6 +198,26 @@ ignoraba en silencio). *Proceso:* una rama por etapa con ROJO y VERDE (y un REFA
 pantalla real), cobertura 98,8 %, V(G) máximo 6, ruff con las reglas del CI, y cada pantalla revisada a 1024×600 con datos ficticios.
 *No verificado:* Python 3.13 (lo corre el CI, donde las 37 pruebas de pantallas se saltan), el uso por personas (E-01, RNF-01) y el PR a `main`.
 *Recomendación sin aprobar:* «Editar cliente» (ver `ESTADO_Y_PENDIENTES.md`).
+
+**Cambio de la interfaz a HTML local (opción B, noviembre de 2026; cambia FPI-12).** Después de terminar la opción A, el desarrollador
+pidió pasar la interfaz a HTML siguiendo la estructura y la visual de su borrador `tiendas_sm_dashboard.html`, y aprobó este plan.
+*Causa:* el borrador en el navegador se ve y se usa mejor que Tkinter (tarjetas, ventanas emergentes, tablas con insignias), y el
+desarrollador quiere que la app final se parezca a él. *Qué cambia:* solo la capa que dibuja. Un **servidor local** con `http.server`
+de la biblioteca estándar (`interfaz_web/servidor.py`) sirve la página y una pequeña API JSON que llama a los **mismos presentadores**
+de `tiendas_sm/presentador*.py`; el dominio, los servicios, los puertos y la base no cambian, y la regla «solo biblioteca estándar» se
+mantiene. *Cuidados de seguridad (RNF-03 en lo que aplica sin usuarios):* escucha solo en `127.0.0.1`; rechaza peticiones cuyo
+encabezado `Host` no sea el de la tienda (contra *DNS rebinding*); toda petición que cambia datos debe traer un **código aleatorio por
+sesión** que solo conoce la página servida, así otra página de internet abierta en el mismo navegador no puede enviar ventas; atiende
+**una petición a la vez**, porque la conexión de SQLite es una sola. *Qué se toma del borrador:* la estructura (menú lateral, encabezado,
+tarjetas, tablas, ventanas emergentes, avisos) y su CSS; **no** su JavaScript de negocio ni `localStorage`: las reglas siguen en Python y
+los datos en SQLite. Solo las **6 secciones aprobadas**, sin emojis y sin lo que el borrador muestra como pendiente o CR-02 (lotes,
+alertas, proveedores, pedidos, caja, medios de pago distintos al efectivo, código de barras, categorías, stock mínimo, salida manual,
+editar). *Impacto:* `iniciar_tienda.py` abre el navegador en vez de la ventana; el respaldo verificado al cerrar (FPI-30) se hace al pulsar
+«Cerrar tienda», que apaga el servidor. Las pruebas de la API usan `unittest` contra el servidor real en un puerto libre, sin navegador,
+así corren también en el CI. *Transición:* `interfaz_tk/` se conserva y sigue funcionando hasta que la versión web tenga las 6 secciones;
+después el desarrollador decide si se retira. *Alternativas descartadas:* seguir solo con Tkinter (opción A, ya hecha, pero no se parece
+lo suficiente al borrador); usar Flask u otro marco web (agrega una dependencia externa, contra la decisión de solo biblioteca estándar);
+abrir el HTML del borrador tal cual (sus reglas en JavaScript y `localStorage` duplicarían el dominio y no guardan en SQLite).
 
 **Deuda nueva TD-15, TD-16 y TD-17 (FPI-31).** El texto completo de la FPI-31 **no está** en el repositorio ni en las carpetas del
 proyecto; lo que sigue sale de `Dossier_Final.md` (secciones 3 y 6) y debe confirmarse con la ficha:
