@@ -31,6 +31,7 @@ class PruebasDelPuntoDeVenta(BaseDeLaApi):
         self.assertTrue(respuesta["exito"])
         carrito = respuesta["carrito"]
         self.assertEqual((carrito["total"], carrito["resumen"], carrito["vacio"]), ("$ 7.500", "1 producto · 3 unidades", False))
+        self.assertEqual(carrito["total_numero"], 7500)              # para cobrar el valor exacto si no escriben nada
         self.assertEqual(carrito["lineas"], [{"id": self.arroz.id_producto, "nombre": "Arroz ficticio 500 g",
                                               "precio": "$ 2.500", "cantidad": 3, "importe": "$ 7.500", "disponibles": 20}])
 
