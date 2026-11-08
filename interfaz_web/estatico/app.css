@@ -155,7 +155,7 @@ svg text{font-family:'Segoe UI',sans-serif;fill:var(--tenue);font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* al imprimir sale solo el ticket: se ocultan el menú, la sección, el título y los botones de la ventana */
-@media print{.lateral,.principal,.modal-pie,.modal h3,.aviso-flotante{display:none!important}body{display:block;background:#fff}.velo{position:static;background:none;padding:0;display:block}.modal{box-shadow:none;max-width:none;max-height:none;padding:0;overflow:visible}.papel{border:none;background:#fff;padding:0}}
+@media print{.lateral,.principal,.modal-pie,.modal h3,.aviso-flotante{display:none!important}body{display:block;background:#fff}.velo{position:static;background:none;padding:0;display:block}.modal{box-shadow:none;max-width:none;max-height:none;padding:0;overflow:visible}.papel{width:72mm;font-size:11px;border:none;background:#fff;padding:0}@page{size:80mm auto;margin:4mm}}
 
 /* ---- agregado para la app de escritorio (sin estilos en línea, todo por clase) ---- */
 html,body{height:100%}
