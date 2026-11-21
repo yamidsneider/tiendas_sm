@@ -11,7 +11,9 @@ from interfaz_web.api import ApiDeLaTienda
 from interfaz_web.pagina import CARPETA_ESTATICA, armar_pagina
 from tiendas_sm.aplicacion import Aplicacion
 
-SECCIONES_APROBADAS = ("Punto de venta", "Ventas", "Productos", "Existencias", "Clientes", "Créditos y abonos")
+# Reportes: fase 1 de docs/HOJA_DE_RUTA_APP_COMPLETA.md (aprobada por el desarrollador, noviembre de 2026).
+SECCIONES_APROBADAS = ("Punto de venta", "Ventas", "Productos", "Existencias", "Clientes", "Créditos y abonos",
+                       "Reportes")
 
 
 class PruebasDeLaPagina(unittest.TestCase):
@@ -35,7 +37,7 @@ class PruebasDeLaPagina(unittest.TestCase):
     def test_sin_emojis(self):
         self.assertEqual([c for c in self.pagina if ord(c) >= 0x1F000], [])
 
-    def test_el_menu_tiene_solo_las_6_secciones_aprobadas(self):
+    def test_el_menu_tiene_solo_las_secciones_aprobadas(self):
         titulos = re.findall(r"titulo: '([^']+)'", self.codigo)
         self.assertEqual(tuple(titulos), SECCIONES_APROBADAS)
 
