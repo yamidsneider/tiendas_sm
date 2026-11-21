@@ -11,9 +11,9 @@ from interfaz_web.api import ApiDeLaTienda
 from interfaz_web.pagina import CARPETA_ESTATICA, armar_pagina
 from tiendas_sm.aplicacion import Aplicacion
 
-# Reportes: fase 1 de docs/HOJA_DE_RUTA_APP_COMPLETA.md (aprobada por el desarrollador, noviembre de 2026).
+# Reportes y Usuarios: fases 1 y 2 de docs/HOJA_DE_RUTA_APP_COMPLETA.md (aprobadas por el desarrollador, noviembre de 2026).
 SECCIONES_APROBADAS = ("Punto de venta", "Ventas", "Productos", "Existencias", "Clientes", "Créditos y abonos",
-                       "Reportes")
+                       "Reportes", "Usuarios")
 
 
 class PruebasDeLaPagina(unittest.TestCase):

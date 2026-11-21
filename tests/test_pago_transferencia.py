@@ -7,11 +7,11 @@ transferencia no muestra cambio. Se escribieron antes del código. Datos fictici
 """
 import unittest
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.dominio import EfectivoInsuficiente, FormaDePago
 from tiendas_sm.presentador import PresentadorPuntoDeVenta
 from tiendas_sm.presentador_ventas import PresentadorDeVentas
+from sesion_de_prueba import api_con_jefe
 
 
 class BaseDelPago(unittest.TestCase):
@@ -93,7 +93,7 @@ class PruebasDelTicket(BaseDelPago):
 
 class PruebasDeLaApi(BaseDelPago):
     def test_cobrar_y_cambio_reciben_la_transferencia(self):
-        api = ApiDeLaTienda(self.app)
+        api = api_con_jefe(self.app)
         api.agregar(self.arroz.id_producto, "4")
         self.assertEqual(api.cambio("5000", "6000")["mensaje"], "Cambio: $ 1.000")
         respuesta = api.cobrar_de_contado("5000", "6000")

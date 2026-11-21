@@ -185,3 +185,12 @@ input,textarea,.papel{user-select:text}
   .total-caja{padding:16px}.total-caja .m{font-size:36px}.pos-botones .btn{padding:11px}.tarjeta.arriba{margin-top:10px}
 }
 td.num{white-space:nowrap}
+
+/* fase 2: pantalla de ingreso y usuario en el menú */
+.ingreso{display:flex;justify-content:center;align-items:flex-start;padding-top:8vh}
+.ingreso .tarjeta{width:100%;max-width:420px}
+.ingreso h2{font-size:21px;color:var(--v900);margin-bottom:4px}
+.ingreso .sec{margin-bottom:16px}
+.ingreso .btn-p{width:100%;margin-top:6px}
+.sesion{margin:16px 14px 0;padding:12px;border-radius:10px;background:rgba(255,255,255,.08);color:#fff;display:flex;flex-direction:column;gap:8px}
+.sesion .sec{color:#a5cdbb}

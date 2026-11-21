@@ -9,11 +9,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.base_de_datos import BaseDeDatos
 from tiendas_sm.dominio import Cliente
 from tiendas_sm.presentador_clientes import PresentadorDeClientes
+from sesion_de_prueba import api_con_jefe
 
 TELEFONO = "300 000 0001"                       # inventado
 DIRECCION = "Calle Ficticia 1 # 2-3"            # inventada
@@ -76,7 +76,7 @@ class PruebasDelPresentador(BaseDeClientes):
 
 class PruebasDeLaApi(BaseDeClientes):
     def test_registrar_datos_y_editar(self):
-        api = ApiDeLaTienda(self.app)
+        api = api_con_jefe(self.app)
         self.assertTrue(api.registrar_cliente("Cliente ficticio", True, "50000", "15", TELEFONO, DIRECCION)["exito"])
         cliente, = self.app.clientes.listar()
         datos = api.datos_cliente(cliente.id_cliente)

@@ -10,6 +10,7 @@ import unittest
 
 from interfaz_web.api import ApiDeLaTienda, HiloDeLaBase
 from tiendas_sm.aplicacion import Aplicacion
+from sesion_de_prueba import api_con_jefe
 
 
 class BaseDeLaApi(unittest.TestCase):
@@ -17,7 +18,7 @@ class BaseDeLaApi(unittest.TestCase):
         self.app = Aplicacion()
         self.arroz = self.app.productos.registrar_producto("Arroz ficticio 500 g", 2000, 2500, 20)
         self.ana = self.app.clientes.registrar_cliente("Cliente ficticio Ana", True, 100000, plazo_credito_dias=15)
-        self.api = ApiDeLaTienda(self.app)
+        self.api = api_con_jefe(self.app)
 
 
 class PruebasDelPuntoDeVenta(BaseDeLaApi):
@@ -134,7 +135,7 @@ class PruebasDeLaConexionConLaVentana(unittest.TestCase):
         try:
             app = hilo.ejecutar(Aplicacion)
             hilo.ejecutar(lambda: app.productos.registrar_producto("Arroz ficticio", 2000, 2500, 3))
-            api = ApiDeLaTienda(app, hilo.ejecutar)
+            api = api_con_jefe(app, hilo.ejecutar)
             resultados = []
             otro = threading.Thread(target=lambda: resultados.append(api.productos("")))
             otro.start()

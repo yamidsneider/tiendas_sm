@@ -274,3 +274,19 @@ migración; las líneas viejas quedan en NULL y usan el precio de compra actual,
 *Preliminar, por confirmar con el propietario:* la ganancia es precio de venta − precio de compra, sin gastos; las ventas cuentan
 por su fecha y las devoluciones y abonos por la suya; en una devolución de una venta pagada por transferencia el dinero aparece
 como «efectivo devuelto» (así lo registra la respuesta 1.5).
+
+**Fase 2: usuarios y roles (CR-01, RNF-03; *aprobado* por el desarrollador, 21 de noviembre de 2026).**
+*Respuestas del desarrollador:* la tienda tiene 2 empleados; la clave se pide **al abrir la app**; cada usuario solo hace lo que
+su rol permite. *Roles:* jefe y empleado (`Rol`, `Permiso` y `PERMISOS_POR_ROL` en `dominio.py`).
+*Preliminar (propuesta, por confirmar con el propietario):* el empleado vende (contado y fiado), consulta, registra entradas
+y lotes, y recibe abonos; solo el jefe devuelve o anula ventas, crea o edita productos y precios, crea o edita clientes (cupo y
+plazo), ve los reportes y administra los usuarios.
+*Seguridad:* la clave se guarda como huella PBKDF2-SHA256 (200.000 vueltas) con sal propia por usuario, solo con la biblioteca
+estándar; se compara en tiempo constante; mínimo 4 caracteres (como un PIN). Usuario o clave malos dan el mismo mensaje. No hay
+usuarios ni claves en el código ni en los datos de ejemplo: la primera vez la ventana pide crear la cuenta del jefe. Nadie se
+desactiva a sí mismo y siempre queda un jefe activo. *Barrera:* cada método de `ApiDeLaTienda` lleva `@requiere(permiso)` y
+`test_usuarios` falla si alguno queda sin permiso; esconder botones en la página es solo comodidad. Al cerrar sesión se vacía el
+carrito. *Impacto:* `--tkinter` ya no abre la versión Tkinter (no pide clave y se saltaría los permisos); se abre la ventana
+normal. Las pruebas de la API ingresan como jefe con `tests/sesion_de_prueba.py`.
+*Pendiente:* clave del jefe para la salida manual (fase 3); registrar qué usuario hizo cada venta (fase 4, caja); bloqueo
+tras varios intentos fallidos (recomendación, no pedida).

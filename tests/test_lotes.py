@@ -12,11 +12,11 @@ import unittest
 from datetime import date, timedelta
 from pathlib import Path
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.dominio import Lote
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
+from sesion_de_prueba import api_con_jefe
 
 HOY = date.today()
 
@@ -147,7 +147,7 @@ class PruebasDelPresentador(unittest.TestCase):
 class PruebasDeLaApi(unittest.TestCase):
     def test_registrar_listar_y_quitar(self):
         app = Aplicacion()
-        api = ApiDeLaTienda(app)
+        api = api_con_jefe(app)
         respuesta = api.registrar_producto("Leche ficticia", "2000", "2800", "0", "0", "", "5")
         self.assertTrue(respuesta["exito"], respuesta["mensaje"])
         self.assertEqual(api.datos_producto(1)["aviso"], "5")

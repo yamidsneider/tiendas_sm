@@ -7,7 +7,9 @@ MVP académico (Ingeniería de Software I, Universidad de Pamplona). Autor: Yami
 - Base de datos: **SQLite** (viene con Python; un solo archivo, sin servidor).
 - Tipo de aplicación: **escritorio**, con la visual del borrador HTML del autor (opción B en `docs/contexto/DECISIONES.md`):
   ventana nativa de Windows con **pywebview** y archivo **TIENDAS_SM.exe** armado con **PyInstaller**. Secciones: Punto de venta,
-  Ventas, Productos, Existencias, Clientes y Créditos y abonos. La versión anterior en Tkinter sigue disponible con `--tkinter`.
+  Ventas, Productos, Existencias, Clientes, Créditos y abonos, y para el jefe Reportes y Usuarios.
+- Ingreso con usuario y clave (fase 2): la primera vez se crea la cuenta del jefe; después el jefe crea a los empleados.
+  La versión anterior en Tkinter ya no se abre (no pide clave). Hoja de ruta: `docs/HOJA_DE_RUTA_APP_COMPLETA.md`.
 - Pruebas: `unittest`.
 - Dinero: números enteros en pesos colombianos (sin centavos).
 
@@ -34,7 +36,7 @@ Desde esta carpeta:
 
     python -m unittest discover -s tests -v
 
-Resultado esperado: 275 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
+Resultado esperado: 469 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
 allí las 37 pruebas de pantallas se saltan porque el servidor no tiene pantalla.
 
 ## Estructura

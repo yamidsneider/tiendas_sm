@@ -1,9 +1,9 @@
 from tiendas_sm.base_de_datos import BaseDeDatos
 from tiendas_sm.repositorios import (RepositorioDeProductos, RepositorioDeClientes, RepositorioDeReportesSqlite,
-                                     RepositorioDeVentasSqlite)
+                                     RepositorioDeUsuarios, RepositorioDeVentasSqlite)
 from tiendas_sm.telemetria import VentasObservadas
 from tiendas_sm.servicios import (ServicioDeProductos, ServicioDeClientes, ControlInventario,
-                                  ControlCredito, ServicioDeReportes, ServicioDeVentas)
+                                  ControlCredito, ServicioDeReportes, ServicioDeUsuarios, ServicioDeVentas)
 
 
 class Aplicacion:
@@ -22,6 +22,7 @@ class Aplicacion:
         self.ventas = ServicioDeVentas(self.repo_productos, repo_clientes, self.repo_ventas,
                                        control_inventario, self.credito)
         self.reportes = ServicioDeReportes(RepositorioDeReportesSqlite(self.conexion))   # fase 1: solo consulta
+        self.usuarios = ServicioDeUsuarios(RepositorioDeUsuarios(self.conexion))         # fase 2: CR-01
         if telemetria is not None:                            # FPI-29: observabilidad opcional (ADR-13)
             self.ventas = VentasObservadas(self.ventas, telemetria)
 

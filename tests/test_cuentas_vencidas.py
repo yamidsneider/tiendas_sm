@@ -8,11 +8,11 @@ memoria. Se escribieron antes del código. Datos ficticios.
 import unittest
 from datetime import datetime, timedelta
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.dominio import CreditoNoPermitido, CuentaPorCobrar, EstadoCuenta
 from tiendas_sm.presentador import PresentadorPuntoDeVenta
 from tiendas_sm.presentador_creditos import PresentadorDeCreditos
+from sesion_de_prueba import api_con_jefe
 
 MENSAJE_ATRASADO = "No se le puede fiar a Cliente ficticio Ana: tiene cuentas vencidas sin pagar"
 
@@ -102,7 +102,7 @@ class PruebasDeLaPantallaDeCreditos(BaseDeVencidas):
         self.assertIn("Tiene cuentas vencidas: no se le puede fiar", texto)
 
     def test_la_api_entrega_los_atrasados(self):
-        api = ApiDeLaTienda(self.app)
+        api = api_con_jefe(self.app)
         self.assertEqual([f["id"] for f in api.atrasados()], [self.cuenta_ana.id_cuenta])
 
 

@@ -6,11 +6,11 @@ Datos ficticios.
 """
 import unittest
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.dominio import Producto
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
+from sesion_de_prueba import api_con_jefe
 
 
 class PruebasDeLaRegla(unittest.TestCase):
@@ -68,7 +68,7 @@ class PruebasDelAvisoEnExistencias(BaseDelStockMinimo):
 class PruebasDeLaApi(BaseDelStockMinimo):
     def setUp(self):
         super().setUp()
-        self.api = ApiDeLaTienda(self.app)
+        self.api = api_con_jefe(self.app)
 
     def test_registrar_y_editar_reciben_el_minimo(self):
         self.assertTrue(self.api.registrar_producto("Leche ficticia", "2500", "3200", "12", "4")["exito"])
