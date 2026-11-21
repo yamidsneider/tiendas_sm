@@ -2,18 +2,20 @@
 
 No usa Tkinter. Muestra cuántas unidades hay de cada producto, registra entradas de mercancía con
 ServicioDeProductos.registrar_entrada (el dominio rechaza 0 o negativo, HU-03) y arma el historial de
-movimientos. No hay salida manual (mermas, daños): está por confirmar con el propietario (H-1).
+movimientos. Fase 3: salida manual con motivo (respuesta 4.4); si quien la registra no es jefe, el jefe la autoriza
+con su usuario y su clave.
 También lleva los lotes por vencer (RF-10, RF-13): son solo un aviso y no cambian las existencias.
 """
 from datetime import date
 
-from tiendas_sm.dominio import Lote
+from tiendas_sm.dominio import Lote, MotivoDeSalida, Permiso, texto_del_motivo
 from tiendas_sm.presentador import Resultado, a_entero
 
 MENSAJE_SIN_PRODUCTO = "Elige un producto de la lista"
 FORMATO_FECHA_Y_HORA = "%d/%m/%Y %H:%M"
-NOMBRE_DEL_MOVIMIENTO = {"ENTRADA": "Entrada", "SALIDA_VENTA": "Salida por venta", "DEVOLUCION": "Devolución"}
-SIGNO_DEL_MOVIMIENTO = {"ENTRADA": "+", "SALIDA_VENTA": "-", "DEVOLUCION": "+"}
+NOMBRE_DEL_MOVIMIENTO = {"ENTRADA": "Entrada", "SALIDA_VENTA": "Salida por venta", "DEVOLUCION": "Devolución",
+                         "SALIDA_MANUAL": "Salida manual"}
+SIGNO_DEL_MOVIMIENTO = {"ENTRADA": "+", "SALIDA_VENTA": "-", "DEVOLUCION": "+", "SALIDA_MANUAL": "-"}
 FORMATO_FECHA = "%d/%m/%Y"
 SIN_NUMERO = "Sin número"
 
@@ -79,6 +81,27 @@ class PresentadorDeExistencias:
         return Resultado(True, f"Entrada de {_unidades(cantidad)} de {self.nombre(id_producto)}. "
                                f"Ahora hay {existencia.cantidad_disponible()}")
 
+    # ------------------------------------------------------------------ salida manual (fase 3, respuesta 4.4)
+    @staticmethod
+    def motivos_de_salida():
+        return [motivo.value for motivo in MotivoDeSalida]
+
+    def registrar_salida(self, id_producto, cantidad_texto, motivo, detalle, quien, jefe="", clave_jefe=""):
+        """quien: el usuario que ingresó. Si su rol no permite la salida, la autoriza el jefe con su usuario y clave."""
+        if id_producto is None:
+            return Resultado(False, MENSAJE_SIN_PRODUCTO)
+        try:
+            cantidad = a_entero(cantidad_texto, "La cantidad")
+            motivo_completo = texto_del_motivo(_motivo(motivo), detalle)
+            autorizo = quien if quien.rol.puede(Permiso.REGISTRAR_SALIDA) else \
+                self.app.usuarios.autorizar(jefe, clave_jefe, Permiso.REGISTRAR_SALIDA)
+            existencia = self.app.productos.registrar_salida(id_producto, cantidad, motivo_completo, quien.id_usuario,
+                                                             autorizo.id_usuario)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        return Resultado(True, f"Salida de {_unidades(cantidad)} de {self.nombre(id_producto)} ({motivo_completo}). "
+                               f"Ahora hay {existencia.cantidad_disponible()}")
+
     def lotes(self):
         """Filas (id, (producto, lote, vence, cantidad, estado, cuánto falta)), del que vence primero al último."""
         hoy = date.today()
@@ -120,6 +143,17 @@ class PresentadorDeExistencias:
         """Filas (id, (fecha y hora, producto, movimiento, cantidad con signo)), del más reciente al más viejo."""
         nombres = {p.id_producto: p.nombre for p in self.app.productos.listar()}
         return [(m.id_movimiento, (f"{m.fecha:{FORMATO_FECHA_Y_HORA}}", nombres.get(m.id_producto, ""),
-                                   NOMBRE_DEL_MOVIMIENTO.get(m.tipo, m.tipo),
-                                   f"{SIGNO_DEL_MOVIMIENTO.get(m.tipo, '')}{m.cantidad}"))
+                                   _nombre_del_movimiento(m), f"{SIGNO_DEL_MOVIMIENTO.get(m.tipo, '')}{m.cantidad}"))
                 for m in self.app.productos.movimientos()]
+
+
+def _nombre_del_movimiento(movimiento):
+    nombre = NOMBRE_DEL_MOVIMIENTO.get(movimiento.tipo, movimiento.tipo)
+    return f"{nombre} ({movimiento.motivo})" if movimiento.motivo else nombre
+
+
+def _motivo(texto):
+    try:
+        return MotivoDeSalida(str(texto))
+    except ValueError:
+        raise ValueError("Elige el motivo de la salida") from None

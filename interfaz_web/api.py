@@ -264,6 +264,17 @@ class ApiDeLaTienda:
         return self._ejecutar(lambda: _filas(self._existencias.movimientos()))
 
     @requiere(Permiso.REGISTRAR_ENTRADA)
+    def motivos_de_salida(self):
+        return self._existencias.motivos_de_salida()
+
+    @requiere(Permiso.REGISTRAR_ENTRADA)
+    def registrar_salida(self, id_producto, cantidad, motivo, detalle="", jefe="", clave_jefe=""):
+        """Fase 3: quien mueve inventario puede pedirla; si no es jefe, jefe y clave_jefe la autorizan (respuesta 4.4)."""
+        quien = self._usuarios.sesion.usuario
+        return self._ejecutar(lambda: _resultado(self._existencias.registrar_salida(
+            _id(id_producto), cantidad, str(motivo), str(detalle), quien, str(jefe), str(clave_jefe))))
+
+    @requiere(Permiso.REGISTRAR_ENTRADA)
     def registrar_entrada(self, id_producto, cantidad):
         return self._ejecutar(lambda: _resultado(self._existencias.registrar_entrada(_id(id_producto), cantidad)))
 

@@ -53,7 +53,8 @@ class Permiso(str, Enum):
     CONSULTAR = "consultar"                        # ver ventas, productos, existencias, clientes y créditos
     REGISTRAR_ENTRADA = "registrar_entrada"        # entradas de mercancía y lotes
     REGISTRAR_ABONO = "registrar_abono"
-    DEVOLVER = "devolver"                          # devolver productos o anular una venta
+    REGISTRAR_SALIDA = "registrar_salida"          # fase 3: sin él, la salida pide la clave del jefe
+    DEVOLVER = "devolver"                        # devolver productos o anular una venta
     GESTIONAR_PRODUCTOS = "gestionar_productos"    # crear, editar y cambiar precios
     GESTIONAR_CLIENTES = "gestionar_clientes"      # crear y editar (cupo y plazo del fiado)
     VER_REPORTES = "ver_reportes"
@@ -126,7 +127,26 @@ class Usuario:
 
 
 # RF-04: una entrada o una salida por venta ya guardada. Solo se lee (no tiene reglas); la fecha es datetime.
-MovimientoDeInventario = namedtuple("MovimientoDeInventario", "id_movimiento id_producto tipo cantidad fecha")
+# motivo (fase 3) solo lo tienen las salidas manuales; los demás movimientos lo dejan vacío.
+MovimientoDeInventario = namedtuple("MovimientoDeInventario", "id_movimiento id_producto tipo cantidad fecha motivo",
+                                    defaults=("",))
+
+
+class MotivoDeSalida(str, Enum):
+    """Fase 3, *preliminar*: por qué sale mercancía sin venderse."""
+    DANADO = "Dañado"
+    VENCIDO = "Vencido"
+    CONSUMO = "Consumo propio"
+    OTRO = "Otro"
+
+
+def texto_del_motivo(motivo, detalle):
+    """«Dañado», «Vencido: caja de abajo» u «Otro: …». En «Otro» el detalle es obligatorio."""
+    motivo = MotivoDeSalida(motivo)
+    detalle = (detalle or "").strip()
+    if motivo == MotivoDeSalida.OTRO:
+        exigir_texto_obligatorio(detalle, "Escribe el detalle del motivo")
+    return f"{motivo.value}: {detalle}" if detalle else motivo.value
 
 
 class Producto:
@@ -314,7 +334,9 @@ class Venta:
 # Fase 1 (reportes): totales de un periodo, en pesos. neto = vendido − devuelto. ganancia_estimada es True si
 # alguna venta del periodo es de antes de guardar el costo (se usó el precio de compra actual).
 class ResumenDeVentas(namedtuple("ResumenDeVentas", "numero_de_ventas vendido devuelto efectivo_devuelto efectivo "
-                                                    "transferencia credito abonos ganancia ganancia_estimada")):
+                                                    "transferencia credito abonos ganancia ganancia_estimada "
+                                                    "salidas_al_costo", defaults=(0,))):
+    """salidas_al_costo (fase 3): lo que costó la mercancía que salió sin venderse (dañada, vencida…)."""
     __slots__ = ()
 
     @property

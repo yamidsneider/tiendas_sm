@@ -84,6 +84,10 @@ class PuertoDeProductos(ABC):
         ...
 
     @abstractmethod
+    def guardar_salida_manual(self, existencia, cantidad, motivo, id_usuario, id_autorizo, costo_unitario):
+        """Fase 3: existencias y movimiento SALIDA_MANUAL (con motivo, quién, quién autorizó y costo), todo o nada."""
+
+    @abstractmethod
     def listar_movimientos(self, limite):
         """RF-04: los últimos movimientos de inventario (MovimientoDeInventario), del más reciente al más viejo."""
 

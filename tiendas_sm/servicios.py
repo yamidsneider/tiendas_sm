@@ -72,6 +72,19 @@ class ServicioDeProductos:
         self.repo_productos.guardar_existencia(existencia, "ENTRADA", cantidad)
         return existencia
 
+    def registrar_salida(self, id_producto, cantidad, motivo, id_usuario, id_autorizo):
+        """Fase 3 (respuesta 4.4): mercancía que sale sin venderse. motivo ya viene armado (texto_del_motivo).
+        Guarda el precio de compra de hoy para saber cuánto se perdió; quién autoriza lo decide el presentador."""
+        producto = self._exigir_producto(id_producto)
+        existencia = self.repo_productos.obtener_existencia(id_producto)
+        exigir_mayor_a_cero(cantidad)
+        if cantidad > existencia.cantidad_disponible():
+            raise ValueError(f"Solo hay {existencia.cantidad_disponible()} disponibles de {producto.nombre}")
+        existencia.descontar(cantidad)
+        self.repo_productos.guardar_salida_manual(existencia, cantidad, motivo, id_usuario, id_autorizo,
+                                                  producto.precio_compra)
+        return existencia
+
     def movimientos(self, limite=MOVIMIENTOS_A_MOSTRAR):
         return self.repo_productos.listar_movimientos(limite)
 
@@ -355,6 +368,7 @@ class ServicioDeReportes:
 ACCESO_INCORRECTO = "Usuario o clave incorrectos"     # el mismo mensaje siempre: no revela qué usuarios existen
 SIN_INGRESAR = "Primero ingrese con su usuario y clave"
 SOLO_EL_JEFE = "Solo el jefe puede hacer esto"
+AUTORIZACION_INCORRECTA = "Usuario o clave del jefe incorrectos"
 
 
 class ServicioDeUsuarios:
@@ -390,6 +404,16 @@ class ServicioDeUsuarios:
         if encontrado is None or not encontrado.activo or not encontrado.clave_correcta(clave):
             raise ValueError(ACCESO_INCORRECTO)
         return encontrado
+
+    def autorizar(self, usuario, clave, permiso):
+        """Fase 3: alguien con ese permiso (el jefe) escribe su usuario y su clave para autorizar una acción."""
+        try:
+            quien = self.iniciar_sesion(usuario, clave)
+        except ValueError:
+            quien = None
+        if quien is None or not quien.rol.puede(permiso):
+            raise ValueError(AUTORIZACION_INCORRECTA)
+        return quien
 
     def cambiar_clave(self, id_usuario, clave):
         usuario = self.obtener(id_usuario)

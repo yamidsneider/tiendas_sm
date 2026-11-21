@@ -290,3 +290,15 @@ carrito. *Impacto:* `--tkinter` ya no abre la versión Tkinter (no pide clave y 
 normal. Las pruebas de la API ingresan como jefe con `tests/sesion_de_prueba.py`.
 *Pendiente:* clave del jefe para la salida manual (fase 3); registrar qué usuario hizo cada venta (fase 4, caja); bloqueo
 tras varios intentos fallidos (recomendación, no pedida).
+
+**Fase 3: salida manual de mercancía (respuesta 4.4 del propietario; *aprobada* por el desarrollador, 21 de noviembre de 2026).**
+*Qué hace:* en Existencias, «− Salida» baja las unidades de un producto sin venderlo, con un movimiento `SALIDA_MANUAL` que
+guarda el motivo, quién la registró (`id_usuario`), quién la autorizó (`id_autorizo`) y el precio de compra de ese momento
+(`costo_unitario`); columnas nuevas de `movimientos_inventario` con migración. No deja sacar más de lo que hay. El historial
+muestra «Salida manual (motivo)» y Reportes suma «Salidas de mercancía (al costo)».
+*Autorización (respuesta 4.4, «con clave del jefe»):* el jefe la registra directo (`Permiso.REGISTRAR_SALIDA`); el empleado solo
+si el jefe escribe ahí mismo su usuario y su clave (`ServicioDeUsuarios.autorizar`). Clave de otro empleado o clave mala:
+«Usuario o clave del jefe incorrectos».
+*Preliminar (decisión del desarrollador sin respuesta del propietario):* motivos Dañado, Vencido, Consumo propio y Otro;
+en «Otro» el detalle es obligatorio. Los lotes siguen siendo solo aviso: una salida por «Vencido» no quita el lote de la lista
+(eso llega con la fase 9).
