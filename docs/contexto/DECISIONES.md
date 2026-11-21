@@ -315,3 +315,17 @@ transferencia) + abonos − efectivo devuelto, desde la hora de apertura (usa el
 abonos se cuentan como efectivo porque no se registra cómo se pagaron. Jefe y empleado abren y cierran (`Permiso.MANEJAR_CAJA`).
 Con la caja cerrada **se puede vender**, pero el punto de venta avisa que esa venta no entra en ningún cierre.
 *Pendiente:* forma de pago del abono (efectivo o transferencia); si se debe impedir vender con la caja cerrada.
+
+**Fase 5: respaldos en una carpeta del PC y restaurar (respuesta 5.2; *aprobada* por el desarrollador, 21 de noviembre de 2026).**
+*Respuesta del desarrollador:* la copia se guarda en una carpeta del mismo PC (no USB ni nube).
+*Qué hace:* `ServicioDeRespaldos` (en `respaldo.py`, infraestructura) copia la base con la API de respaldo de SQLite a
+`respaldo_AAAA-MM-DDTHHMMSS.db` solo si `integrity_check` da «ok», y conserva las 30 más recientes. Carpeta por defecto
+`Documentos\TIENDAS_SM respaldos` (la pone `iniciar_tienda.py`); el jefe la cambia en la sección **Respaldos** (tabla nueva
+`configuracion`, clave/valor, que reusará la fase 6). Se copia al cerrar la app (además del respaldo de siempre en
+`%LOCALAPPDATA%`), al cerrar la caja (respuesta 5.2, «respaldo al cerrar turno») y con «Respaldar ahora».
+*Restaurar (solo el jefe, `Permiso.GESTIONAR_RESPALDOS`):* solo archivos de la lista de la carpeta; revisa que el archivo esté
+sano y sea una base de la tienda; guarda antes `antes_de_restaurar_…db` con el estado actual; copia el respaldo encima de la
+base abierta, migra el esquema (`preparar_esquema`, por si es de una versión vieja) y cierra la sesión.
+*Limitaciones:* la copia queda en el mismo PC: si el disco se daña, se pierden la base y los respaldos (riesgo aceptado por
+el desarrollador). Si Documentos está en OneDrive, la carpeta por defecto puede no ser la que se ve en el Explorador: el jefe
+puede elegir otra. Restaurar un respaldo de antes de elegir carpeta vuelve a la carpeta por defecto.

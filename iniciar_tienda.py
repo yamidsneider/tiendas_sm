@@ -23,6 +23,7 @@ from tiendas_sm.telemetria import Telemetria
 
 CARPETA_DE_DATOS = "TIENDAS_SM"
 ARCHIVO_DE_DATOS = "tiendas_sm.db"
+CARPETA_DE_RESPALDOS = "TIENDAS_SM respaldos"           # fase 5, dentro de Documentos
 OPCION_DATOS_DE_EJEMPLO = "--datos-de-ejemplo"
 OPCION_TKINTER = "--tkinter"
 TITULO = "TIENDAS S.M"
@@ -55,15 +56,26 @@ def configurar_telemetria(carpeta):
     return Telemetria(escribir=registro.info, tasa_muestreo=TASA_DE_MUESTREO)
 
 
-def abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria=None):
+def carpeta_de_respaldos_por_defecto(inicio=None):
+    """Fase 5: una carpeta visible del PC, Documentos\\TIENDAS_SM respaldos. El jefe la puede cambiar en la app."""
+    return Path(inicio or Path.home()) / "Documents" / CARPETA_DE_RESPALDOS
+
+
+def abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria=None, carpeta_de_respaldos=None):
     """Crea la carpeta si falta y abre la base. Devuelve (app, True si cargó los datos de ejemplo)."""
     ruta.parent.mkdir(parents=True, exist_ok=True)
-    app = Aplicacion(str(ruta), telemetria=telemetria)
+    app = Aplicacion(str(ruta), telemetria=telemetria, carpeta_de_respaldos=carpeta_de_respaldos)
     return app, con_datos_de_ejemplo and cargar_datos_de_ejemplo(app)
 
 
 def cerrar_y_respaldar(app, ruta, telemetria=None, ahora=None):
-    """FPI-30 (INC-SIM-01): al cerrar, se suelta la base y se respalda solo si está sana. Devuelve el respaldo o None."""
+    """FPI-30 (INC-SIM-01): al cerrar, se suelta la base y se respalda solo si está sana. Devuelve el respaldo o None.
+    Fase 5: antes de soltarla se copia también a la carpeta de respaldos, si hay una (un fallo ahí no impide cerrar)."""
+    try:
+        if app.respaldos.carpeta() is not None:
+            app.respaldos.respaldar_ahora(ahora)
+    except (ValueError, OSError):
+        pass                              # la base dañada ya la avisa revisar_al_abrir; no se pierde el cierre
     app.conexion.close()
     return respaldar(ruta, telemetria, ahora)
 
@@ -71,11 +83,12 @@ def cerrar_y_respaldar(app, ruta, telemetria=None, ahora=None):
 Tienda = namedtuple("Tienda", "hilo app api cargo_ejemplo")
 
 
-def preparar_tienda(ruta, con_datos_de_ejemplo, telemetria=None):
+def preparar_tienda(ruta, con_datos_de_ejemplo, telemetria=None, carpeta_de_respaldos=None):
     """Abre la base DENTRO del hilo de la base (SQLite solo acepta ese hilo) y arma la API para la página."""
     from interfaz_web.api import ApiDeLaTienda, HiloDeLaBase
     hilo = HiloDeLaBase()
-    app, cargo_ejemplo = hilo.ejecutar(lambda: abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria))
+    app, cargo_ejemplo = hilo.ejecutar(lambda: abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria,
+                                                                carpeta_de_respaldos))
     return Tienda(hilo, app, ApiDeLaTienda(app, hilo.ejecutar), cargo_ejemplo)
 
 
@@ -116,7 +129,7 @@ def abrir_ventana(ruta, con_datos_de_ejemplo, telemetria):
     import webview                                            # se importa aquí: las pruebas y el CI no lo necesitan
     from interfaz_web.pagina import armar_pagina
 
-    tienda = preparar_tienda(ruta, con_datos_de_ejemplo, telemetria)
+    tienda = preparar_tienda(ruta, con_datos_de_ejemplo, telemetria, carpeta_de_respaldos_por_defecto())
     informar_inicio(ruta, tienda.cargo_ejemplo)
     try:
         webview.create_window(TITULO, html=armar_pagina(), js_api=tienda.api, width=TAMANO_DE_LA_VENTANA[0],

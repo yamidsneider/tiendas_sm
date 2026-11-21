@@ -418,6 +418,23 @@ class RepositorioDeUsuarios(PuertoDeUsuarios):
                        bool(fila["activo"]))
 
 
+# ---------------------------------------------------------------------- configuración (fase 5; la usará la fase 6)
+class RepositorioDeConfiguracion:
+    """Pares clave/valor en texto (por ejemplo la carpeta de los respaldos). Es infraestructura: el núcleo no la usa."""
+
+    def __init__(self, conexion):
+        self.conexion = conexion
+
+    def obtener(self, clave, por_defecto=None):
+        fila = self.conexion.execute("SELECT valor FROM configuracion WHERE clave=?", (clave,)).fetchone()
+        return fila[0] if fila else por_defecto
+
+    def guardar(self, clave, valor):
+        with self.conexion:
+            self.conexion.execute("INSERT INTO configuracion (clave, valor) VALUES (?,?) "
+                                  "ON CONFLICT(clave) DO UPDATE SET valor=excluded.valor", (clave, valor))
+
+
 # ---------------------------------------------------------------------- caja (fase 4)
 def _fecha_o_nada(texto):
     return datetime.fromisoformat(texto) if texto else None

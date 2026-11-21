@@ -25,6 +25,7 @@ from tiendas_sm.presentador_creditos import PresentadorDeCreditos
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
 from tiendas_sm.presentador_reportes import PresentadorDeReportes
+from tiendas_sm.presentador_respaldos import PresentadorDeRespaldos
 from tiendas_sm.presentador_usuarios import PresentadorDeUsuarios
 from tiendas_sm.presentador_ventas import PresentadorDeVentas
 
@@ -89,6 +90,7 @@ class ApiDeLaTienda:
         self._creditos = PresentadorDeCreditos(app)
         self._reportes = PresentadorDeReportes(app)
         self._caja = PresentadorDeCaja(app)
+        self._respaldos = PresentadorDeRespaldos(app)
 
     # ------------------------------------------------------------------ ingreso (fase 2): libres, sin permiso
     def estado_sesion(self):
@@ -128,8 +130,42 @@ class ApiDeLaTienda:
 
     @requiere(Permiso.MANEJAR_CAJA)
     def cerrar_caja(self, contado):
+        """Fase 5 (respuesta 5.2): al cerrar la caja se hace también un respaldo en la carpeta."""
         quien = self._usuarios.sesion.usuario
-        return self._ejecutar(lambda: _resultado(self._caja.cerrar(contado, quien)))
+
+        def cerrar():
+            resultado = _resultado(self._caja.cerrar(contado, quien))
+            if resultado["exito"]:
+                resultado["mensaje"] += self._respaldos.respaldar_si_hay_carpeta()
+            return resultado
+        return self._ejecutar(cerrar)
+
+    # ------------------------------------------------------------------ respaldos (fase 5): solo el jefe
+    @requiere(Permiso.GESTIONAR_RESPALDOS)
+    def respaldos(self):
+        def consultar():
+            datos = self._respaldos.datos()
+            return {"carpeta": datos["carpeta"], "filas": _filas(datos["filas"])}
+        return self._ejecutar(consultar)
+
+    @requiere(Permiso.GESTIONAR_RESPALDOS)
+    def cambiar_carpeta_respaldos(self, carpeta):
+        return self._ejecutar(lambda: _resultado(self._respaldos.cambiar_carpeta(str(carpeta))))
+
+    @requiere(Permiso.GESTIONAR_RESPALDOS)
+    def respaldar_ahora(self):
+        return self._ejecutar(lambda: _resultado(self._respaldos.respaldar_ahora()))
+
+    @requiere(Permiso.GESTIONAR_RESPALDOS)
+    def restaurar_respaldo(self, nombre):
+        """Los usuarios pueden ser otros en el respaldo: se cierra la sesión y se vacía el carrito."""
+        def restaurar():
+            resultado = self._respaldos.restaurar(str(nombre))
+            if resultado.exito:
+                self._venta.limpiar()
+                self._usuarios.cerrar_sesion()
+            return self._con_estado(resultado)
+        return self._ejecutar(restaurar)
 
     @requiere(Permiso.VER_REPORTES)
     def historial_caja(self):
