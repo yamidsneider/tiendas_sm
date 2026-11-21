@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from tiendas_sm.dominio import Permiso
 from tiendas_sm.presentador import PresentadorPuntoDeVenta, formato_pesos
+from tiendas_sm.presentador_caja import PresentadorDeCaja
 from tiendas_sm.presentador_clientes import PresentadorDeClientes
 from tiendas_sm.presentador_creditos import PresentadorDeCreditos
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
@@ -87,6 +88,7 @@ class ApiDeLaTienda:
         self._clientes = PresentadorDeClientes(app)
         self._creditos = PresentadorDeCreditos(app)
         self._reportes = PresentadorDeReportes(app)
+        self._caja = PresentadorDeCaja(app)
 
     # ------------------------------------------------------------------ ingreso (fase 2): libres, sin permiso
     def estado_sesion(self):
@@ -109,6 +111,29 @@ class ApiDeLaTienda:
 
     def _con_estado(self, resultado):
         return {**_resultado(resultado), "estado": self._usuarios.estado()}
+
+    # ------------------------------------------------------------------ caja (fase 4)
+    @requiere(Permiso.VENDER)
+    def estado_caja(self):
+        return self._ejecutar(self._caja.estado)
+
+    @requiere(Permiso.MANEJAR_CAJA)
+    def abrir_caja(self, base):
+        quien = self._usuarios.sesion.usuario
+        return self._ejecutar(lambda: _resultado(self._caja.abrir(base, quien)))
+
+    @requiere(Permiso.MANEJAR_CAJA)
+    def revisar_cierre(self, contado):
+        return self._ejecutar(lambda: self._caja.revisar(contado))
+
+    @requiere(Permiso.MANEJAR_CAJA)
+    def cerrar_caja(self, contado):
+        quien = self._usuarios.sesion.usuario
+        return self._ejecutar(lambda: _resultado(self._caja.cerrar(contado, quien)))
+
+    @requiere(Permiso.VER_REPORTES)
+    def historial_caja(self):
+        return self._ejecutar(lambda: _filas(self._caja.historial()))
 
     # ------------------------------------------------------------------ usuarios (fase 2): solo el jefe
     @requiere(Permiso.GESTIONAR_USUARIOS)

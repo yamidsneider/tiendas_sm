@@ -194,3 +194,6 @@ td.num{white-space:nowrap}
 .ingreso .btn-p{width:100%;margin-top:6px}
 .sesion{margin:16px 14px 0;padding:12px;border-radius:10px;background:rgba(255,255,255,.08);color:#fff;display:flex;flex-direction:column;gap:8px}
 .sesion .sec{color:#a5cdbb}
+/* fase 4: abrir caja */
+.caja-form{max-width:420px}
+.caja-form .btn-p{width:100%;margin-top:6px}

@@ -3,13 +3,13 @@ from datetime import date, datetime
 
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
                                 Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote,
-                                ResumenDeVentas, ProductoMasVendido, Usuario)
-from tiendas_sm.puertos import (PuertoDeClientes, PuertoDeProductos, PuertoDeReportes, PuertoDeUsuarios,
+                                ResumenDeVentas, ProductoMasVendido, TurnoDeCaja, Usuario)
+from tiendas_sm.puertos import (PuertoDeCaja, PuertoDeClientes, PuertoDeProductos, PuertoDeReportes, PuertoDeUsuarios,
                                 RepositorioDeVentas)
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
 __all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes",
-           "RepositorioDeReportesSqlite", "RepositorioDeUsuarios"]
+           "RepositorioDeReportesSqlite", "RepositorioDeUsuarios", "RepositorioDeCaja"]
 
 MOVIMIENTO_SALIDA_VENTA = "SALIDA_VENTA"
 MOVIMIENTO_DEVOLUCION = "DEVOLUCION"
@@ -416,3 +416,44 @@ class RepositorioDeUsuarios(PuertoDeUsuarios):
     def _a_usuario(fila):
         return Usuario(fila["id_usuario"], fila["nombre"], fila["usuario"], fila["rol"], fila["clave_hash"], fila["sal"],
                        bool(fila["activo"]))
+
+
+# ---------------------------------------------------------------------- caja (fase 4)
+def _fecha_o_nada(texto):
+    return datetime.fromisoformat(texto) if texto else None
+
+
+class RepositorioDeCaja(PuertoDeCaja):
+    def __init__(self, conexion):
+        self.conexion = conexion
+
+    def guardar(self, turno):
+        cerrado = turno.cerrado_en.isoformat() if turno.cerrado_en else None
+        with self.conexion:
+            if turno.id_turno is None:
+                cursor = self.conexion.execute(
+                    "INSERT INTO turnos_caja (base, abierto_en, id_usuario_abre) VALUES (?,?,?)",
+                    (turno.base, turno.abierto_en.isoformat(), turno.id_usuario_abre))
+                turno.id_turno = cursor.lastrowid
+            else:
+                self.conexion.execute(
+                    "UPDATE turnos_caja SET cerrado_en=?, id_usuario_cierra=?, efectivo_esperado=?, efectivo_contado=? "
+                    "WHERE id_turno=?", (cerrado, turno.id_usuario_cierra, turno.efectivo_esperado,
+                                         turno.efectivo_contado, turno.id_turno))
+        return turno
+
+    def turno_abierto(self):
+        fila = self.conexion.execute("SELECT * FROM turnos_caja WHERE cerrado_en IS NULL "
+                                     "ORDER BY id_turno DESC LIMIT 1").fetchone()
+        return self._a_turno(fila) if fila else None
+
+    def listar_cerrados(self, limite):
+        filas = self.conexion.execute("SELECT * FROM turnos_caja WHERE cerrado_en IS NOT NULL "
+                                      "ORDER BY id_turno DESC LIMIT ?", (limite,)).fetchall()
+        return [self._a_turno(fila) for fila in filas]
+
+    @staticmethod
+    def _a_turno(fila):
+        return TurnoDeCaja(fila["id_turno"], fila["base"], datetime.fromisoformat(fila["abierto_en"]),
+                           fila["id_usuario_abre"], _fecha_o_nada(fila["cerrado_en"]), fila["id_usuario_cierra"],
+                           fila["efectivo_esperado"], fila["efectivo_contado"])

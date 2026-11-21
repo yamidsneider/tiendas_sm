@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion, Lote,
-                                CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS, Rol, Usuario,
-                                normalizar_usuario)
-from tiendas_sm.validaciones import exigir_mayor_a_cero
+                                CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS, Rol, TurnoDeCaja,
+                                Usuario, normalizar_usuario)
+from tiendas_sm.validaciones import exigir_mayor_a_cero, exigir_no_negativo
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
 MOVIMIENTOS_A_MOSTRAR = 50          # RF-04: el historial muestra los últimos, no toda la historia
@@ -362,6 +362,60 @@ class ServicioDeReportes:
         desde, hasta = rango_del_periodo(Periodo(periodo), ahora or datetime.now())
         return ReporteDeVentas(desde, hasta, self.repo_reportes.resumen_de_ventas(desde, hasta),
                                self.repo_reportes.mas_vendidos(desde, hasta, MAS_VENDIDOS_A_MOSTRAR))
+
+
+# ---------------------------------------------------------------------- caja (fase 4)
+TURNOS_EN_EL_HISTORIAL = 30
+UN_INSTANTE = timedelta(seconds=1)      # para que entre lo registrado en el mismo segundo de la consulta
+DetalleDeCaja = namedtuple("DetalleDeCaja", "base ventas_en_efectivo abonos efectivo_devuelto esperado")
+RevisionDeCierre = namedtuple("RevisionDeCierre", "esperado contado diferencia")
+
+
+class ServicioDeCaja:
+    """Abrir el turno con la base del día y cerrarlo con lo contado. El turno abierto queda en la base de datos,
+    así se puede cerrar la app sin cerrar la caja. Los totales salen del mismo PuertoDeReportes (fase 1)."""
+
+    def __init__(self, repo_caja, repo_reportes):
+        self.repo_caja = repo_caja
+        self.repo_reportes = repo_reportes
+
+    def turno_abierto(self):
+        return self.repo_caja.turno_abierto()
+
+    def abrir(self, base, id_usuario, ahora=None):
+        abierto = self.turno_abierto()
+        if abierto is not None:
+            raise ValueError(f"Ya hay una caja abierta desde el {abierto.abierto_en:%d/%m/%Y %H:%M}")
+        return self.repo_caja.guardar(TurnoDeCaja(None, base, ahora or datetime.now(), id_usuario))
+
+    def esperado(self, ahora=None):
+        """*Preliminar:* base + ventas de contado en efectivo + abonos − efectivo devuelto, desde que se abrió."""
+        turno = self._exigir_turno_abierto()
+        resumen = self.repo_reportes.resumen_de_ventas(turno.abierto_en, (ahora or datetime.now()) + UN_INSTANTE)
+        esperado = turno.base + resumen.efectivo + resumen.abonos - resumen.efectivo_devuelto
+        return DetalleDeCaja(turno.base, resumen.efectivo, resumen.abonos, resumen.efectivo_devuelto, esperado)
+
+    def revisar_cierre(self, contado, ahora=None):
+        """Dice cuánto falta o sobra sin cerrar: si no cuadra, se puede cancelar y contar de nuevo."""
+        exigir_no_negativo(contado, "Lo contado no puede ser negativo")
+        esperado = self.esperado(ahora).esperado
+        return RevisionDeCierre(esperado, contado, contado - esperado)
+
+    def cerrar(self, contado, id_usuario, ahora=None):
+        ahora = ahora or datetime.now()
+        esperado = self.revisar_cierre(contado, ahora).esperado
+        turno = self._exigir_turno_abierto()
+        turno.cerrar(contado, esperado, id_usuario, ahora)
+        return self.repo_caja.guardar(turno)
+
+    def historial(self, limite=TURNOS_EN_EL_HISTORIAL):
+        return self.repo_caja.listar_cerrados(limite)
+
+    def _exigir_turno_abierto(self):
+        turno = self.turno_abierto()
+        if turno is None:
+            raise ValueError("No hay una caja abierta")
+        return turno
 
 
 # ---------------------------------------------------------------------- usuarios y sesión (fase 2, CR-01, RNF-03)

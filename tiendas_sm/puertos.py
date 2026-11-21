@@ -136,6 +136,22 @@ class PuertoDeUsuarios(ABC):
         """Todos, ordenados por nombre."""
 
 
+class PuertoDeCaja(ABC):
+    """Fase 4: turnos de caja. Como mucho uno abierto a la vez."""
+
+    @abstractmethod
+    def guardar(self, turno):
+        """Inserta (sin id) o actualiza el cierre del turno."""
+
+    @abstractmethod
+    def turno_abierto(self):
+        """El turno sin cerrar, o None."""
+
+    @abstractmethod
+    def listar_cerrados(self, limite):
+        """Los últimos turnos cerrados, del más reciente al más viejo."""
+
+
 class PuertoDeClientes(ABC):
     """Lo que el núcleo necesita para clientes."""
 
