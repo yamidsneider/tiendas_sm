@@ -11,6 +11,7 @@ const ICONOS = {
   existencias: '<path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/>',
   clientes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.8 3 2.5 3.5 5.2"/>',
   creditos: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>',
+  reportes: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
 };
 const SECCIONES = [
   { id: 'pos', titulo: 'Punto de venta', grupo: 'Operación' },
@@ -19,12 +20,13 @@ const SECCIONES = [
   { id: 'existencias', titulo: 'Existencias', grupo: 'Inventario' },
   { id: 'clientes', titulo: 'Clientes', grupo: 'Clientes y crédito' },
   { id: 'creditos', titulo: 'Créditos y abonos', grupo: 'Clientes y crédito' },
+  { id: 'reportes', titulo: 'Reportes', grupo: 'Administración' },
 ];
 const MENSAJE_FALLA = 'No se pudo completar la operación. Intente de nuevo; si sigue fallando, cierre y abra la tienda.';
 const MAXIMO_SUGERENCIAS = 8;
 
 let seccion = 'pos';
-const estado = { busquedas: {}, verPagadas: false, sugerencias: [], sugSel: 0, turno: 0, carrito: null, cobro: null };
+const estado = { busquedas: {}, verPagadas: false, sugerencias: [], sugSel: 0, turno: 0, carrito: null, cobro: null, periodo: 'hoy' };
 
 /* ------------------------------------------------------------------ utilidades */
 const $ = id => document.getElementById(id);
@@ -549,6 +551,33 @@ async function abrirAbono(id) {
     botonesGuardar('Registrar abono', 'guardar-abono', ` data-id="${esc(id)}"`));
 }
 
+/* ------------------------------------------------------------------ reportes (fase 1 de la hoja de ruta) */
+const PERIODOS = [['hoy', 'Hoy'], ['semana', 'Últimos 7 días'], ['mes', 'Este mes']];
+const COLOR_DE_TARJETA = ['', 'azul', 'ambar', 'azul'];   // '' = verde, el color base de .kpi
+
+VISTAS.reportes = async () => {
+  const r = await llamar('reporte', estado.periodo);
+  const filtros = PERIODOS.map(([valor, texto]) =>
+    `<button class="${r.periodo === valor ? 'sel' : ''}" data-accion="filtro-periodo" data-valor="${valor}">${esc(texto)}</button>`).join('');
+  const tarjetas = r.tarjetas.map(([rotulo, valor], i) => `<div class="kpi ${COLOR_DE_TARJETA[i]}"><div class="ic">${svg('reportes')}</div>
+    <div class="valor">${esc(valor)}</div><div class="rotulo">${esc(rotulo)}</div></div>`).join('');
+  const formas = r.formas.map(([forma, valor]) => `<tr><td>${esc(forma)}</td><td class="num"><b>${esc(valor)}</b></td></tr>`);
+  const productos = r.mas_vendidos.map(([nombre, unidades, valor], i) =>
+    `<tr><td>${i + 1}</td><td><b>${esc(nombre)}</b></td><td class="num">${esc(unidades)}</td><td class="num">${esc(valor)}</td></tr>`);
+  return {
+    sub: `Cómo le fue a la tienda · ${r.rango}`,
+    acciones: `<div class="filtros">${filtros}</div>`,
+    html: `<div class="kpis">${tarjetas}</div>
+      ${r.nota ? `<div class="aviso">${esc(r.nota)}</div>` : ''}
+      <div class="tabla-caja"><div class="cab-tabla"><h3>Por forma de pago</h3></div>
+        ${tabla(['Concepto', '>Valor'], formas, '')}
+        <div class="nota-pie">Vendido (neto) = lo vendido menos lo devuelto. Lo fiado no es dinero en caja: entra cuando el cliente abona.</div></div>
+      <div class="tabla-caja"><div class="cab-tabla"><h3>Productos más vendidos</h3></div>
+        ${tabla(['#', 'Producto', '>Unidades', '>Valor'], productos, 'No hay ventas en este periodo.')}
+        <div class="nota-pie">Ganancia = precio de venta menos precio de compra de lo vendido (sin gastos como arriendo o servicios).</div></div>`,
+  };
+};
+
 /* ------------------------------------------------------------------ acciones (clic en un elemento con data-accion) */
 const ACCIONES = {
   ir: el => ir(el.dataset.id),
@@ -589,6 +618,7 @@ const ACCIONES = {
   'ver-credito': async el => abrirModal('Detalle de la cuenta', papel(await llamar('detalle_credito', el.dataset.id)), [{ texto: 'Cerrar', clase: 'btn-p', accion: 'cerrar-modal' }]),
   abonar: el => abrirAbono(el.dataset.id),
   'guardar-abono': el => guardar('abonar', el.dataset.id, val('a-valor')),
+  'filtro-periodo': el => { estado.periodo = el.dataset.valor; render(); },
 };
 
 const ENTRADAS = {

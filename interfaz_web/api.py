@@ -18,6 +18,7 @@ from tiendas_sm.presentador_clientes import PresentadorDeClientes
 from tiendas_sm.presentador_creditos import PresentadorDeCreditos
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
+from tiendas_sm.presentador_reportes import PresentadorDeReportes
 from tiendas_sm.presentador_ventas import PresentadorDeVentas
 
 
@@ -64,6 +65,7 @@ class ApiDeLaTienda:
         self._existencias = PresentadorDeExistencias(app)
         self._clientes = PresentadorDeClientes(app)
         self._creditos = PresentadorDeCreditos(app)
+        self._reportes = PresentadorDeReportes(app)
 
     # ------------------------------------------------------------------ punto de venta (HU-04, CU-01, CU-02)
     def buscar(self, texto):
@@ -230,3 +232,12 @@ class ApiDeLaTienda:
 
     def abonar(self, id_cuenta, monto):
         return self._ejecutar(lambda: _resultado(self._creditos.abonar(_id(id_cuenta), monto)))
+
+    # ------------------------------------------------------------------ reportes (fase 1 de la hoja de ruta)
+    def reporte(self, periodo="hoy"):
+        """periodo: «hoy», «semana» o «mes». Las parejas y filas van como listas (así llegan igual a JavaScript)."""
+        def consultar():
+            datos = self._reportes.reporte(str(periodo))
+            return {**datos, **{clave: [list(fila) for fila in datos[clave]]
+                                for clave in ("tarjetas", "formas", "mas_vendidos")}}
+        return self._ejecutar(consultar)

@@ -1,11 +1,13 @@
 from datetime import date, datetime
 
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
-                                Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote)
-from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, RepositorioDeVentas
+                                Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote,
+                                ResumenDeVentas, ProductoMasVendido)
+from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, PuertoDeReportes, RepositorioDeVentas
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
-__all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes"]
+__all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes",
+           "RepositorioDeReportesSqlite"]
 
 MOVIMIENTO_SALIDA_VENTA = "SALIDA_VENTA"
 MOVIMIENTO_DEVOLUCION = "DEVOLUCION"
@@ -167,9 +169,9 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
         for detalle in venta.detalles:
             self.conexion.execute(
                 "INSERT INTO detalles_venta (id_venta, numero_linea, id_producto, cantidad, "
-                "precio_unitario_venta, subtotal_linea) VALUES (?,?,?,?,?,?)",
+                "precio_unitario_venta, subtotal_linea, costo_unitario) VALUES (?,?,?,?,?,?,?)",
                 (venta.id_venta, detalle.numero_linea, detalle.id_producto, detalle.cantidad,
-                 detalle.precio_unitario, detalle.subtotal()))
+                 detalle.precio_unitario, detalle.subtotal(), detalle.costo_unitario))
 
     def _insertar_cuenta(self, venta, cuenta):
         cuenta.id_venta = venta.id_venta
@@ -291,8 +293,8 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
         venta.valor_transferencia = fila["valor_transferencia"] or 0 if venta.forma_pago else None
         detalles = self.conexion.execute(
             "SELECT * FROM detalles_venta WHERE id_venta=? ORDER BY numero_linea", (venta.id_venta,)).fetchall()
-        venta.detalles = [DetalleVenta(d["numero_linea"], d["id_producto"], d["cantidad"], d["precio_unitario_venta"])
-                          for d in detalles]
+        venta.detalles = [DetalleVenta(d["numero_linea"], d["id_producto"], d["cantidad"], d["precio_unitario_venta"],
+                                       d["costo_unitario"]) for d in detalles]
         return venta
 
     def guardar_abono(self, cuenta, valor):
@@ -301,3 +303,62 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                                   (cuenta.id_cuenta, valor, _ahora()))
             self.conexion.execute("UPDATE cuentas_por_cobrar SET estado=? WHERE id_cuenta=?",
                                   (cuenta.estado.value, cuenta.id_cuenta))
+
+
+# ---------------------------------------------------------------------- reportes (fase 1)
+# Las fechas se guardan como texto ISO (TD-14), así que «fecha >= desde AND fecha < hasta» compara bien como texto.
+SQL_TOTALES_DE_VENTAS = (
+    "SELECT COUNT(*) AS numero, COALESCE(SUM(total), 0) AS vendido, "
+    "COALESCE(SUM(CASE WHEN tipo = 'CONTADO' THEN total - COALESCE(valor_transferencia, 0) END), 0) AS efectivo, "
+    "COALESCE(SUM(CASE WHEN tipo = 'CONTADO' THEN COALESCE(valor_transferencia, 0) END), 0) AS transferencia, "
+    "COALESCE(SUM(CASE WHEN tipo = 'CREDITO' THEN total END), 0) AS credito "
+    "FROM ventas WHERE fecha >= ? AND fecha < ?")
+SQL_TOTALES_DE_DEVOLUCIONES = ("SELECT COALESCE(SUM(valor), 0), COALESCE(SUM(efectivo_devuelto), 0) "
+                               "FROM devoluciones WHERE fecha >= ? AND fecha < ?")
+SQL_TOTAL_DE_ABONOS = "SELECT COALESCE(SUM(valor), 0) FROM abonos WHERE fecha >= ? AND fecha < ?"
+# Ganancia de lo vendido: precio de venta − costo guardado (o el precio de compra actual si la línea es vieja).
+SQL_GANANCIA_VENDIDA = (
+    "SELECT COALESCE(SUM(d.cantidad * (d.precio_unitario_venta - COALESCE(d.costo_unitario, p.precio_compra))), 0), "
+    "COALESCE(MAX(d.costo_unitario IS NULL), 0) "
+    "FROM detalles_venta d JOIN ventas v ON v.id_venta = d.id_venta JOIN productos p ON p.id_producto = d.id_producto "
+    "WHERE v.fecha >= ? AND v.fecha < ?")
+# Ganancia que se pierde con lo devuelto: con el mismo costo de la línea de la venta original.
+SQL_GANANCIA_DEVUELTA = (
+    "SELECT COALESCE(SUM(dd.cantidad * (dd.precio_unitario - COALESCE("
+    "(SELECT MAX(d.costo_unitario) FROM detalles_venta d WHERE d.id_venta = dv.id_venta AND d.id_producto = dd.id_producto), "
+    "p.precio_compra))), 0) "
+    "FROM detalles_devolucion dd JOIN devoluciones dv ON dv.id_devolucion = dd.id_devolucion "
+    "JOIN productos p ON p.id_producto = dd.id_producto WHERE dv.fecha >= ? AND dv.fecha < ?")
+# Unidades netas por producto: lo vendido en el rango menos lo devuelto en el rango.
+SQL_MAS_VENDIDOS = (
+    "SELECT p.id_producto, p.nombre, SUM(m.unidades) AS unidades, SUM(m.valor) AS valor FROM ("
+    "SELECT d.id_producto, d.cantidad AS unidades, d.subtotal_linea AS valor FROM detalles_venta d "
+    "JOIN ventas v ON v.id_venta = d.id_venta WHERE v.fecha >= ? AND v.fecha < ? "
+    "UNION ALL "
+    "SELECT dd.id_producto, -dd.cantidad, -dd.cantidad * dd.precio_unitario FROM detalles_devolucion dd "
+    "JOIN devoluciones dv ON dv.id_devolucion = dd.id_devolucion WHERE dv.fecha >= ? AND dv.fecha < ?"
+    ") m JOIN productos p ON p.id_producto = m.id_producto "
+    "GROUP BY p.id_producto HAVING SUM(m.unidades) > 0 ORDER BY unidades DESC, valor DESC, p.nombre LIMIT ?")
+
+
+class RepositorioDeReportesSqlite(PuertoDeReportes):
+    """Fase 1: solo consultas con parámetros (?), sin armar SQL con texto del usuario."""
+
+    def __init__(self, conexion):
+        self.conexion = conexion
+
+    def resumen_de_ventas(self, desde, hasta):
+        rango = (desde.isoformat(), hasta.isoformat())
+        ventas = self.conexion.execute(SQL_TOTALES_DE_VENTAS, rango).fetchone()
+        devuelto, efectivo_devuelto = self.conexion.execute(SQL_TOTALES_DE_DEVOLUCIONES, rango).fetchone()
+        abonos = self.conexion.execute(SQL_TOTAL_DE_ABONOS, rango).fetchone()[0]
+        ganancia, estimada = self.conexion.execute(SQL_GANANCIA_VENDIDA, rango).fetchone()
+        ganancia_devuelta = self.conexion.execute(SQL_GANANCIA_DEVUELTA, rango).fetchone()[0]
+        return ResumenDeVentas(ventas["numero"], ventas["vendido"], devuelto, efectivo_devuelto, ventas["efectivo"],
+                               ventas["transferencia"], ventas["credito"], abonos, ganancia - ganancia_devuelta,
+                               bool(estimada))
+
+    def mas_vendidos(self, desde, hasta, limite):
+        rango = (desde.isoformat(), hasta.isoformat())
+        filas = self.conexion.execute(SQL_MAS_VENDIDOS, rango + rango + (limite,)).fetchall()
+        return [ProductoMasVendido(f["id_producto"], f["nombre"], f["unidades"], f["valor"]) for f in filas]

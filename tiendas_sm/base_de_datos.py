@@ -80,6 +80,8 @@ COLUMNAS_NUEVAS_DE_PRODUCTOS = (
 )
 # Respuesta 1.5: lo que se descontó de la deuda por devoluciones (0 en las cuentas viejas).
 COLUMNAS_NUEVAS_DE_CUENTAS = (("valor_devuelto", "INTEGER NOT NULL DEFAULT 0"),)
+# Fase 1 (reportes): precio de compra al vender. NULL en las líneas viejas: el reporte usa el precio de compra actual.
+COLUMNAS_NUEVAS_DE_DETALLES = (("costo_unitario", "INTEGER"),)
 INDICE_DEL_CODIGO = "CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)"
 
 
@@ -93,6 +95,7 @@ class BaseDeDatos:
         self._agregar_columnas("clientes", COLUMNAS_NUEVAS_DE_CLIENTES)
         self._agregar_columnas("productos", COLUMNAS_NUEVAS_DE_PRODUCTOS)
         self._agregar_columnas("cuentas_por_cobrar", COLUMNAS_NUEVAS_DE_CUENTAS)
+        self._agregar_columnas("detalles_venta", COLUMNAS_NUEVAS_DE_DETALLES)
         with self.conexion:
             self.conexion.execute(INDICE_DEL_CODIGO)            # después de la migración: la columna ya existe
 

@@ -11,8 +11,9 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
    para que Yamid pueda entenderlo y defenderlo. Él es responsable final de todo lo que entregue.
 2. **No inventes requisitos ni los presentes como aprobados.** Distingue siempre: *definido*, *preliminar* y *recomendación*.
    Si crees que hace falta una función nueva, proponla como recomendación y **pregunta antes** de programarla.
-3. **Mantén el alcance pequeño.** No agregues proveedores, pedidos, caja, devoluciones, facturación, reportes, roles ni
-   usuarios: son ampliación **CR-02 / CR-01 sin aprobar** (hoy *Won't Have*). Tampoco hay borrar productos ni anular ventas (DT-08).
+3. **Sigue la hoja de ruta** `docs/HOJA_DE_RUTA_APP_COMPLETA.md` (aprobada en noviembre de 2026): una fase por rama, en su orden.
+   Devoluciones/anulaciones (grupo B) y reportes (fase 1) ya están aprobados. Lo que no esté en la ruta sigue sin aprobar;
+   facturación electrónica no se agrega. No hay borrar productos (se propone desactivarlos en la fase 6).
 4. **Antes de cambiar una decisión importante, explica por qué conviene** y espera su visto bueno. Registra el cambio con causa e impacto.
 5. **Trazabilidad:** cada cambio cita su historia o requisito (HU-xx, RF-xx, CU-01, RNF-xx, BUG-xx, DT-xx). Conserva el nombre **TIENDAS S.M**.
 6. **Honestidad ante todo.** No digas que algo funciona si no lo ejecutaste. Corre las pruebas antes de dar una tarea por terminada
