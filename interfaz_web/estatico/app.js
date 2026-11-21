@@ -12,11 +12,13 @@ const ICONOS = {
   clientes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.8 3 2.5 3.5 5.2"/>',
   creditos: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>',
   reportes: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  caja: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M7 4h10v3M8 15h3"/>',
   usuarios: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/><circle cx="12" cy="15.5" r="1.5"/>',
 };
 const SECCIONES = [
   { id: 'pos', titulo: 'Punto de venta', grupo: 'Operación' },
   { id: 'ventas', titulo: 'Ventas', grupo: 'Operación' },
+  { id: 'caja', titulo: 'Caja', grupo: 'Operación', permiso: 'manejar_caja' },
   { id: 'productos', titulo: 'Productos', grupo: 'Inventario' },
   { id: 'existencias', titulo: 'Existencias', grupo: 'Inventario' },
   { id: 'clientes', titulo: 'Clientes', grupo: 'Clientes y crédito' },
@@ -185,7 +187,7 @@ async function refrescarTabla() {
 VISTAS.pos = async () => ({
   sub: 'Pasa el lector de código de barras o escribe el nombre y presiona Enter',
   acciones: '<button class="btn btn-o" data-accion="limpiar-carrito">Limpiar venta</button>',
-  html: `<div class="pos"><div>
+  html: `<div id="aviso-caja"></div><div class="pos"><div>
       <div class="tarjeta margen"><div class="pos-busca">
         <div class="pos-fila"><label class="ocultar-visual" for="pos-q">Nombre del producto</label>
           <input id="pos-q" class="grande" placeholder="Código de barras o nombre del producto  (F2)" autocomplete="off" data-entrada="pos-buscar">
@@ -202,7 +204,15 @@ VISTAS.pos = async () => ({
       <div class="tarjeta arriba"><h3>Atajos</h3><div class="sec atajos"><span class="tecla">F2</span> buscar producto · <span class="tecla">Enter</span> agregar<br>
         <span class="tecla">F9</span> cobrar de contado · <span class="tecla">F4</span> a crédito<br><span class="tecla">Esc</span> cerrar ventana o limpiar la búsqueda</div></div>
     </div></div>`,
-  despues: async () => { pintarCarrito(await llamar('carrito')); $('pos-q').focus(); },
+  despues: async () => {
+    pintarCarrito(await llamar('carrito'));
+    $('pos-q').focus();
+    const caja = await llamar('estado_caja');       // fase 4: se puede vender con la caja cerrada, pero se avisa
+    if (!caja.abierta && $('aviso-caja')) {
+      $('aviso-caja').innerHTML = `<div class="aviso">La caja está cerrada: lo que se venda no entra en ningún cierre.
+        <button class="btn btn-s btn-ch" data-accion="ir" data-id="caja">Abrir caja</button></div>`;
+    }
+  },
 });
 
 function pintarCarrito(carrito) {
@@ -649,6 +659,59 @@ VISTAS.reportes = async () => {
   };
 };
 
+/* ------------------------------------------------------------------ caja (fase 4) */
+async function historialDeCaja() {
+  if (!puede('ver_reportes')) return '';
+  const filas = (await llamar('historial_caja')).map(f => {
+    const [abrio, cerro, quienAbre, quienCierra, base, esperado, contado, diferencia] = f.valores;
+    const clase = diferencia === 'La caja cuadra' ? 'i-ok' : diferencia.startsWith('Faltan') ? 'i-mal' : 'i-av';
+    return `<tr><td>${esc(abrio)}<div class="sec">${esc(quienAbre)}</div></td><td>${esc(cerro)}<div class="sec">${esc(quienCierra)}</div></td>
+      <td class="num">${esc(base)}</td><td class="num">${esc(esperado)}</td><td class="num"><b>${esc(contado)}</b></td><td>${insignia(clase, diferencia)}</td></tr>`;
+  });
+  return `<div class="tabla-caja"><div class="cab-tabla"><h3>Cierres anteriores</h3></div>
+    ${tabla(['Abrió', 'Cerró', '>Base', '>Esperado', '>Contado', 'Resultado'], filas, 'Todavía no hay cierres.')}</div>`;
+}
+
+VISTAS.caja = async () => {
+  const caja = await llamar('estado_caja');
+  if (!caja.abierta) {
+    return {
+      sub: 'Abra la caja al empezar el día con el dinero que hay para dar cambio',
+      html: `<div class="tarjeta margen caja-form"><h3>Abrir caja</h3>
+        ${campo('Base (efectivo con que abre)', 'c-base', '<input id="c-base" type="number" min="0" placeholder="Ej.: 50000">', 'Cambia cada día: escriba lo que hay ahora en la caja.')}
+        <button class="btn btn-p" data-accion="abrir-caja">Abrir caja</button></div>${await historialDeCaja()}`,
+      despues: () => $('c-base').focus(),
+    };
+  }
+  const filas = caja.detalle.map(([concepto, valor]) => `<tr><td>${esc(concepto)}</td><td class="num">${esc(valor)}</td></tr>`);
+  filas.push(`<tr><td><b>Debería haber en efectivo</b></td><td class="num"><b>${esc(caja.esperado)}</b></td></tr>`);
+  return {
+    sub: `Abierta desde el ${caja.desde} por ${caja.abrio}`,
+    acciones: '<button class="btn btn-p" data-accion="contar-caja">Cerrar caja</button>',
+    html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Efectivo del turno</h3></div>${tabla(['Concepto', '>Valor'], filas, '')}
+      <div class="nota-pie">Las transferencias y lo fiado no están en la caja. Los abonos se cuentan como efectivo.
+      Puede cerrar la aplicación sin cerrar la caja: el turno sigue abierto la próxima vez.</div></div>${await historialDeCaja()}`,
+  };
+};
+
+function abrirConteo() {
+  abrirModal('Cerrar caja', `${campo('¿Cuánto efectivo hay en la caja?', 'c-contado', '<input id="c-contado" type="number" min="0">', 'Cuente billetes y monedas, incluida la base.')}`,
+    [{ texto: 'Cancelar', accion: 'cerrar-modal' }, { texto: 'Revisar', clase: 'btn-p', accion: 'revisar-caja' }]);
+}
+
+/* Muestra cuánto falta o sobra; «Contar de nuevo» vuelve al conteo sin cerrar y «Cerrar caja» confirma. */
+async function revisarCaja() {
+  const contado = val('c-contado');
+  const r = await llamar('revisar_cierre', contado);
+  if (!r.exito) { errorModal(r.mensaje); return; }
+  const clase = r.cuadra ? 'verde' : 'roja';
+  abrirModal('Cerrar caja', `<div class="aviso ${clase}"><b>${esc(r.mensaje)}</b></div>
+    ${tabla(['Concepto', '>Valor'], [`<tr><td>Debería haber</td><td class="num">${esc(r.esperado)}</td></tr>`,
+      `<tr><td>Contó</td><td class="num"><b>${esc(r.contado)}</b></td></tr>`], '')}
+    <div class="nota-pie">Si cree que se equivocó al contar, cuente de nuevo antes de cerrar.</div>`,
+  [{ texto: 'Contar de nuevo', accion: 'contar-caja' }, { texto: 'Cerrar caja', clase: 'btn-p', accion: 'confirmar-cierre', datos: ` data-contado="${esc(contado)}"` }]);
+}
+
 /* ------------------------------------------------------------------ usuarios (fase 2, solo el jefe) */
 VISTAS.usuarios = async () => {
   const filas = (await llamar('usuarios')).map(f => {
@@ -713,6 +776,10 @@ const ACCIONES = {
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
   'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
   'nueva-salida': el => abrirSalida(el.dataset.id),
+  'abrir-caja': async () => { const r = await llamar('abrir_caja', val('c-base')); aviso(r.mensaje, !r.exito); if (r.exito) render(); },
+  'contar-caja': abrirConteo,
+  'revisar-caja': revisarCaja,
+  'confirmar-cierre': el => guardar('cerrar_caja', el.dataset.contado),
   'guardar-salida': () => guardar('registrar_salida', val('s-producto'), val('s-cantidad'), val('s-motivo'), val('s-detalle'), val('s-jefe'), val('s-clave')),
   'nuevo-lote': abrirLote,
   'guardar-lote': () => guardar('registrar_lote', val('l-producto'), val('l-numero'), val('l-fecha'), val('l-cantidad')),

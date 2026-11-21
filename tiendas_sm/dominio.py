@@ -54,6 +54,7 @@ class Permiso(str, Enum):
     REGISTRAR_ENTRADA = "registrar_entrada"        # entradas de mercancía y lotes
     REGISTRAR_ABONO = "registrar_abono"
     REGISTRAR_SALIDA = "registrar_salida"          # fase 3: sin él, la salida pide la clave del jefe
+    MANEJAR_CAJA = "manejar_caja"                  # fase 4: abrir y cerrar el turno de caja
     DEVOLVER = "devolver"                        # devolver productos o anular una venta
     GESTIONAR_PRODUCTOS = "gestionar_productos"    # crear, editar y cambiar precios
     GESTIONAR_CLIENTES = "gestionar_clientes"      # crear y editar (cupo y plazo del fiado)
@@ -77,7 +78,8 @@ class Rol(str, Enum):
 # precios, cupos de fiado o usuarios queda para el jefe.
 PERMISOS_POR_ROL = {
     Rol.JEFE: frozenset(Permiso),
-    Rol.EMPLEADO: frozenset({Permiso.VENDER, Permiso.CONSULTAR, Permiso.REGISTRAR_ENTRADA, Permiso.REGISTRAR_ABONO}),
+    Rol.EMPLEADO: frozenset({Permiso.VENDER, Permiso.CONSULTAR, Permiso.REGISTRAR_ENTRADA, Permiso.REGISTRAR_ABONO,
+                             Permiso.MANEJAR_CAJA}),
 }
 LARGO_MINIMO_DE_LA_CLAVE = 4             # como un PIN: fácil de escribir en la caja
 ITERACIONES_DE_LA_CLAVE = 200_000        # PBKDF2: hace lento adivinar la clave aunque alguien copie la base
@@ -342,6 +344,40 @@ class ResumenDeVentas(namedtuple("ResumenDeVentas", "numero_de_ventas vendido de
     @property
     def neto(self):
         return self.vendido - self.devuelto
+
+
+# ---------------------------------------------------------------------- caja (fase 4)
+class TurnoDeCaja:
+    """Un turno de caja: se abre con la base del día y se cierra con lo contado (arqueo).
+    diferencia = contado − esperado: negativa si falta dinero, positiva si sobra."""
+
+    def __init__(self, id_turno, base, abierto_en, id_usuario_abre, cerrado_en=None, id_usuario_cierra=None,
+                 efectivo_esperado=None, efectivo_contado=None):
+        exigir_no_negativo(base, "La base no puede ser negativa")
+        self.id_turno = id_turno
+        self.base = base
+        self.abierto_en = abierto_en
+        self.id_usuario_abre = id_usuario_abre
+        self.cerrado_en = cerrado_en
+        self.id_usuario_cierra = id_usuario_cierra
+        self.efectivo_esperado = efectivo_esperado
+        self.efectivo_contado = efectivo_contado
+
+    def esta_abierto(self):
+        return self.cerrado_en is None
+
+    @property
+    def diferencia(self):
+        if self.efectivo_contado is None:
+            return None
+        return self.efectivo_contado - self.efectivo_esperado
+
+    def cerrar(self, contado, esperado, id_usuario, ahora):
+        exigir_no_negativo(contado, "Lo contado no puede ser negativo")
+        self.efectivo_contado = contado
+        self.efectivo_esperado = esperado
+        self.id_usuario_cierra = id_usuario
+        self.cerrado_en = ahora
 
 
 ProductoMasVendido = namedtuple("ProductoMasVendido", "id_producto nombre unidades valor")

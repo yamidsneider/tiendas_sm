@@ -61,6 +61,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL, usuario TEXT NOT NULL UNIQUE, rol TEXT NOT NULL,
     clave_hash TEXT NOT NULL, sal TEXT NOT NULL, activo INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS turnos_caja (
+    id_turno INTEGER PRIMARY KEY AUTOINCREMENT,
+    base INTEGER NOT NULL, abierto_en TEXT NOT NULL, id_usuario_abre INTEGER REFERENCES usuarios(id_usuario),
+    cerrado_en TEXT, id_usuario_cierra INTEGER REFERENCES usuarios(id_usuario),
+    efectivo_esperado INTEGER, efectivo_contado INTEGER);
 """
 
 # Columnas que la venta de contado (UC-02) agregó a ventas. Una base creada antes no las tiene: se agregan

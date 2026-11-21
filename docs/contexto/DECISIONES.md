@@ -302,3 +302,16 @@ si el jefe escribe ahí mismo su usuario y su clave (`ServicioDeUsuarios.autoriz
 *Preliminar (decisión del desarrollador sin respuesta del propietario):* motivos Dañado, Vencido, Consumo propio y Otro;
 en «Otro» el detalle es obligatorio. Los lotes siguen siendo solo aviso: una salida por «Vencido» no quita el lote de la lista
 (eso llega con la fase 9).
+
+**Fase 4: caja con apertura y cierre (arqueo) (CR-02 caja; *aprobada* por el desarrollador, 21 de noviembre de 2026).**
+*Respuestas del desarrollador:* la caja se abre al empezar el día escribiendo la base (cambia cada día); se cierra cuando
+haga falta o al final del día; se puede cerrar la app y dejar el turno abierto; al cerrar se escribe lo contado, se muestra
+cuánto falta o sobra y se puede confirmar el cierre o cancelar para contar de nuevo.
+*Qué hace:* tabla `turnos_caja` (base, quién abre y cuándo, quién cierra y cuándo, esperado y contado); `ServicioDeCaja`
+(un solo turno abierto a la vez) y sección **Caja** en el grupo Operación. El turno abierto vive en la base de datos, por eso
+sobrevive a cerrar la app. «Revisar» no cierra nada; «Cerrar caja» guarda el arqueo. El jefe ve los cierres anteriores.
+*Preliminar (decisión del desarrollador):* esperado en efectivo = base + ventas de contado en efectivo (sin la parte por
+transferencia) + abonos − efectivo devuelto, desde la hora de apertura (usa el mismo `PuertoDeReportes` de la fase 1); los
+abonos se cuentan como efectivo porque no se registra cómo se pagaron. Jefe y empleado abren y cierran (`Permiso.MANEJAR_CAJA`).
+Con la caja cerrada **se puede vender**, pero el punto de venta avisa que esa venta no entra en ningún cierre.
+*Pendiente:* forma de pago del abono (efectivo o transferencia); si se debe impedir vender con la caja cerrada.

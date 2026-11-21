@@ -145,6 +145,10 @@ class PruebasDelPresentador(BaseDeCaja):
         self.assertEqual(estado["detalle"], [["Base", "$ 50.000"], ["Ventas en efectivo", "$ 5.000"],
                                              ["Abonos recibidos", "$ 1.500"], ["Efectivo devuelto", "-$ 2.000"]])
 
+    def test_sin_devoluciones_no_muestra_menos_cero(self):
+        self.abrir(10000)
+        self.assertEqual(PresentadorDeCaja(self.app).estado()["detalle"][3], ["Efectivo devuelto", "$ 0"])
+
     def test_abrir_desde_la_pantalla(self):
         presentador = PresentadorDeCaja(self.app)
         self.assertFalse(presentador.abrir("cincuenta", self.pedro).exito)

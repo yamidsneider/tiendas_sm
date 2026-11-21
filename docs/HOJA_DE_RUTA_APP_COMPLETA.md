@@ -14,7 +14,7 @@ no se asume: se programa la opción más prudente, se deja como *preliminar* y s
 | 1 | **Reportes de ventas**: hoy, últimos 7 días y este mes. Vendido, devuelto, neto, por forma de pago, abonos recibidos, ganancia y productos más vendidos | No depende de reglas del propietario y sus totales los reusa el cierre de caja (fase 4) | Hecha (`feature/reporte-ventas`, fusionada en `app/web`) |
 | 2 | **Usuarios y roles** jefe / empleado con contraseña (CR-01, RNF-03) | El propietario pidió «clave del jefe» (4.4, 5.1). Las fases 3 y 4 necesitan saber quién está en turno | Hecha (`feature/usuarios-y-roles`): clave al abrir, 2 roles; permisos del empleado preliminares |
 | 3 | **Salida manual de mercancía** con motivo (daño, vencido, consumo propio) y clave del jefe (4.4) | Hoy el inventario solo baja con ventas y se descuadra | Hecha (`feature/salida-manual`): el empleado necesita la clave del jefe; motivos preliminares |
-| 4 | **Caja**: abrir turno con base, cerrar con arqueo (esperado contra contado) | Lo más usado al final del día; reusa reportes y usuarios | Pendiente |
+| 4 | **Caja**: abrir turno con base, cerrar con arqueo (esperado contra contado) | Lo más usado al final del día; reusa reportes y usuarios | Hecha (`feature/caja`): base del día, turno que sobrevive a cerrar la app, revisar y contar de nuevo |
 | 5 | **Respaldo fuera del PC y restaurar desde la app** (5.2: respaldo al cerrar turno) | Hoy los respaldos quedan en el mismo disco | Pendiente |
 | 6 | **Configuración de la tienda** (nombre, NIT, dirección en el ticket) y **desactivar productos** | Detalles que pide una tienda real; bajo riesgo | Pendiente |
 | 7 | **Estado de cuenta del cliente** para imprimir (compras y abonos) | Ayuda a cobrar el fiado | Pendiente |
@@ -30,7 +30,8 @@ no se asume: se programa la opción más prudente, se deja como *preliminar* y s
 - **Fase 2:** *respondido:* 2 empleados; clave al abrir la app; permisos por rol. *Falta confirmar:* la lista exacta de lo
   que puede el empleado (hoy: vender, consultar, entradas, lotes y abonos).
 - **Fase 3:** *falta confirmar* los motivos (hoy: Dañado, Vencido, Consumo propio, Otro). Autoriza el jefe (respuesta 4.4).
-- **Fase 4:** ¿con cuánta base abre? ¿cierra una vez al día o por turno? ¿qué hacer si falta o sobra dinero?
+- **Fase 4:** *respondido:* base distinta cada día; se abre al iniciar el día y se cierra cuando haga falta; si falta o
+  sobra se muestra y se puede contar de nuevo. *Falta confirmar:* si los abonos llegan en efectivo o por transferencia.
 - **Fase 5:** ¿tiene USB o correo/nube para guardar la copia?
 - **Fase 8:** ¿lleva cuentas por pagar a proveedores o solo quiere registrar lo que compra?
 
