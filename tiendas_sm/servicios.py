@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
+from enum import Enum
 
 from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion, Lote,
                                 CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS)
@@ -315,3 +316,35 @@ class ServicioDeVentas:
     def _descontar_existencias(self, pedido):
         return [self.control_inventario.descontar(producto, cantidad)
                 for producto, cantidad in pedido.values()]
+
+
+# ---------------------------------------------------------------------- reportes (fase 1 de la hoja de ruta)
+class Periodo(str, Enum):
+    HOY = "hoy"
+    SEMANA = "semana"      # los últimos 7 días, contando hoy
+    MES = "mes"            # desde el día 1 del mes
+
+
+DIAS_DE_LA_SEMANA = 7
+MAS_VENDIDOS_A_MOSTRAR = 10
+ReporteDeVentas = namedtuple("ReporteDeVentas", "desde hasta resumen mas_vendidos")
+
+
+def rango_del_periodo(periodo, ahora):
+    """[desde, hasta): hasta es la medianoche de mañana, así entra todo lo de hoy."""
+    hoy = datetime(ahora.year, ahora.month, ahora.day)
+    desde = {Periodo.HOY: hoy, Periodo.SEMANA: hoy - timedelta(days=DIAS_DE_LA_SEMANA - 1),
+             Periodo.MES: hoy.replace(day=1)}[periodo]
+    return desde, hoy + timedelta(days=1)
+
+
+class ServicioDeReportes:
+    """Solo consulta: no cambia ventas, inventario ni deudas. Los totales los suma el repositorio (PuertoDeReportes)."""
+
+    def __init__(self, repo_reportes):
+        self.repo_reportes = repo_reportes
+
+    def reporte(self, periodo, ahora=None):
+        desde, hasta = rango_del_periodo(Periodo(periodo), ahora or datetime.now())
+        return ReporteDeVentas(desde, hasta, self.repo_reportes.resumen_de_ventas(desde, hasta),
+                               self.repo_reportes.mas_vendidos(desde, hasta, MAS_VENDIDOS_A_MOSTRAR))

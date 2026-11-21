@@ -261,3 +261,16 @@ Solo se anotan equivalencias comprobadas con el texto de las tareas; el catálog
 | Hallazgo E-05 (movimientos sin `id_venta`) | TD-15 | Por confirmar con la FPI-31 (deducido del orden de una fila del dossier) |
 | Causa raíz de INC-SIM-01 (respaldo manual, sin revisión al abrir) | TD-16 | Comprobada con el dossier; atendida por la tarea 14 |
 | Prueba del gate: Semgrep no detecta SQL con f-string | TD-17 | Comprobada con el dossier (fila de la FPI-28) |
+
+**Hoja de ruta hacia la app completa y fase 1: Reportes (*aprobado* por el desarrollador, 21 de noviembre de 2026).**
+*Causa:* el desarrollador pidió llevar el MVP a una app completa. El orden de las 9 fases está en `docs/HOJA_DE_RUTA_APP_COMPLETA.md`.
+*Cambia:* «reportes» deja de ser *Won't Have* (regla 3 de `CLAUDE.md`). *Qué hace:* sección **Reportes** (séptima del menú, grupo
+Administración) con hoy, últimos 7 días y este mes: vendido neto (vendido − devuelto), ganancia, número de ventas, abonos recibidos,
+totales por forma de pago (efectivo, transferencia, fiado, devoluciones) y los 10 productos más vendidos (unidades netas).
+Solo consulta; no cambia ventas, inventario ni deudas. *Diseño:* `PuertoDeReportes` en `puertos.py` y las consultas SQL en
+`RepositorioDeReportesSqlite` (con parámetros, sin f-string); el núcleo sigue sin SQL (`test_arquitectura`).
+*Costo de cada línea:* `detalles_venta.costo_unitario` guarda el precio de compra al vender (como el precio de venta, HU-02), con
+migración; las líneas viejas quedan en NULL y usan el precio de compra actual, y el reporte avisa que la ganancia es *estimada*.
+*Preliminar, por confirmar con el propietario:* la ganancia es precio de venta − precio de compra, sin gastos; las ventas cuentan
+por su fecha y las devoluciones y abonos por la suya; en una devolución de una venta pagada por transferencia el dinero aparece
+como «efectivo devuelto» (así lo registra la respuesta 1.5).

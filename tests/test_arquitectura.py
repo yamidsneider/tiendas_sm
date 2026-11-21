@@ -55,6 +55,11 @@ class PruebasDeArquitectura(unittest.TestCase):
         from tiendas_sm.puertos import RepositorioDeVentas
         self.assertLessEqual({"obtener", "listar"}, RepositorioDeVentas.__abstractmethods__)
 
+    def test_el_puerto_de_reportes_declara_las_consultas_del_servicio(self):
+        """Fase 1 (reportes): ServicioDeReportes pide los totales al repositorio por el contrato, sin SQL en el núcleo."""
+        from tiendas_sm.puertos import PuertoDeReportes
+        self.assertLessEqual({"resumen_de_ventas", "mas_vendidos"}, PuertoDeReportes.__abstractmethods__)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -152,11 +152,14 @@ class Cliente:
 
 
 class DetalleVenta:
-    def __init__(self, numero_linea, id_producto, cantidad, precio_unitario):
+    def __init__(self, numero_linea, id_producto, cantidad, precio_unitario, costo_unitario=None):
         self.numero_linea = numero_linea
         self.id_producto = id_producto
         self.cantidad = cantidad
         self.precio_unitario = precio_unitario
+        # Fase 1 (reportes): precio de compra al momento de vender, para que la ganancia no cambie si después
+        # sube. None en las líneas guardadas antes de esta fase.
+        self.costo_unitario = costo_unitario
 
     def subtotal(self):
         return self.cantidad * self.precio_unitario
@@ -178,7 +181,8 @@ class Venta:
     def agregar_detalle(self, producto, cantidad):
         exigir_mayor_a_cero(cantidad)
         numero_linea = len(self.detalles) + 1
-        self.detalles.append(DetalleVenta(numero_linea, producto.id_producto, cantidad, producto.precio_venta))
+        self.detalles.append(DetalleVenta(numero_linea, producto.id_producto, cantidad, producto.precio_venta,
+                                          producto.precio_compra))
 
     def calcular_total(self):
         self.total = sum(detalle.subtotal() for detalle in self.detalles)
@@ -224,6 +228,20 @@ class Venta:
     def precio_de(self, id_producto):
         """El precio con que se vendió ese producto (HU-02): es el que se devuelve."""
         return next(d.precio_unitario for d in self.detalles if d.id_producto == id_producto)
+
+
+# Fase 1 (reportes): totales de un periodo, en pesos. neto = vendido − devuelto. ganancia_estimada es True si
+# alguna venta del periodo es de antes de guardar el costo (se usó el precio de compra actual).
+class ResumenDeVentas(namedtuple("ResumenDeVentas", "numero_de_ventas vendido devuelto efectivo_devuelto efectivo "
+                                                    "transferencia credito abonos ganancia ganancia_estimada")):
+    __slots__ = ()
+
+    @property
+    def neto(self):
+        return self.vendido - self.devuelto
+
+
+ProductoMasVendido = namedtuple("ProductoMasVendido", "id_producto nombre unidades valor")
 
 
 # Respuesta 1.5: una línea de una devolución (producto, unidades y el precio con que se vendió).

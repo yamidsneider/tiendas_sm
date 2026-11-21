@@ -100,6 +100,18 @@ class PuertoDeProductos(ABC):
         """Los lotes que siguen en la lista, del que vence primero al último (FEFO manual)."""
 
 
+class PuertoDeReportes(ABC):
+    """Fase 1 (reportes): totales de ventas de un rango de fechas [desde, hasta). Solo consulta, no guarda nada."""
+
+    @abstractmethod
+    def resumen_de_ventas(self, desde, hasta):
+        """ResumenDeVentas del rango: ventas por fecha de la venta, devoluciones y abonos por su propia fecha."""
+
+    @abstractmethod
+    def mas_vendidos(self, desde, hasta, limite):
+        """ProductoMasVendido con unidades netas (vendidas − devueltas) mayores a 0, de más a menos unidades."""
+
+
 class PuertoDeClientes(ABC):
     """Lo que el núcleo necesita para clientes."""
 
