@@ -35,7 +35,7 @@ class PruebasDelHealthcheck(unittest.TestCase):
     def ejecutar(self, *argumentos):
         # S603: se ejecuta el mismo Python con un script del repositorio y rutas de esta prueba.
         return subprocess.run([sys.executable, str(SCRIPT), *argumentos],  # noqa: S603
-                              capture_output=True, text=True, timeout=120)
+                              capture_output=True, text=True, encoding="utf-8", timeout=120)
 
     def guardar_suma(self, contenido_suma):
         ruta = Path(self.carpeta.name) / "paquete.sha256"
