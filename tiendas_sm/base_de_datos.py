@@ -86,6 +86,14 @@ COLUMNAS_NUEVAS_DE_PRODUCTOS = (
 COLUMNAS_NUEVAS_DE_CUENTAS = (("valor_devuelto", "INTEGER NOT NULL DEFAULT 0"),)
 # Fase 1 (reportes): precio de compra al vender. NULL en las líneas viejas: el reporte usa el precio de compra actual.
 COLUMNAS_NUEVAS_DE_DETALLES = (("costo_unitario", "INTEGER"),)
+# Fase 3 (salida manual): motivo, quién la registró, quién la autorizó y el precio de compra de ese momento.
+# Los movimientos viejos quedan con motivo vacío y lo demás en NULL.
+COLUMNAS_NUEVAS_DE_MOVIMIENTOS = (
+    ("motivo", "TEXT NOT NULL DEFAULT ''"),
+    ("id_usuario", "INTEGER"),
+    ("id_autorizo", "INTEGER"),
+    ("costo_unitario", "INTEGER"),
+)
 INDICE_DEL_CODIGO = "CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)"
 
 
@@ -100,6 +108,7 @@ class BaseDeDatos:
         self._agregar_columnas("productos", COLUMNAS_NUEVAS_DE_PRODUCTOS)
         self._agregar_columnas("cuentas_por_cobrar", COLUMNAS_NUEVAS_DE_CUENTAS)
         self._agregar_columnas("detalles_venta", COLUMNAS_NUEVAS_DE_DETALLES)
+        self._agregar_columnas("movimientos_inventario", COLUMNAS_NUEVAS_DE_MOVIMIENTOS)
         with self.conexion:
             self.conexion.execute(INDICE_DEL_CODIGO)            # después de la migración: la columna ya existe
 

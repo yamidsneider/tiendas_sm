@@ -438,7 +438,8 @@ TABLAS.existencias = async () => {
   const filas = (await llamar('existencias', estado.busquedas.existencias || '')).map(f => {
     const [nombre, disponibles] = f.valores;
     return `<tr><td><b>${esc(nombre)}</b> ${f.reponer ? insignia('i-av', 'Por reponer') : ''}</td><td class="num"><b>${esc(disponibles)}</b></td>
-      <td><button class="btn btn-s btn-ch" data-accion="nueva-entrada" data-id="${esc(f.id)}">+ Entrada</button></td></tr>`;
+      <td><button class="btn btn-s btn-ch" data-accion="nueva-entrada" data-id="${esc(f.id)}">+ Entrada</button>
+      <button class="btn btn-s btn-ch" data-accion="nueva-salida" data-id="${esc(f.id)}">− Salida</button></td></tr>`;
   });
   return tabla(['Producto', '>Disponibles', ''], filas, 'No hay productos con esa búsqueda.');
 };
@@ -487,11 +488,13 @@ async function abrirLote() {
 VISTAS.existencias = async () => {
   const movimientos = (await llamar('movimientos')).map(f => {
     const [fecha, producto, movimiento, cantidad] = f.valores;
-    return `<tr><td>${esc(fecha)}</td><td><b>${esc(producto)}</b></td><td>${insignia(movimiento === 'Entrada' ? 'i-ok' : 'i-info', movimiento)}</td><td class="num">${esc(cantidad)}</td></tr>`;
+    const clase = movimiento === 'Entrada' ? 'i-ok' : movimiento.startsWith('Salida manual') ? 'i-av' : 'i-info';
+    return `<tr><td>${esc(fecha)}</td><td><b>${esc(producto)}</b></td><td>${insignia(clase, movimiento)}</td><td class="num">${esc(cantidad)}</td></tr>`;
   });
   return {
     sub: 'Cuánto hay de cada producto y qué entró o salió',
-    acciones: '<button class="btn btn-p" data-accion="nueva-entrada" data-id="">+ Registrar entrada</button>',
+    acciones: `<button class="btn btn-o" data-accion="nueva-salida" data-id="">− Registrar salida</button>
+      <button class="btn btn-p" data-accion="nueva-entrada" data-id="">+ Registrar entrada</button>`,
     html: `${await panelPorReponer()}${await panelDeLotes()}<div class="tabla-caja"><div class="cab-tabla"><h3>Existencias por producto</h3>${buscador('existencias', 'Buscar producto')}</div>
       <div id="tabla">${await TABLAS.existencias()}</div></div>
       <div class="tabla-caja"><div class="cab-tabla"><h3>Movimientos de inventario</h3></div>
@@ -508,6 +511,25 @@ async function abrirEntrada(id) {
     ${campo('Cantidad que entra', 'e-cantidad', '<input id="e-cantidad" type="number" min="1" value="1">')}`,
   botonesGuardar('Registrar entrada', 'guardar-entrada'));
   if ($('e-cantidad') && id) $('e-cantidad').focus();
+}
+
+/* Salida manual (fase 3, respuesta 4.4): mercancía que sale sin venderse. Si quien está no es jefe, el jefe la
+   autoriza escribiendo ahí su usuario y su clave (Python lo revisa; aquí solo se muestran los campos). */
+async function abrirSalida(id) {
+  const productos = await llamar('existencias', '');
+  if (!productos.length) { aviso('Primero registra un producto en la sección Productos.', true); return; }
+  const opciones = productos.map(f => `<option value="${esc(f.id)}"${String(f.id) === String(id) ? ' selected' : ''}>${esc(f.valores[0])} (hay ${esc(f.valores[1])})</option>`).join('');
+  const motivos = (await llamar('motivos_de_salida')).map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  const autorizacion = puede('registrar_salida') ? '' : `<div class="aviso">El jefe debe autorizar esta salida con su usuario y su clave.</div>
+    <div class="dos">${campo('Usuario del jefe', 's-jefe', '<input id="s-jefe" autocomplete="off">')}
+    ${campo('Clave del jefe', 's-clave', '<input id="s-clave" type="password" autocomplete="off">')}</div>`;
+  abrirModal('Registrar salida de mercancía', `${campo('Producto', 's-producto', `<select id="s-producto">${opciones}</select>`)}
+    <div class="dos">${campo('Cantidad que sale', 's-cantidad', '<input id="s-cantidad" type="number" min="1" value="1">')}
+    ${campo('Motivo', 's-motivo', `<select id="s-motivo">${motivos}</select>`)}</div>
+    ${campo('Detalle', 's-detalle', '<input id="s-detalle" placeholder="Ej.: se rompió el empaque">', 'Obligatorio si el motivo es «Otro».')}
+    ${autorizacion}<div class="nota-pie">Baja las existencias y queda en el historial con su motivo. Su costo sale en Reportes.</div>`,
+  botonesGuardar('Registrar salida', 'guardar-salida'));
+  if ($('s-cantidad') && id) $('s-cantidad').focus();
 }
 
 /* ------------------------------------------------------------------ clientes (HU-05, RF-07) */
@@ -690,6 +712,8 @@ const ACCIONES = {
   'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta'), val('f-minimo'), val('f-codigo'), val('f-aviso')),
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
   'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
+  'nueva-salida': el => abrirSalida(el.dataset.id),
+  'guardar-salida': () => guardar('registrar_salida', val('s-producto'), val('s-cantidad'), val('s-motivo'), val('s-detalle'), val('s-jefe'), val('s-clave')),
   'nuevo-lote': abrirLote,
   'guardar-lote': () => guardar('registrar_lote', val('l-producto'), val('l-numero'), val('l-fecha'), val('l-cantidad')),
   'retirar-lote': async el => { const r = await llamar('retirar_lote', el.dataset.id); aviso(r.mensaje, !r.exito); render(); },

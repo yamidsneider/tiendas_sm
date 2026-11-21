@@ -30,7 +30,8 @@ class PresentadorDeReportes:
             "formas": [("Efectivo", formato_pesos(resumen.efectivo)), ("Transferencia", formato_pesos(resumen.transferencia)),
                        ("A crédito (fiado)", formato_pesos(resumen.credito)),
                        ("Devoluciones", formato_pesos(resumen.devuelto)),
-                       ("Efectivo devuelto", formato_pesos(resumen.efectivo_devuelto))],
+                       ("Efectivo devuelto", formato_pesos(resumen.efectivo_devuelto)),
+                       ("Salidas de mercancía (al costo)", formato_pesos(resumen.salidas_al_costo))],
             "mas_vendidos": [(p.nombre, p.unidades, formato_pesos(p.valor)) for p in reporte.mas_vendidos],
             "nota": NOTA_ESTIMADA if resumen.ganancia_estimada else "",
         }

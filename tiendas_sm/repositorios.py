@@ -13,6 +13,7 @@ __all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDePro
 
 MOVIMIENTO_SALIDA_VENTA = "SALIDA_VENTA"
 MOVIMIENTO_DEVOLUCION = "DEVOLUCION"
+MOVIMIENTO_SALIDA_MANUAL = "SALIDA_MANUAL"      # fase 3
 
 
 def _ahora():
@@ -79,11 +80,21 @@ class RepositorioDeProductos(PuertoDeProductos):
                 "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha) VALUES (?,?,?,?)",
                 (existencia.id_producto, tipo_movimiento, cantidad, _ahora()))
 
+    def guardar_salida_manual(self, existencia, cantidad, motivo, id_usuario, id_autorizo, costo_unitario):
+        with self.conexion:
+            self.conexion.execute("UPDATE existencias SET cantidad_actual=? WHERE id_producto=?",
+                                  (existencia.cantidad_actual, existencia.id_producto))
+            self.conexion.execute(
+                "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha, motivo, id_usuario, id_autorizo, "
+                "costo_unitario) VALUES (?,?,?,?,?,?,?,?)",
+                (existencia.id_producto, MOVIMIENTO_SALIDA_MANUAL, cantidad, _ahora(), motivo, id_usuario, id_autorizo,
+                 costo_unitario))
+
     def listar_movimientos(self, limite):
         filas = self.conexion.execute(
             "SELECT * FROM movimientos_inventario ORDER BY id_movimiento DESC LIMIT ?", (limite,)).fetchall()
         return [MovimientoDeInventario(fila["id_movimiento"], fila["id_producto"], fila["tipo"], fila["cantidad"],
-                                       datetime.fromisoformat(fila["fecha"])) for fila in filas]
+                                       datetime.fromisoformat(fila["fecha"]), fila["motivo"]) for fila in filas]
 
     def guardar_lote(self, lote):
         with self.conexion:
@@ -318,6 +329,8 @@ SQL_TOTALES_DE_VENTAS = (
 SQL_TOTALES_DE_DEVOLUCIONES = ("SELECT COALESCE(SUM(valor), 0), COALESCE(SUM(efectivo_devuelto), 0) "
                                "FROM devoluciones WHERE fecha >= ? AND fecha < ?")
 SQL_TOTAL_DE_ABONOS = "SELECT COALESCE(SUM(valor), 0) FROM abonos WHERE fecha >= ? AND fecha < ?"
+SQL_SALIDAS_AL_COSTO = ("SELECT COALESCE(SUM(cantidad * COALESCE(costo_unitario, 0)), 0) FROM movimientos_inventario "
+                        "WHERE tipo = 'SALIDA_MANUAL' AND fecha >= ? AND fecha < ?")
 # Ganancia de lo vendido: precio de venta − costo guardado (o el precio de compra actual si la línea es vieja).
 SQL_GANANCIA_VENDIDA = (
     "SELECT COALESCE(SUM(d.cantidad * (d.precio_unitario_venta - COALESCE(d.costo_unitario, p.precio_compra))), 0), "
@@ -356,9 +369,10 @@ class RepositorioDeReportesSqlite(PuertoDeReportes):
         abonos = self.conexion.execute(SQL_TOTAL_DE_ABONOS, rango).fetchone()[0]
         ganancia, estimada = self.conexion.execute(SQL_GANANCIA_VENDIDA, rango).fetchone()
         ganancia_devuelta = self.conexion.execute(SQL_GANANCIA_DEVUELTA, rango).fetchone()[0]
+        salidas = self.conexion.execute(SQL_SALIDAS_AL_COSTO, rango).fetchone()[0]
         return ResumenDeVentas(ventas["numero"], ventas["vendido"], devuelto, efectivo_devuelto, ventas["efectivo"],
                                ventas["transferencia"], ventas["credito"], abonos, ganancia - ganancia_devuelta,
-                               bool(estimada))
+                               bool(estimada), salidas)
 
     def mas_vendidos(self, desde, hasta, limite):
         rango = (desde.isoformat(), hasta.isoformat())
