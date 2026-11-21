@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS turnos_caja (
     base INTEGER NOT NULL, abierto_en TEXT NOT NULL, id_usuario_abre INTEGER REFERENCES usuarios(id_usuario),
     cerrado_en TEXT, id_usuario_cierra INTEGER REFERENCES usuarios(id_usuario),
     efectivo_esperado INTEGER, efectivo_contado INTEGER);
+CREATE TABLE IF NOT EXISTS configuracion (
+    clave TEXT PRIMARY KEY, valor TEXT NOT NULL);
 """
 
 # Columnas que la venta de contado (UC-02) agregó a ventas. Una base creada antes no las tiene: se agregan
@@ -102,26 +104,39 @@ COLUMNAS_NUEVAS_DE_MOVIMIENTOS = (
 INDICE_DEL_CODIGO = "CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)"
 
 
+COLUMNAS_NUEVAS = (
+    ("ventas", COLUMNAS_NUEVAS_DE_VENTAS),
+    ("clientes", COLUMNAS_NUEVAS_DE_CLIENTES),
+    ("productos", COLUMNAS_NUEVAS_DE_PRODUCTOS),
+    ("cuentas_por_cobrar", COLUMNAS_NUEVAS_DE_CUENTAS),
+    ("detalles_venta", COLUMNAS_NUEVAS_DE_DETALLES),
+    ("movimientos_inventario", COLUMNAS_NUEVAS_DE_MOVIMIENTOS),
+)
+
+
+def preparar_esquema(conexion):
+    """Crea lo que falte y migra una base vieja sin perder datos. Se usa al abrir y después de restaurar (fase 5),
+    porque un respaldo viejo puede no tener las tablas o columnas nuevas."""
+    conexion.executescript(ESQUEMA_SQL)
+    for tabla, columnas in COLUMNAS_NUEVAS:
+        _agregar_columnas(conexion, tabla, columnas)
+    with conexion:
+        conexion.execute(INDICE_DEL_CODIGO)                     # después de la migración: la columna ya existe
+
+
+def _agregar_columnas(conexion, tabla, columnas):
+    """Migración: agrega a una base vieja las columnas que le falten, sin perder datos.
+    tabla y columnas son constantes de este archivo (nunca texto del usuario)."""
+    existentes = {fila[1] for fila in conexion.execute(f"PRAGMA table_info({tabla})")}
+    with conexion:
+        for nombre, definicion in columnas:
+            if nombre not in existentes:
+                conexion.execute(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {definicion}")
+
+
 class BaseDeDatos:
     def __init__(self, ruta=":memory:"):
         self.conexion = sqlite3.connect(ruta)
         self.conexion.row_factory = sqlite3.Row
         self.conexion.execute("PRAGMA foreign_keys = ON")
-        self.conexion.executescript(ESQUEMA_SQL)
-        self._agregar_columnas("ventas", COLUMNAS_NUEVAS_DE_VENTAS)
-        self._agregar_columnas("clientes", COLUMNAS_NUEVAS_DE_CLIENTES)
-        self._agregar_columnas("productos", COLUMNAS_NUEVAS_DE_PRODUCTOS)
-        self._agregar_columnas("cuentas_por_cobrar", COLUMNAS_NUEVAS_DE_CUENTAS)
-        self._agregar_columnas("detalles_venta", COLUMNAS_NUEVAS_DE_DETALLES)
-        self._agregar_columnas("movimientos_inventario", COLUMNAS_NUEVAS_DE_MOVIMIENTOS)
-        with self.conexion:
-            self.conexion.execute(INDICE_DEL_CODIGO)            # después de la migración: la columna ya existe
-
-    def _agregar_columnas(self, tabla, columnas):
-        """Migración: agrega a una base vieja las columnas que le falten, sin perder datos.
-        tabla y columnas son constantes de este archivo (nunca texto del usuario)."""
-        existentes = {fila["name"] for fila in self.conexion.execute(f"PRAGMA table_info({tabla})")}
-        with self.conexion:
-            for nombre, definicion in columnas:
-                if nombre not in existentes:
-                    self.conexion.execute(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {definicion}")
+        preparar_esquema(self.conexion)

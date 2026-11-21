@@ -55,6 +55,7 @@ class Permiso(str, Enum):
     REGISTRAR_ABONO = "registrar_abono"
     REGISTRAR_SALIDA = "registrar_salida"          # fase 3: sin él, la salida pide la clave del jefe
     MANEJAR_CAJA = "manejar_caja"                  # fase 4: abrir y cerrar el turno de caja
+    GESTIONAR_RESPALDOS = "gestionar_respaldos"    # fase 5: carpeta, respaldar ahora y restaurar
     DEVOLVER = "devolver"                        # devolver productos o anular una venta
     GESTIONAR_PRODUCTOS = "gestionar_productos"    # crear, editar y cambiar precios
     GESTIONAR_CLIENTES = "gestionar_clientes"      # crear y editar (cupo y plazo del fiado)

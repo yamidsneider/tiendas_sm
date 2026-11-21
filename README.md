@@ -26,6 +26,8 @@ Con `--acceso-directo` queda «TIENDAS S.M» en el escritorio, con el ícono de 
 
 - `--datos-de-ejemplo` carga productos y clientes **ficticios**, solo si la base está vacía. Sin esa opción se abre con los datos guardados
   (también sirve con el .exe: `TIENDAS_SM.exe --datos-de-ejemplo`).
+- Respaldos para el jefe en `Documentos\TIENDAS_SM respaldos` (sección Respaldos: cambiar carpeta, respaldar ahora y
+  restaurar); se copian solos al cerrar la app y al cerrar la caja.
 - Los datos se guardan en `%LOCALAPPDATA%\TIENDAS_SM\tiendas_sm.db`. Al cerrar la ventana se crea un respaldo verificado en esa misma
   carpeta (conserva los 7 más recientes).
 - Atajos del punto de venta: **F2** buscar producto · **Enter** agregar · **F9** cobrar de contado · **F4** vender a crédito · **Esc** cerrar
@@ -36,7 +38,7 @@ Desde esta carpeta:
 
     python -m unittest discover -s tests -v
 
-Resultado esperado: 509 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
+Resultado esperado: 525 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
 allí las 37 pruebas de pantallas se saltan porque el servidor no tiene pantalla.
 
 ## Estructura

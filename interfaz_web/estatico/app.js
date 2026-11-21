@@ -13,6 +13,7 @@ const ICONOS = {
   creditos: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>',
   reportes: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
   caja: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M7 4h10v3M8 15h3"/>',
+  respaldos: '<ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/>',
   usuarios: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/><circle cx="12" cy="15.5" r="1.5"/>',
 };
 const SECCIONES = [
@@ -24,6 +25,7 @@ const SECCIONES = [
   { id: 'clientes', titulo: 'Clientes', grupo: 'Clientes y crédito' },
   { id: 'creditos', titulo: 'Créditos y abonos', grupo: 'Clientes y crédito' },
   { id: 'reportes', titulo: 'Reportes', grupo: 'Administración', permiso: 'ver_reportes' },
+  { id: 'respaldos', titulo: 'Respaldos', grupo: 'Administración', permiso: 'gestionar_respaldos' },
   { id: 'usuarios', titulo: 'Usuarios', grupo: 'Administración', permiso: 'gestionar_usuarios' },
 ];
 const MENSAJE_FALLA = 'No se pudo completar la operación. Intente de nuevo; si sigue fallando, cierre y abra la tienda.';
@@ -712,6 +714,41 @@ async function revisarCaja() {
   [{ texto: 'Contar de nuevo', accion: 'contar-caja' }, { texto: 'Cerrar caja', clase: 'btn-p', accion: 'confirmar-cierre', datos: ` data-contado="${esc(contado)}"` }]);
 }
 
+/* ------------------------------------------------------------------ respaldos (fase 5, solo el jefe) */
+VISTAS.respaldos = async () => {
+  const datos = await llamar('respaldos');
+  const filas = datos.filas.map(f => {
+    const [fecha, tipo, tamano] = f.valores;
+    return `<tr><td><b>${esc(fecha)}</b><div class="sec">${esc(f.id)}</div></td><td>${insignia(tipo === 'Respaldo' ? 'i-ok' : 'i-gris', tipo)}</td>
+      <td class="num">${esc(tamano)}</td>
+      <td><button class="btn btn-s btn-ch" data-accion="restaurar-respaldo" data-id="${esc(f.id)}">Restaurar</button></td></tr>`;
+  });
+  return {
+    sub: 'Copias de seguridad de la tienda en una carpeta de este computador',
+    acciones: '<button class="btn btn-p" data-accion="respaldar-ahora">Respaldar ahora</button>',
+    html: `<div class="tarjeta margen"><h3>Carpeta de los respaldos</h3>
+        ${campo('Ruta completa de la carpeta', 'r-carpeta', `<input id="r-carpeta" value="${esc(datos.carpeta)}" placeholder="Ej.: C:\\Respaldos de la tienda">`,
+          'Se copia sola al cerrar la aplicación y al cerrar la caja. Se guardan las 30 más recientes.')}
+        <button class="btn btn-s" data-accion="guardar-carpeta">Guardar carpeta</button></div>
+      <div class="tabla-caja"><div class="cab-tabla"><h3>Respaldos guardados</h3></div>
+        ${tabla(['Fecha', 'Tipo', '>Tamaño', ''], filas, 'Todavía no hay respaldos en esta carpeta.')}
+        <div class="nota-pie">Restaurar reemplaza los datos actuales por los del respaldo. Antes se guarda una «copia de antes de restaurar»,
+        por si se eligió mal. Después hay que volver a ingresar.</div></div>`,
+  };
+};
+
+async function restaurarRespaldo(el) {
+  if (!el.dataset.confirmado) {                    // segundo clic confirma, como al anular una venta
+    el.dataset.confirmado = '1'; el.textContent = 'Sí, restaurar este'; el.classList.add('btn-p'); return;
+  }
+  const r = await llamar('restaurar_respaldo', el.dataset.id);
+  if (!r.exito) { aviso(r.mensaje, true); render(); return; }
+  aviso(r.mensaje);
+  estado.sesion = null;
+  estado.carrito = null;
+  pintarIngreso(r.estado.hay_usuarios);
+}
+
 /* ------------------------------------------------------------------ usuarios (fase 2, solo el jefe) */
 VISTAS.usuarios = async () => {
   const filas = (await llamar('usuarios')).map(f => {
@@ -778,6 +815,9 @@ const ACCIONES = {
   'nueva-salida': el => abrirSalida(el.dataset.id),
   'abrir-caja': async () => { const r = await llamar('abrir_caja', val('c-base')); aviso(r.mensaje, !r.exito); if (r.exito) render(); },
   'contar-caja': abrirConteo,
+  'respaldar-ahora': async () => { const r = await llamar('respaldar_ahora'); aviso(r.mensaje, !r.exito); render(); },
+  'guardar-carpeta': async () => { const r = await llamar('cambiar_carpeta_respaldos', val('r-carpeta')); aviso(r.mensaje, !r.exito); if (r.exito) render(); },
+  'restaurar-respaldo': restaurarRespaldo,
   'revisar-caja': revisarCaja,
   'confirmar-cierre': el => guardar('cerrar_caja', el.dataset.contado),
   'guardar-salida': () => guardar('registrar_salida', val('s-producto'), val('s-cantidad'), val('s-motivo'), val('s-detalle'), val('s-jefe'), val('s-clave')),
