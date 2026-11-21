@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import secrets
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum
@@ -42,6 +45,84 @@ class EstadoVenta(str, Enum):
 class EstadoCuenta(str, Enum):
     ABIERTA = "ABIERTA"
     PAGADA = "PAGADA"
+
+
+# ---------------------------------------------------------------------- usuarios y roles (fase 2, CR-01, RNF-03)
+class Permiso(str, Enum):
+    VENDER = "vender"                              # punto de venta: contado y fiado
+    CONSULTAR = "consultar"                        # ver ventas, productos, existencias, clientes y créditos
+    REGISTRAR_ENTRADA = "registrar_entrada"        # entradas de mercancía y lotes
+    REGISTRAR_ABONO = "registrar_abono"
+    DEVOLVER = "devolver"                          # devolver productos o anular una venta
+    GESTIONAR_PRODUCTOS = "gestionar_productos"    # crear, editar y cambiar precios
+    GESTIONAR_CLIENTES = "gestionar_clientes"      # crear y editar (cupo y plazo del fiado)
+    VER_REPORTES = "ver_reportes"
+    GESTIONAR_USUARIOS = "gestionar_usuarios"
+
+
+class Rol(str, Enum):
+    JEFE = "JEFE"
+    EMPLEADO = "EMPLEADO"
+
+    def puede(self, permiso):
+        return permiso in PERMISOS_POR_ROL[self]
+
+    @property
+    def nombre_visible(self):
+        return self.value.capitalize()
+
+
+# *Preliminar* (propuesta del desarrollador, por confirmar con el propietario): lo que cambia dinero ya cobrado,
+# precios, cupos de fiado o usuarios queda para el jefe.
+PERMISOS_POR_ROL = {
+    Rol.JEFE: frozenset(Permiso),
+    Rol.EMPLEADO: frozenset({Permiso.VENDER, Permiso.CONSULTAR, Permiso.REGISTRAR_ENTRADA, Permiso.REGISTRAR_ABONO}),
+}
+LARGO_MINIMO_DE_LA_CLAVE = 4             # como un PIN: fácil de escribir en la caja
+ITERACIONES_DE_LA_CLAVE = 200_000        # PBKDF2: hace lento adivinar la clave aunque alguien copie la base
+BYTES_DE_LA_SAL = 16
+OTROS_CARACTERES_DEL_USUARIO = set(".-_")
+
+
+def normalizar_usuario(texto):
+    """« Pedro » -> «pedro». Solo letras, números, punto, guion o guion bajo (sin espacios)."""
+    usuario = (texto or "").strip().lower()
+    exigir_texto_obligatorio(usuario, "Escribe el usuario")
+    if not all(c.isalnum() or c in OTROS_CARACTERES_DEL_USUARIO for c in usuario):
+        raise ValueError("El usuario solo puede tener letras, números, punto o guion")
+    return usuario
+
+
+def cifrar_clave(clave, sal):
+    """Huella de la clave con PBKDF2-SHA256 (biblioteca estándar). La clave nunca se guarda tal cual."""
+    return hashlib.pbkdf2_hmac("sha256", clave.encode("utf-8"), bytes.fromhex(sal), ITERACIONES_DE_LA_CLAVE).hex()
+
+
+class Usuario:
+    def __init__(self, id_usuario, nombre, usuario, rol, clave_hash, sal, activo=True):
+        exigir_texto_obligatorio(nombre, "Escribe el nombre de la persona")
+        self.id_usuario = id_usuario
+        self.nombre = nombre.strip()
+        self.usuario = normalizar_usuario(usuario)
+        self.rol = Rol(rol)
+        self.clave_hash = clave_hash
+        self.sal = sal
+        self.activo = activo
+
+    @classmethod
+    def nuevo(cls, nombre, usuario, rol, clave):
+        nuevo = cls(None, nombre, usuario, rol, "", "")
+        nuevo.cambiar_clave(clave)
+        return nuevo
+
+    def cambiar_clave(self, clave):
+        if len(clave or "") < LARGO_MINIMO_DE_LA_CLAVE:
+            raise ValueError(f"La clave debe tener al menos {LARGO_MINIMO_DE_LA_CLAVE} caracteres")
+        self.sal = secrets.token_hex(BYTES_DE_LA_SAL)           # sal nueva: dos claves iguales no se parecen
+        self.clave_hash = cifrar_clave(clave, self.sal)
+
+    def clave_correcta(self, clave):
+        return hmac.compare_digest(cifrar_clave(clave or "", self.sal), self.clave_hash)   # tiempo constante
 
 
 # RF-04: una entrada o una salida por venta ya guardada. Solo se lee (no tiene reglas); la fecha es datetime.

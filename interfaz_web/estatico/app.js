@@ -12,6 +12,7 @@ const ICONOS = {
   clientes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.8 3 2.5 3.5 5.2"/>',
   creditos: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>',
   reportes: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  usuarios: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/><circle cx="12" cy="15.5" r="1.5"/>',
 };
 const SECCIONES = [
   { id: 'pos', titulo: 'Punto de venta', grupo: 'Operación' },
@@ -20,13 +21,17 @@ const SECCIONES = [
   { id: 'existencias', titulo: 'Existencias', grupo: 'Inventario' },
   { id: 'clientes', titulo: 'Clientes', grupo: 'Clientes y crédito' },
   { id: 'creditos', titulo: 'Créditos y abonos', grupo: 'Clientes y crédito' },
-  { id: 'reportes', titulo: 'Reportes', grupo: 'Administración' },
+  { id: 'reportes', titulo: 'Reportes', grupo: 'Administración', permiso: 'ver_reportes' },
+  { id: 'usuarios', titulo: 'Usuarios', grupo: 'Administración', permiso: 'gestionar_usuarios' },
 ];
 const MENSAJE_FALLA = 'No se pudo completar la operación. Intente de nuevo; si sigue fallando, cierre y abra la tienda.';
 const MAXIMO_SUGERENCIAS = 8;
 
 let seccion = 'pos';
-const estado = { busquedas: {}, verPagadas: false, sugerencias: [], sugSel: 0, turno: 0, carrito: null, cobro: null, periodo: 'hoy' };
+const estado = { busquedas: {}, verPagadas: false, sugerencias: [], sugSel: 0, turno: 0, carrito: null, cobro: null, periodo: 'hoy', sesion: null };
+
+/* Fase 2: esconder un botón es solo comodidad; la barrera real está en la API de Python (@requiere). */
+const puede = permiso => Boolean(estado.sesion && estado.sesion.permisos.includes(permiso));
 
 /* ------------------------------------------------------------------ utilidades */
 const $ = id => document.getElementById(id);
@@ -101,13 +106,57 @@ async function guardar(metodo, ...argumentos) {
 function pintarMenu() {
   let grupo = '';
   let html = '';
-  for (const s of SECCIONES) {
+  for (const s of SECCIONES.filter(s => !s.permiso || puede(s.permiso))) {
     if (s.grupo !== grupo) { grupo = s.grupo; html += `<div class="grupo">${esc(grupo.toUpperCase())}</div>`; }
     const activo = s.id === seccion;
     html += `<button class="nav${activo ? ' activo' : ''}" data-accion="ir" data-id="${s.id}"${activo ? ' aria-current="page"' : ''}>
       <span class="icono">${svg(s.id)}</span><span class="texto">${esc(s.titulo)}</span></button>`;
   }
+  if (estado.sesion) {
+    html += `<div class="sesion"><div><b>${esc(estado.sesion.nombre)}</b><div class="sec">${esc(estado.sesion.rol)}</div></div>
+      <button class="btn btn-s btn-ch" data-accion="salir">Cerrar sesión</button></div>`;
+  }
   $('menu').innerHTML = html;
+}
+
+/* ------------------------------------------------------------------ ingreso (fase 2, CR-01) */
+async function iniciar() {
+  const r = await llamar('estado_sesion');
+  estado.sesion = r.usuario;
+  if (estado.sesion) render(); else pintarIngreso(r.hay_usuarios);
+}
+
+function pintarIngreso(hayUsuarios) {
+  $('menu').innerHTML = '';
+  const primeraVez = !hayUsuarios;
+  const clave = (id, texto) => campo(texto, id, `<input id="${id}" type="password" autocomplete="off">`);
+  $('contenido').innerHTML = `<div class="ingreso"><div class="tarjeta" id="form-ingreso">
+    <h2>${primeraVez ? 'Primera vez: cree la cuenta del jefe' : 'Ingresar'}</h2>
+    <p class="sec">${primeraVez ? 'El jefe puede hacer todo y crea después los usuarios de los empleados.' : 'Escriba su usuario y su clave.'}</p>
+    <div id="modal-error"></div>
+    ${primeraVez ? campo('Nombre de la persona', 'i-nombre', '<input id="i-nombre" autocomplete="off">') : ''}
+    ${campo('Usuario', 'i-usuario', '<input id="i-usuario" autocomplete="off" placeholder="Ej.: pedro">')}
+    ${clave('i-clave', 'Clave')}
+    ${primeraVez ? clave('i-confirmar', 'Repita la clave') : ''}
+    <button class="btn btn-p" data-accion="${primeraVez ? 'crear-jefe' : 'ingresar'}">${primeraVez ? 'Crear y entrar' : 'Entrar'}</button>
+  </div></div>`;
+  $(primeraVez ? 'i-nombre' : 'i-usuario').focus();
+}
+
+async function terminarIngreso(r) {
+  if (!r.exito) { errorModal(r.mensaje); $('i-clave').value = ''; $('i-clave').focus(); return; }
+  estado.sesion = r.estado.usuario;
+  seccion = 'pos';
+  aviso(r.mensaje);
+  render();
+}
+
+async function salir() {
+  cerrarModal();
+  const r = await llamar('cerrar_sesion');
+  estado.sesion = null;
+  estado.carrito = null;
+  pintarIngreso(r.hay_usuarios);
 }
 
 const VISTAS = {};
@@ -304,7 +353,7 @@ VISTAS.ventas = async () => {
       <td>${cliente === '—' ? '<span class="sec">Mostrador</span>' : esc(cliente)} ${f.estado ? insignia(f.estado === 'Anulada' ? 'i-mal' : 'i-gris', f.estado) : ''}</td>
       <td class="num"><b>${esc(total)}</b></td>
       <td><button class="btn btn-s btn-ch" data-accion="ver-venta" data-id="${esc(f.id)}">Ver ticket</button>
-      ${f.estado === 'Anulada' ? '' : `<button class="btn btn-s btn-ch" data-accion="abrir-devolucion" data-id="${esc(f.id)}">Devolver</button>`}</td></tr>`;
+      ${f.estado === 'Anulada' || !puede('devolver') ? '' : `<button class="btn btn-s btn-ch" data-accion="abrir-devolucion" data-id="${esc(f.id)}">Devolver</button>`}</td></tr>`;
   });
   return {
     sub: 'Las ventas registradas, de la más reciente a la más antigua',
@@ -347,14 +396,14 @@ TABLAS.productos = async () => {
   const filas = (await llamar('productos', estado.busquedas.productos || '')).map(f => {
     const [nombre, compra, venta, disponibles] = f.valores;
     return `<tr><td><b>${esc(nombre)}</b></td><td class="num">${esc(compra)}</td><td class="num"><b>${esc(venta)}</b></td><td class="num">${esc(disponibles)}</td>
-      <td><button class="btn btn-s btn-ch" data-accion="editar-producto" data-id="${esc(f.id)}">Editar</button></td></tr>`;
+      <td>${puede('gestionar_productos') ? `<button class="btn btn-s btn-ch" data-accion="editar-producto" data-id="${esc(f.id)}">Editar</button>` : ''}</td></tr>`;
   });
   return tabla(['Producto', '>Precio de compra', '>Precio de venta', '>Disponibles', ''], filas, 'No hay productos con esa búsqueda.');
 };
 
 VISTAS.productos = async () => ({
   sub: 'Registra tus productos y corrige su nombre o sus precios',
-  acciones: '<button class="btn btn-p" data-accion="nuevo-producto">+ Nuevo producto</button>',
+  acciones: puede('gestionar_productos') ? '<button class="btn btn-p" data-accion="nuevo-producto">+ Nuevo producto</button>' : '',
   html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Catálogo</h3>${buscador('productos', 'Buscar producto por nombre')}</div>
     <div id="tabla">${await TABLAS.productos()}</div>
     <div class="nota-pie">Cambiar el precio no cambia las ventas anteriores: cada venta guarda el precio con que se vendió. Los productos no se borran.</div></div>`,
@@ -468,14 +517,14 @@ TABLAS.clientes = async () => {
     return `<tr><td><b>${esc(nombre)}</b></td><td class="num">${esc(limite)}</td><td class="num">${esc(debe)}</td>
       <td class="num">${disponible === 'Sin crédito' ? insignia('i-gris', disponible) : `<b>${esc(disponible)}</b>`}</td>
       <td><button class="btn btn-s btn-ch" data-accion="ver-cliente" data-id="${esc(f.id)}">Ver detalle</button>
-      <button class="btn btn-s btn-ch" data-accion="editar-cliente" data-id="${esc(f.id)}">Editar</button></td></tr>`;
+      ${puede('gestionar_clientes') ? `<button class="btn btn-s btn-ch" data-accion="editar-cliente" data-id="${esc(f.id)}">Editar</button>` : ''}</td></tr>`;
   });
   return tabla(['Cliente', '>Límite', '>Debe', '>Disponible', ''], filas, 'No hay clientes con esa búsqueda.');
 };
 
 VISTAS.clientes = async () => ({
   sub: 'Personas a las que se les puede vender a crédito',
-  acciones: '<button class="btn btn-p" data-accion="nuevo-cliente">+ Nuevo cliente</button>',
+  acciones: puede('gestionar_clientes') ? '<button class="btn btn-p" data-accion="nuevo-cliente">+ Nuevo cliente</button>' : '',
   html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Clientes</h3>${buscador('clientes', 'Buscar cliente')}</div>
     <div id="tabla">${await TABLAS.clientes()}</div>
     <div class="nota-pie">El crédito disponible es el límite menos lo que debe. Los datos de los clientes son personales: protégelos.</div></div>`,
@@ -578,6 +627,41 @@ VISTAS.reportes = async () => {
   };
 };
 
+/* ------------------------------------------------------------------ usuarios (fase 2, solo el jefe) */
+VISTAS.usuarios = async () => {
+  const filas = (await llamar('usuarios')).map(f => {
+    const [nombre, usuario, rol, activo] = f.valores;
+    const estaActivo = activo === 'Activo';
+    return `<tr><td><b>${esc(nombre)}</b></td><td>${esc(usuario)}</td><td>${insignia(rol === 'Jefe' ? 'i-info' : 'i-gris', rol)}</td>
+      <td>${insignia(estaActivo ? 'i-ok' : 'i-mal', activo)}</td>
+      <td><button class="btn btn-s btn-ch" data-accion="clave-usuario" data-id="${esc(f.id)}" data-usuario="${esc(usuario)}">Cambiar clave</button>
+      <button class="btn btn-s btn-ch" data-accion="activar-usuario" data-id="${esc(f.id)}" data-activo="${estaActivo ? '' : '1'}">${estaActivo ? 'Desactivar' : 'Activar'}</button></td></tr>`;
+  });
+  return {
+    sub: 'Quién puede entrar a la tienda y qué puede hacer',
+    acciones: '<button class="btn btn-p" data-accion="nuevo-usuario">+ Nuevo usuario</button>',
+    html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Usuarios</h3></div>
+      ${tabla(['Nombre', 'Usuario', 'Rol', 'Estado', ''], filas, '')}
+      <div class="nota-pie">El empleado vende, consulta, registra entradas y lotes y recibe abonos. Solo el jefe devuelve o anula ventas,
+      crea o edita productos, precios y clientes, ve los reportes y maneja los usuarios. Un usuario desactivado no puede entrar.</div></div>`,
+  };
+};
+
+function abrirNuevoUsuario() {
+  const clave = (id, texto) => campo(texto, id, `<input id="${id}" type="password" autocomplete="off">`);
+  abrirModal('Nuevo usuario', `${campo('Nombre de la persona', 'u-nombre', '<input id="u-nombre">')}
+    <div class="dos">${campo('Usuario', 'u-usuario', '<input id="u-usuario" autocomplete="off" placeholder="Ej.: pedro">', 'Sin espacios.')}
+    ${campo('Rol', 'u-rol', '<select id="u-rol"><option value="EMPLEADO">Empleado</option><option value="JEFE">Jefe</option></select>')}</div>
+    <div class="dos">${clave('u-clave', 'Clave')}${clave('u-confirmar', 'Repita la clave')}</div>`,
+  botonesGuardar('Crear usuario', 'guardar-usuario'));
+}
+
+function abrirCambioDeClave(id, usuario) {
+  const clave = (campoId, texto) => campo(texto, campoId, `<input id="${campoId}" type="password" autocomplete="off">`);
+  abrirModal(`Cambiar la clave de «${usuario}»`, `<div class="dos">${clave('u-clave', 'Clave nueva')}${clave('u-confirmar', 'Repita la clave')}</div>`,
+    botonesGuardar('Cambiar clave', 'guardar-clave', ` data-id="${esc(id)}"`));
+}
+
 /* ------------------------------------------------------------------ acciones (clic en un elemento con data-accion) */
 const ACCIONES = {
   ir: el => ir(el.dataset.id),
@@ -619,6 +703,14 @@ const ACCIONES = {
   abonar: el => abrirAbono(el.dataset.id),
   'guardar-abono': el => guardar('abonar', el.dataset.id, val('a-valor')),
   'filtro-periodo': el => { estado.periodo = el.dataset.valor; render(); },
+  ingresar: async () => terminarIngreso(await llamar('iniciar_sesion', val('i-usuario'), val('i-clave'))),
+  'crear-jefe': async () => terminarIngreso(await llamar('crear_primer_jefe', val('i-nombre'), val('i-usuario'), val('i-clave'), val('i-confirmar'))),
+  salir,
+  'nuevo-usuario': abrirNuevoUsuario,
+  'guardar-usuario': () => guardar('crear_usuario', val('u-nombre'), val('u-usuario'), val('u-rol'), val('u-clave'), val('u-confirmar')),
+  'clave-usuario': el => abrirCambioDeClave(el.dataset.id, el.dataset.usuario),
+  'guardar-clave': el => guardar('cambiar_clave_usuario', el.dataset.id, val('u-clave'), val('u-confirmar')),
+  'activar-usuario': async el => { const r = await llamar('activar_usuario', el.dataset.id, Boolean(el.dataset.activo)); aviso(r.mensaje, !r.exito); render(); },
 };
 
 const ENTRADAS = {
@@ -638,6 +730,10 @@ document.addEventListener('input', ev => { const f = ENTRADAS[ev.target.dataset.
 document.addEventListener('change', ev => { const f = CAMBIOS[ev.target.dataset.cambio]; if (f) f(ev.target); });
 
 document.addEventListener('keydown', ev => {
+  if (!estado.sesion) {                                   // pantalla de ingreso: Enter entra; los atajos no hacen nada
+    if (ev.key === 'Enter' && ev.target.closest('#form-ingreso')) { ev.preventDefault(); $('form-ingreso').querySelector('.btn-p').click(); }
+    return;
+  }
   if (ev.target.id === 'pos-q' && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(ev.key)) { teclaEnBusqueda(ev); return; }
   if (ev.key === 'Escape' && hayModal()) { cerrarModal(); return; }
   if (ev.key === 'Enter' && ev.target.dataset.lector !== undefined) { ev.preventDefault(); $('f-nombre').focus(); return; }  // Enter del lector
@@ -652,4 +748,4 @@ document.addEventListener('keydown', ev => {
 });
 
 window.addEventListener('unhandledrejection', ev => ev.preventDefault());   // el aviso ya se mostró en llamar()
-window.addEventListener('pywebviewready', render);
+window.addEventListener('pywebviewready', iniciar);

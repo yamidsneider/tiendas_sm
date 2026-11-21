@@ -1,13 +1,15 @@
+import sqlite3
 from datetime import date, datetime
 
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
                                 Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote,
-                                ResumenDeVentas, ProductoMasVendido)
-from tiendas_sm.puertos import PuertoDeClientes, PuertoDeProductos, PuertoDeReportes, RepositorioDeVentas
+                                ResumenDeVentas, ProductoMasVendido, Usuario)
+from tiendas_sm.puertos import (PuertoDeClientes, PuertoDeProductos, PuertoDeReportes, PuertoDeUsuarios,
+                                RepositorioDeVentas)
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
 __all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes",
-           "RepositorioDeReportesSqlite"]
+           "RepositorioDeReportesSqlite", "RepositorioDeUsuarios"]
 
 MOVIMIENTO_SALIDA_VENTA = "SALIDA_VENTA"
 MOVIMIENTO_DEVOLUCION = "DEVOLUCION"
@@ -362,3 +364,41 @@ class RepositorioDeReportesSqlite(PuertoDeReportes):
         rango = (desde.isoformat(), hasta.isoformat())
         filas = self.conexion.execute(SQL_MAS_VENDIDOS, rango + rango + (limite,)).fetchall()
         return [ProductoMasVendido(f["id_producto"], f["nombre"], f["unidades"], f["valor"]) for f in filas]
+
+
+# ---------------------------------------------------------------------- usuarios (fase 2)
+class RepositorioDeUsuarios(PuertoDeUsuarios):
+    def __init__(self, conexion):
+        self.conexion = conexion
+
+    def guardar(self, usuario):
+        datos = (usuario.nombre, usuario.usuario, usuario.rol.value, usuario.clave_hash, usuario.sal, int(usuario.activo))
+        try:
+            with self.conexion:
+                if usuario.id_usuario is None:
+                    cursor = self.conexion.execute(
+                        "INSERT INTO usuarios (nombre, usuario, rol, clave_hash, sal, activo) VALUES (?,?,?,?,?,?)", datos)
+                    usuario.id_usuario = cursor.lastrowid
+                else:
+                    self.conexion.execute("UPDATE usuarios SET nombre=?, usuario=?, rol=?, clave_hash=?, sal=?, activo=? "
+                                          "WHERE id_usuario=?", datos + (usuario.id_usuario,))
+        except sqlite3.IntegrityError:
+            raise ValueError(f"Ya existe el usuario «{usuario.usuario}»") from None
+        return usuario
+
+    def obtener(self, id_usuario):
+        fila = self.conexion.execute("SELECT * FROM usuarios WHERE id_usuario=?", (id_usuario,)).fetchone()
+        return self._a_usuario(fila) if fila else None
+
+    def obtener_por_usuario(self, usuario):
+        fila = self.conexion.execute("SELECT * FROM usuarios WHERE usuario=?", (usuario,)).fetchone()
+        return self._a_usuario(fila) if fila else None
+
+    def listar(self):
+        filas = self.conexion.execute("SELECT * FROM usuarios ORDER BY nombre COLLATE NOCASE").fetchall()
+        return [self._a_usuario(fila) for fila in filas]
+
+    @staticmethod
+    def _a_usuario(fila):
+        return Usuario(fila["id_usuario"], fila["nombre"], fila["usuario"], fila["rol"], fila["clave_hash"], fila["sal"],
+                       bool(fila["activo"]))

@@ -10,6 +10,7 @@ from pathlib import Path
 from iniciar_tienda import abrir_aplicacion, cerrar_tienda, preparar_tienda, ruta_de_datos
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.datos_de_ejemplo import CLIENTES_DE_EJEMPLO, PRODUCTOS_DE_EJEMPLO, cargar_datos_de_ejemplo
+from sesion_de_prueba import CLAVE_DE_PRUEBA, JEFE_DE_PRUEBA
 
 
 class PruebasDeLaRutaDeDatos(unittest.TestCase):
@@ -58,6 +59,8 @@ class PruebasDeLaAppDeEscritorio(unittest.TestCase):
             ruta = Path(carpeta) / "TIENDAS_SM" / "tiendas_sm.db"
             tienda = preparar_tienda(ruta, con_datos_de_ejemplo=True)
             self.assertTrue(tienda.cargo_ejemplo)
+            self.assertFalse(tienda.api.estado_sesion()["hay_usuarios"])      # fase 2: los datos de ejemplo no traen usuarios
+            tienda.api.crear_primer_jefe("Jefe ficticio", JEFE_DE_PRUEBA, CLAVE_DE_PRUEBA, CLAVE_DE_PRUEBA)
             filas = []
             otro = threading.Thread(target=lambda: filas.extend(tienda.api.productos("")))   # como lo hace pywebview
             otro.start()

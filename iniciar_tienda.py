@@ -2,8 +2,9 @@
 
 Uso:  python iniciar_tienda.py                      abre la tienda con los datos guardados
       python iniciar_tienda.py --datos-de-ejemplo   además carga datos FICTICIOS si la base está vacía
-      python iniciar_tienda.py --tkinter            abre la versión anterior en Tkinter (opción A)
 También funciona igual desde TIENDAS_SM.exe (armado con construir_exe.py).
+Fase 2 (CR-01): la ventana pide usuario y clave. La opción --tkinter ya no abre la versión anterior, porque esa
+versión no pide clave y se saltaría los permisos de cada rol; si se pasa, se abre la ventana normal.
 
 Los datos se guardan en la carpeta de datos del usuario (DDS §14):
 %LOCALAPPDATA%\\TIENDAS_SM\\tiendas_sm.db en Windows. Al cerrar se crea un respaldo verificado en la misma carpeta (FPI-30).
@@ -106,9 +107,8 @@ def main(argumentos):
         return
     con_datos_de_ejemplo = OPCION_DATOS_DE_EJEMPLO in argumentos
     if OPCION_TKINTER in argumentos:
-        abrir_version_tkinter(ruta, con_datos_de_ejemplo, telemetria)
-    else:
-        abrir_ventana(ruta, con_datos_de_ejemplo, telemetria)
+        print("La versión Tkinter no pide usuario y clave (fase 2): se abre la ventana normal.")
+    abrir_ventana(ruta, con_datos_de_ejemplo, telemetria)
 
 
 def abrir_ventana(ruta, con_datos_de_ejemplo, telemetria):
@@ -124,21 +124,6 @@ def abrir_ventana(ruta, con_datos_de_ejemplo, telemetria):
         webview.start()                                       # se queda aquí hasta que se cierra la ventana
     finally:
         informar_respaldo(cerrar_tienda(tienda, ruta, telemetria))
-
-
-def abrir_version_tkinter(ruta, con_datos_de_ejemplo, telemetria):
-    """La interfaz anterior (opción A); se conserva hasta que el desarrollador decida retirarla."""
-    import tkinter as tk
-    from interfaz_tk.ventana_principal import VentanaPrincipal
-
-    app, cargo_ejemplo = abrir_aplicacion(ruta, con_datos_de_ejemplo, telemetria)
-    informar_inicio(ruta, cargo_ejemplo)
-    raiz = tk.Tk()
-    VentanaPrincipal(raiz, app)
-    try:
-        raiz.mainloop()
-    finally:
-        informar_respaldo(cerrar_y_respaldar(app, ruta, telemetria))
 
 
 def informar_inicio(ruta, cargo_ejemplo):

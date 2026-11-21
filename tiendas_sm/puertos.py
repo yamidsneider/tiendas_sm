@@ -112,6 +112,26 @@ class PuertoDeReportes(ABC):
         """ProductoMasVendido con unidades netas (vendidas − devueltas) mayores a 0, de más a menos unidades."""
 
 
+class PuertoDeUsuarios(ABC):
+    """Fase 2 (CR-01): usuarios que pueden ingresar. Guarda la huella de la clave, nunca la clave."""
+
+    @abstractmethod
+    def guardar(self, usuario):
+        """Inserta (sin id) o actualiza nombre, rol, clave y activo. Un usuario repetido lanza ValueError."""
+
+    @abstractmethod
+    def obtener(self, id_usuario):
+        ...
+
+    @abstractmethod
+    def obtener_por_usuario(self, usuario):
+        """El usuario con ese nombre de ingreso (ya normalizado), o None."""
+
+    @abstractmethod
+    def listar(self):
+        """Todos, ordenados por nombre."""
+
+
 class PuertoDeClientes(ABC):
     """Lo que el núcleo necesita para clientes."""
 

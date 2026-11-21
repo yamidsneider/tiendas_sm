@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion, Lote,
-                                CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS)
+                                CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS, Rol, Usuario,
+                                normalizar_usuario)
 from tiendas_sm.validaciones import exigir_mayor_a_cero
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
@@ -348,3 +349,83 @@ class ServicioDeReportes:
         desde, hasta = rango_del_periodo(Periodo(periodo), ahora or datetime.now())
         return ReporteDeVentas(desde, hasta, self.repo_reportes.resumen_de_ventas(desde, hasta),
                                self.repo_reportes.mas_vendidos(desde, hasta, MAS_VENDIDOS_A_MOSTRAR))
+
+
+# ---------------------------------------------------------------------- usuarios y sesión (fase 2, CR-01, RNF-03)
+ACCESO_INCORRECTO = "Usuario o clave incorrectos"     # el mismo mensaje siempre: no revela qué usuarios existen
+SIN_INGRESAR = "Primero ingrese con su usuario y clave"
+SOLO_EL_JEFE = "Solo el jefe puede hacer esto"
+
+
+class ServicioDeUsuarios:
+    def __init__(self, repo_usuarios):
+        self.repo_usuarios = repo_usuarios
+
+    def hay_usuarios(self):
+        return bool(self.repo_usuarios.listar())
+
+    def crear_primer_jefe(self, nombre, usuario, clave):
+        """La primera vez que se abre la tienda no hay nadie: se crea el jefe. Después, solo el jefe crea usuarios."""
+        if self.hay_usuarios():
+            raise ValueError("Ya hay usuarios: el jefe crea los demás en la sección Usuarios")
+        return self.crear_usuario(nombre, usuario, Rol.JEFE, clave)
+
+    def crear_usuario(self, nombre, usuario, rol, clave):
+        return self.repo_usuarios.guardar(Usuario.nuevo(nombre, usuario, rol, clave))
+
+    def obtener(self, id_usuario):
+        usuario = self.repo_usuarios.obtener(id_usuario)
+        if usuario is None:
+            raise ValueError("El usuario no existe")
+        return usuario
+
+    def listar(self):
+        return self.repo_usuarios.listar()
+
+    def iniciar_sesion(self, usuario, clave):
+        try:
+            encontrado = self.repo_usuarios.obtener_por_usuario(normalizar_usuario(usuario))
+        except ValueError:
+            encontrado = None
+        if encontrado is None or not encontrado.activo or not encontrado.clave_correcta(clave):
+            raise ValueError(ACCESO_INCORRECTO)
+        return encontrado
+
+    def cambiar_clave(self, id_usuario, clave):
+        usuario = self.obtener(id_usuario)
+        usuario.cambiar_clave(clave)
+        return self.repo_usuarios.guardar(usuario)
+
+    def activar(self, id_usuario, activo, quien):
+        """quien: el usuario que hace el cambio. Nadie se bloquea a sí mismo y siempre queda un jefe activo."""
+        usuario = self.obtener(id_usuario)
+        if not activo and usuario.id_usuario == quien.id_usuario:
+            raise ValueError("No puede desactivar su propio usuario")
+        if not activo and usuario.rol == Rol.JEFE and self._jefes_activos() <= 1:
+            raise ValueError("Debe quedar al menos un jefe activo")
+        usuario.activo = activo
+        return self.repo_usuarios.guardar(usuario)
+
+    def _jefes_activos(self):
+        return sum(1 for u in self.repo_usuarios.listar() if u.rol == Rol.JEFE and u.activo)
+
+
+class Sesion:
+    """Quién está usando la tienda en esta ventana. No sabe de pantallas: solo dice si algo se puede hacer."""
+
+    def __init__(self):
+        self.usuario = None
+
+    def iniciar(self, usuario):
+        self.usuario = usuario
+
+    def cerrar(self):
+        self.usuario = None
+
+    def negar(self, permiso):
+        """None si se puede; si no, el mensaje que se muestra."""
+        if self.usuario is None:
+            return SIN_INGRESAR
+        if not self.usuario.rol.puede(permiso):
+            return SOLO_EL_JEFE
+        return None

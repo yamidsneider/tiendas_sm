@@ -57,6 +57,10 @@ CREATE TABLE IF NOT EXISTS lotes (
     id_producto INTEGER NOT NULL REFERENCES productos(id_producto),
     numero TEXT NOT NULL DEFAULT '', fecha_vencimiento TEXT NOT NULL,
     cantidad INTEGER NOT NULL, activo INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS usuarios (
+    id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL, usuario TEXT NOT NULL UNIQUE, rol TEXT NOT NULL,
+    clave_hash TEXT NOT NULL, sal TEXT NOT NULL, activo INTEGER NOT NULL DEFAULT 1);
 """
 
 # Columnas que la venta de contado (UC-02) agregó a ventas. Una base creada antes no las tiene: se agregan
