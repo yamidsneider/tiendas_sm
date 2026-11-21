@@ -11,10 +11,10 @@ Se escribieron antes del código. Datos ficticios.
 import unittest
 from datetime import datetime, timedelta
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.presentador_reportes import PresentadorDeReportes
 from tiendas_sm.servicios import Periodo, rango_del_periodo
+from sesion_de_prueba import api_con_jefe
 
 MOTIVO = "Cliente se arrepintió (prueba)"
 
@@ -143,7 +143,7 @@ class PruebasDelPresentador(BaseDeReportes):
 
     def test_la_api_entrega_el_reporte_a_la_pagina(self):
         self.vender_el_dia()
-        datos = ApiDeLaTienda(self.app).reporte("semana")
+        datos = api_con_jefe(self.app).reporte("semana")
         self.assertEqual(datos["periodo"], "semana")
         self.assertEqual(datos["mas_vendidos"][0], ["Arroz ficticio", 3, "$ 4.500"])
 

@@ -7,10 +7,10 @@ eso queda por confirmar con el propietario. Se escribieron antes del código. Da
 """
 import unittest
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.dominio import CreditoNoPermitido
 from tiendas_sm.presentador_clientes import PresentadorDeClientes
+from sesion_de_prueba import api_con_jefe
 
 
 class BaseDeEdicion(unittest.TestCase):
@@ -79,7 +79,7 @@ class PruebasDelPresentador(BaseDeEdicion):
 
 class PruebasDeLaApi(BaseDeEdicion):
     def test_datos_y_editar_desde_la_pagina(self):
-        api = ApiDeLaTienda(self.app)
+        api = api_con_jefe(self.app)
         self.assertEqual(api.datos_cliente(self.ana.id_cliente),
                          {"nombres": "Cliente ficticia Ana", "credito": True, "limite": "100000", "plazo": "15",
                           "telefono": "", "direccion": ""})

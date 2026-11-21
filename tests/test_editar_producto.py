@@ -6,10 +6,10 @@ anteriores conservan su precio (HU-02). Se escribieron antes del código. Datos 
 """
 import unittest
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.presentador_productos import PresentadorDeProductos
 from tiendas_sm.presentador_ventas import PresentadorDeVentas
+from sesion_de_prueba import api_con_jefe
 
 
 class BaseDeEdicion(unittest.TestCase):
@@ -72,7 +72,7 @@ class PruebasDelPresentador(BaseDeEdicion):
 
 class PruebasDeLaApi(BaseDeEdicion):
     def test_datos_y_editar_desde_la_pagina(self):
-        api = ApiDeLaTienda(self.app)
+        api = api_con_jefe(self.app)
         self.assertEqual(api.datos_producto(self.arroz.id_producto),
                          {"nombre": "Arroz ficticio 500 g", "compra": "2000", "venta": "2500", "minimo": "0",
                           "codigo": "", "aviso": "0"})

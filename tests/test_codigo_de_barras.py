@@ -10,11 +10,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from interfaz_web.api import ApiDeLaTienda
 from interfaz_web.pagina import CARPETA_ESTATICA
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.presentador import PresentadorPuntoDeVenta
 from tiendas_sm.presentador_productos import PresentadorDeProductos
+from sesion_de_prueba import api_con_jefe
 
 CODIGO_ARROZ = "0000000000017"                 # inventado
 CODIGO_PANELA = "0000000000024"                # inventado
@@ -66,7 +66,7 @@ class PruebasDelPuntoDeVenta(BaseDelCodigo):
         self.assertEqual([f.nombre for f in pv.buscar("panela")], ["Panela ficticia"])
 
     def test_la_api_busca_por_codigo(self):
-        self.assertEqual([p["id"] for p in ApiDeLaTienda(self.app).buscar(CODIGO_ARROZ)], [self.arroz.id_producto])
+        self.assertEqual([p["id"] for p in api_con_jefe(self.app).buscar(CODIGO_ARROZ)], [self.arroz.id_producto])
 
 
 class PruebasDeProductos(BaseDelCodigo):
@@ -79,7 +79,7 @@ class PruebasDeProductos(BaseDelCodigo):
                          (False, f"El código {CODIGO_PANELA} ya es del producto Leche ficticia"))
 
     def test_la_api_recibe_el_codigo(self):
-        api = ApiDeLaTienda(self.app)
+        api = api_con_jefe(self.app)
         self.assertTrue(api.registrar_producto("Leche ficticia", "2500", "3200", "0", "0", CODIGO_PANELA)["exito"])
         self.assertEqual(api.datos_producto(self.arroz.id_producto)["codigo"], CODIGO_ARROZ)
         self.assertTrue(api.editar_producto(self.arroz.id_producto, "Arroz ficticio", "2000", "2500", "0", "")["exito"])

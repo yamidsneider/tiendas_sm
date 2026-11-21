@@ -12,11 +12,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from interfaz_web.api import ApiDeLaTienda
 from tiendas_sm.aplicacion import Aplicacion
 from tiendas_sm.dominio import EstadoCuenta, EstadoVenta
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_ventas import PresentadorDeVentas
+from sesion_de_prueba import api_con_jefe
 
 MOTIVO = "Producto en mal estado (prueba)"
 
@@ -161,7 +161,7 @@ class PruebasDeLaSeccionVentas(BaseDeDevoluciones):
 
 class PruebasDeLaApi(BaseDeDevoluciones):
     def test_para_devolver_devolver_y_anular(self):
-        api = ApiDeLaTienda(self.app)
+        api = api_con_jefe(self.app)
         filas = api.para_devolver(self.contado.id_venta)
         self.assertEqual(filas[0]["valores"][0], "Arroz ficticio")
         respuesta = api.devolver(self.contado.id_venta, {str(self.arroz.id_producto): "1"}, MOTIVO)
