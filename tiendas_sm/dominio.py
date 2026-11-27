@@ -442,6 +442,11 @@ class Devolucion:
         self.efectivo_devuelto = self.valor() - self.descontado_de_la_deuda
 
 
+# Fase 7 (estado de cuenta): una compra fiada, un abono o una devolución que bajó la deuda, y el saldo después.
+MovimientoDeCuenta = namedtuple("MovimientoDeCuenta", "fecha tipo id_venta valor saldo", defaults=(0,))
+SIGNO_DEL_MOVIMIENTO_DE_CUENTA = {"Compra": 1, "Abono": -1, "Devolución": -1}
+
+
 class CuentaPorCobrar:
     def __init__(self, id_cuenta, id_venta, id_cliente, monto_original, fecha_apertura, fecha_vencimiento):
         self.id_cuenta = id_cuenta

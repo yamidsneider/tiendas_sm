@@ -52,6 +52,11 @@ class RepositorioDeVentas(ABC):
         """Guarda la devolución, el estado de la venta, la cuenta (si es fiado) y las existencias: todo o nada."""
 
     @abstractmethod
+    def movimientos_de_cuenta(self, id_cliente):
+        """Fase 7: MovimientoDeCuenta (compras fiadas, abonos y devoluciones descontadas de la deuda) del cliente,
+        en orden de fecha; el saldo lo calcula ControlCredito."""
+
+    @abstractmethod
     def saldo_pendiente_del_cliente(self, id_cliente):
         """TD-13: suma de (monto original − abonos) de todas las cuentas del cliente (regla de calcular_saldo)."""
 

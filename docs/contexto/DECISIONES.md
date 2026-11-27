@@ -342,3 +342,12 @@ en el punto de venta (ni por nombre ni por código de barras) y no se puede vend
 (`Producto.exigir_activo` en `ServicioDeVentas`); sale de «Por reponer»; sigue en Productos y Existencias marcado «Inactivo»
 y conserva su historia en ventas y reportes. No se borra (DT-08). Editarlo no lo reactiva. Lo hace solo el jefe.
 *Por confirmar con el propietario:* qué datos quiere en el ticket y si un producto inactivo debe esconderse también de Existencias.
+
+**Fase 7: estado de cuenta del cliente para imprimir (*aprobada* por el desarrollador, 26 de noviembre de 2026).**
+*Qué hace:* en Clientes, «Estado de cuenta» muestra (y deja imprimir en la impresora de 80 mm, 42 caracteres) los datos de
+la tienda (fase 6), el cliente, cada compra fiada, abono y devolución que bajó la deuda, en orden de fecha y con el saldo que
+quedó después de cada uno; al final los totales, el saldo actual y si tiene cuentas vencidas (misma regla de la respuesta 2.3).
+*Diseño:* `RepositorioDeVentas.movimientos_de_cuenta` (una consulta SQL con UNION, con parámetros) y
+`ControlCredito.estado_de_cuenta`, que suma el saldo; el texto lo arma `PresentadorDeClientes`. Solo lee. Lo ven jefe y
+empleado (`Permiso.CONSULTAR`), igual que el detalle del cliente. *Limitación:* las columnas de valor y saldo son de 8
+caracteres: montos de 10 millones o más desbordan el renglón (no es lo normal en el fiado de una tienda de barrio).

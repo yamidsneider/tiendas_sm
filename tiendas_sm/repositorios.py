@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
                                 Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote,
-                                ResumenDeVentas, ProductoMasVendido, TurnoDeCaja, Usuario)
+                                ResumenDeVentas, ProductoMasVendido, TurnoDeCaja, Usuario, MovimientoDeCuenta)
 from tiendas_sm.puertos import (PuertoDeCaja, PuertoDeClientes, PuertoDeConfiguracion, PuertoDeProductos,
                                 PuertoDeReportes, PuertoDeUsuarios, RepositorioDeVentas)
 
@@ -211,6 +211,12 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                 "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha) VALUES (?,?,?,?)",
                 (id_producto, MOVIMIENTO_SALIDA_VENTA, cantidad, venta.fecha.isoformat()))
 
+    def movimientos_de_cuenta(self, id_cliente):
+        """Fase 7: compras fiadas, abonos y devoluciones que bajaron la deuda. orden desempata el mismo instante."""
+        filas = self.conexion.execute(SQL_MOVIMIENTOS_DE_CUENTA, (id_cliente,) * 3).fetchall()
+        return [MovimientoDeCuenta(datetime.fromisoformat(f["fecha"]), f["tipo"], f["id_venta"], f["valor"])
+                for f in filas]
+
     def saldo_pendiente_del_cliente(self, id_cliente):
         """TD-13: misma regla que CuentaPorCobrar.calcular_saldo (monto original − abonos), sumada en una consulta."""
         fila = self.conexion.execute(
@@ -317,6 +323,18 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                                   (cuenta.id_cuenta, valor, _ahora()))
             self.conexion.execute("UPDATE cuentas_por_cobrar SET estado=? WHERE id_cuenta=?",
                                   (cuenta.estado.value, cuenta.id_cuenta))
+
+
+# ---------------------------------------------------------------------- estado de cuenta (fase 7)
+SQL_MOVIMIENTOS_DE_CUENTA = (
+    "SELECT fecha, tipo, id_venta, valor FROM ("
+    "SELECT fecha_apertura AS fecha, 'Compra' AS tipo, id_venta, monto_credito_original AS valor, 1 AS orden "
+    "FROM cuentas_por_cobrar WHERE id_cliente = ? "
+    "UNION ALL SELECT a.fecha, 'Abono', c.id_venta, a.valor, 2 FROM abonos a "
+    "JOIN cuentas_por_cobrar c ON c.id_cuenta = a.id_cuenta WHERE c.id_cliente = ? "
+    "UNION ALL SELECT d.fecha, 'Devolución', d.id_venta, d.descontado_de_la_deuda, 3 FROM devoluciones d "
+    "JOIN cuentas_por_cobrar c ON c.id_venta = d.id_venta WHERE c.id_cliente = ? AND d.descontado_de_la_deuda > 0"
+    ") ORDER BY fecha, orden")
 
 
 # ---------------------------------------------------------------------- reportes (fase 1)

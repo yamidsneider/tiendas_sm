@@ -557,6 +557,7 @@ TABLAS.clientes = async () => {
     return `<tr><td><b>${esc(nombre)}</b></td><td class="num">${esc(limite)}</td><td class="num">${esc(debe)}</td>
       <td class="num">${disponible === 'Sin crédito' ? insignia('i-gris', disponible) : `<b>${esc(disponible)}</b>`}</td>
       <td><button class="btn btn-s btn-ch" data-accion="ver-cliente" data-id="${esc(f.id)}">Ver detalle</button>
+      <button class="btn btn-s btn-ch" data-accion="estado-de-cuenta" data-id="${esc(f.id)}">Estado de cuenta</button>
       ${puede('gestionar_clientes') ? `<button class="btn btn-s btn-ch" data-accion="editar-cliente" data-id="${esc(f.id)}">Editar</button>` : ''}</td></tr>`;
   });
   return tabla(['Cliente', '>Límite', '>Debe', '>Disponible', ''], filas, 'No hay clientes con esa búsqueda.');
@@ -858,6 +859,7 @@ const ACCIONES = {
   'editar-cliente': el => abrirEdicionDeCliente(el.dataset.id),
   'guardar-edicion-cliente': el => guardar('editar_cliente', el.dataset.id, val('k-nombre'), $('k-credito').checked, val('k-limite'), val('k-plazo'), val('k-telefono'), val('k-direccion')),
   'ver-cliente': async el => abrirModal('Detalle del cliente', papel(await llamar('detalle_cliente', el.dataset.id)), [{ texto: 'Cerrar', clase: 'btn-p', accion: 'cerrar-modal' }]),
+  'estado-de-cuenta': async el => mostrarTicket('Estado de cuenta', await llamar('estado_de_cuenta', el.dataset.id)),   // fase 7
   'filtro-pagadas': el => { estado.verPagadas = el.dataset.valor === 'true'; render(); },
   'ver-credito': async el => abrirModal('Detalle de la cuenta', papel(await llamar('detalle_credito', el.dataset.id)), [{ texto: 'Cerrar', clase: 'btn-p', accion: 'cerrar-modal' }]),
   abonar: el => abrirAbono(el.dataset.id),

@@ -5,7 +5,7 @@ from enum import Enum
 
 from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion, Lote,
                                 CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS, Rol, TurnoDeCaja,
-                                Usuario, DatosDeLaTienda, normalizar_usuario)
+                                Usuario, DatosDeLaTienda, SIGNO_DEL_MOVIMIENTO_DE_CUENTA, normalizar_usuario)
 from tiendas_sm.validaciones import exigir_mayor_a_cero, exigir_no_negativo
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
@@ -202,6 +202,15 @@ class ControlCredito:
 
     def obtener_cuenta(self, id_cuenta):
         return self.repo_ventas.obtener_cuenta(id_cuenta)
+
+    def estado_de_cuenta(self, id_cliente):
+        """Fase 7: los movimientos del fiado en orden, cada uno con el saldo que quedó (compra suma, abono y
+        devolución restan). Solo lee."""
+        saldo, movimientos = 0, []
+        for movimiento in self.repo_ventas.movimientos_de_cuenta(id_cliente):
+            saldo += SIGNO_DEL_MOVIMIENTO_DE_CUENTA[movimiento.tipo] * movimiento.valor
+            movimientos.append(movimiento._replace(saldo=saldo))
+        return movimientos
 
 
 class ServicioDeVentas:
