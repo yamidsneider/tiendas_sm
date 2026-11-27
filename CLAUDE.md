@@ -11,8 +11,9 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
    para que Yamid pueda entenderlo y defenderlo. Él es responsable final de todo lo que entregue.
 2. **No inventes requisitos ni los presentes como aprobados.** Distingue siempre: *definido*, *preliminar* y *recomendación*.
    Si crees que hace falta una función nueva, proponla como recomendación y **pregunta antes** de programarla.
-3. **Mantén el alcance pequeño.** No agregues proveedores, pedidos, caja, devoluciones, facturación, reportes, roles ni
-   usuarios: son ampliación **CR-02 / CR-01 sin aprobar** (hoy *Won't Have*). Tampoco hay borrar productos ni anular ventas (DT-08).
+3. **Sigue la hoja de ruta** `docs/HOJA_DE_RUTA_APP_COMPLETA.md` (aprobada en noviembre de 2026): una fase por rama, en su orden.
+   Devoluciones/anulaciones (grupo B) y reportes (fase 1) ya están aprobados. Lo que no esté en la ruta sigue sin aprobar;
+   facturación electrónica no se agrega. No hay borrar productos (se propone desactivarlos en la fase 6).
 4. **Antes de cambiar una decisión importante, explica por qué conviene** y espera su visto bueno. Registra el cambio con causa e impacto.
 5. **Trazabilidad:** cada cambio cita su historia o requisito (HU-xx, RF-xx, CU-01, RNF-xx, BUG-xx, DT-xx). Conserva el nombre **TIENDAS S.M**.
 6. **Honestidad ante todo.** No digas que algo funciona si no lo ejecutaste. Corre las pruebas antes de dar una tarea por terminada
@@ -31,11 +32,15 @@ Es un **MVP**: sencillo, realizable por un estudiante y defendible en una susten
 ## Estructura del repositorio
 ```
 tiendas_sm/          dominio.py, servicios.py, puertos.py, repositorios.py, base_de_datos.py, validaciones.py, aplicacion.py,
-                     presentador.py (lógica de la pantalla, sin Tkinter), datos_de_ejemplo.py (ficticios),
+                     presentador.py y presentador_{clientes,creditos,productos,existencias,ventas}.py (lógica de cada pantalla, sin Tkinter),
+                     datos_de_ejemplo.py (ficticios),
                      telemetria.py (span, métricas y log JSON de la venta, FPI-29), respaldo.py (respaldo verificado y revisión al abrir, FPI-30)
-interfaz_tk/         ventana_punto_de_venta.py (solo dibuja; no cuenta en la cobertura) · iniciar_tienda.py abre la app
+interfaz_tk/         ventana_principal.py (menú con las 6 secciones), tema.py (paleta del borrador HTML), pantalla.py (base de cada sección),
+                     ventana_punto_de_venta.py y pantalla_{clientes,creditos,productos,existencias,ventas}.py (solo dibujan; no cuentan
+                     en la cobertura) · iniciar_tienda.py abre la app
 tests/               test_comportamiento, test_unitarias_dobles, test_caja_negra, test_integracion_incremental, test_defectos_corregidos,
-                     test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_interfaz_tk (se salta sin pantalla), test_escenarios_calidad, test_migracion_esquema, test_medir_cobertura, test_healthcheck_paquete, test_telemetria,
+                     test_venta_de_contado, test_arquitectura, test_presentador, test_iniciar_tienda, test_presentador_{clientes,creditos,productos,existencias,ventas},
+                     test_interfaz_tk, test_ventana_principal y test_pantalla_* (se saltan sin pantalla), test_escenarios_calidad, test_migracion_esquema, test_medir_cobertura, test_healthcheck_paquete, test_telemetria,
                      test_slo_mensual, test_respaldo, test_tablero_telemetria, test_td13_saldo_pendiente
 scripts/             healthcheck_paquete.py (revisa el .zip publicado; lo usa el CD)
 docs/                CI.md, Runbook_base_de_datos.md, incidentes/ (Postmortem INC-SIM-01), FLUJO_GIT.md, defectos/BUG-01.md y BUG-02.md, BITACORA_IA.md, HOJA_DE_RUTA_IS2.md, contexto/, referencia/
@@ -50,11 +55,12 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (197 pruebas)
-python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 98 %)
+python -m unittest discover -s tests -v          # debe dar OK (592 pruebas)
+python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 98,8 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico
-python iniciar_tienda.py --datos-de-ejemplo      # abre el punto de venta (datos en %LOCALAPPDATA%\TIENDAS_SM)
+.venv\Scripts\python iniciar_tienda.py --datos-de-ejemplo   # app de escritorio pywebview (--tkinter: la anterior); datos en %LOCALAPPDATA%\TIENDAS_SM
+.venv\Scripts\python construir_exe.py --acceso-directo   # arma dist\TIENDAS_SM.exe con su ícono y el acceso directo
 ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-complexity = 10" tiendas_sm interfaz_tk tests scripts iniciar_tienda.py tablero_telemetria.py slo_mensual.py   # job linter (ruff==0.16.9)
 ```
 
@@ -73,10 +79,10 @@ ruff check --select E9,F63,F7,F82,F401,F841,S,C901 --config "lint.mccabe.max-com
 - Fusiona con *merge commit* (no squash) para conservar los commits atómicos. Versionado SemVer (`v0.1.x`).
 
 ## Estado actual (resumen; detalle en `docs/contexto/ESTADO_Y_PENDIENTES.md`)
-- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), 197 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07, TD-13 y TD-14 corregidos; pipeline de la Guía 9, entrega continua de la Guía 11, seguridad de la Guía 12, telemetría de la venta (Guía 13) y confiabilidad: SLO, Runbook, respaldo verificado al cerrar y revisión al abrir (Guía 14).
+- **Hecho:** HU-01 a HU-04 (venta **a crédito** y **de contado** en efectivo), HU-06, CU-01, CU-02, puertos del núcleo (ADR-04), interfaz Tkinter con las 6 secciones aprobadas, 275 pruebas en verde, CI configurado, BUG-01, BUG-02, DT-09, TD-01, TD-04, TD-05, TD-07, TD-13 y TD-14 corregidos; pipeline de la Guía 9, entrega continua de la Guía 11, seguridad de la Guía 12, telemetría de la venta (Guía 13) y confiabilidad: SLO, Runbook, respaldo verificado al cerrar y revisión al abrir (Guía 14).
 - **Pendiente, en este orden de prioridad:**
-  1. **Interfaz Tkinter:** punto de venta hecho; faltan medir E-01 con personas y las demás pantallas
-     (referencia visual y de flujos: `docs/referencia/tiendas_sm_dashboard.html`).
+  1. **Interfaz Tkinter:** 6 secciones hechas (rama `app/pantallas`, falta el PR a `main`); falta medir E-01 con personas.
+     Recomendación sin aprobar: «Editar cliente» (ver `ESTADO_Y_PENDIENTES.md`).
   2. ~~Venta de contado~~ (hecha: UC-02, solo efectivo).
   3. **Validar las reglas con el propietario** de una tienda real.
   4. Acceso con usuario/contraseña (RNF-03, CR-01 aplazada).

@@ -12,7 +12,7 @@ Consolidado de las guías 1 a 16, más la etapa de IS II con Claude Code (secci�
   todo lo hizo la IA (Claude) y él confió en el resultado. Sí comprobó, con ayuda de la IA, los hallazgos de la sección 2.
 - Datos: ninguna prueba ni consulta a la IA usó datos reales de clientes, contraseñas ni información confidencial.
 
-## 2. Hallazgos reales en lo generado con IA (20 de las guías 1 a 16; 17 más en la sección 7)
+## 2. Hallazgos reales en lo generado con IA (20 de las guías 1 a 16; 23 más en la sección 7)
 **Tipo:** *alucinación* (la IA afirmó o usó algo que no existe), *diseño* (código, modelo o herramienta mal planteado), *prueba débil*
 (una prueba que no prueba lo que dice) u *otro* (se dice cuál). **Revisado por:** quién encontró y comprobó el hallazgo: una persona o la IA.
 | N.° | Guía | Hallazgo | Cómo se detectó | Tipo | Revisado por |
@@ -70,8 +70,12 @@ Confirmado por el desarrollador (6-nov-2026): **ninguno se repitió con una IA r
 - **Decisiones que tomó el desarrollador, no la IA:** trabajar solo en local sin GitHub; aprobar cada plan; la numeración TD; la base de datos
   en la carpeta del usuario; los datos de ejemplo con `--datos-de-ejemplo`; fusionar la interfaz sin revisarla a mano.
 - **Datos:** solo datos ficticios en pruebas, datos de ejemplo y consultas. Ningún secreto, contraseña ni dato real de clientes.
+- **Interfaz con el diseño del borrador (7-nov-2026):** el desarrollador mostró su borrador HTML y **eligió la opción A** (Tkinter con
+  ese diseño, sin emojis y sin cambiar la arquitectura). La IA construyó las 6 secciones aprobadas en 6 etapas (ROJO y VERDE por
+  etapa) y el desarrollador aprobó cada etapa a partir del resumen. También decidió dejar «Editar cliente» como recomendación sin
+  aprobar. Las ejecuciones, capturas de la ventana real y mediciones las hizo la IA.
 
-### 7.2 Hallazgos reales de esta etapa (21 a 37)
+### 7.2 Hallazgos reales de esta etapa (21 a 43)
 Todos ocurrieron en esta sesión de trabajo. Varios son errores **de la propia IA**, detectados antes de fusionar.
 
 | N.° | Hallazgo | Cómo se detectó | Resultado | Tipo | Revisado por |
@@ -93,12 +97,20 @@ Todos ocurrieron en esta sesión de trabajo. Varios son errores **de la propia I
 | 35 | Un comando de la IA dejó un `cat > /dev/null` sobrante que se quedó esperando entrada y bloqueó la terminal 2 minutos; el cambio no se aplicó | Revisar `git status` antes de seguir | Se detuvo la tarea, se comprobó que no hubo cambios a medias y se repitió desde un archivo de script | otro: proceso | IA (Claude Code) |
 | 36 | Los parches de TD-13 preparados con IA cambiaban el servicio para usar un método nuevo del repositorio, pero no lo agregaban al contrato `RepositorioDeVentas` (ADR-04); además 2 de los 3 no aplicaban por finales de línea | Revisar el diff contra las reglas de arquitectura, no solo la suite | Método abstracto agregado con prueba en ROJO; los parches se aplicaron con el mismo diff y se declaró la desviación | diseño | IA (Claude Code) |
 | 37 | La guía de la tarea 15 pedía registrar TD-15 a TD-17 «con el texto de la FPI-31», pero esa ficha no está en las carpetas | Buscar la fuente antes de escribir | Se usó solo lo que dice el dossier y la relación dudosa (TD-15) quedó «por confirmar» | otro: proceso (fuente faltante) | IA (Claude Code) |
+| 38 | La primera prueba ROJO de la ventana principal se **saltaba** en vez de fallar: el `try/except ImportError` cubría también los módulos propios que aún no existían | Ver que el ROJO salía «skipped» y no «failed» | Se separó el import de Tkinter del de los módulos propios; ahora falla con `ModuleNotFoundError` | otro: prueba mal escrita | IA (Claude Code) |
+| 39 | Con todas las pruebas en verde, a 1024×600 se cortaban columnas y textos (Disponibles, Total, Plazo, Movimiento, la fecha de vencimiento del detalle) | Captura de la ventana real en cada etapa | Anchos de columna, paneles y formularios ajustados y revisados de nuevo | diseño | IA (Claude Code) |
+| 40 | Una prueba de pantalla de Clientes dejaba vacío el límite además del nombre y esperaba el error del nombre; el presentador avisa primero del límite | La prueba falló en VERDE | Se corrigió la prueba (el límite lleno) para revisar solo el nombre; queda dicho en el commit | otro: prueba mal escrita | IA (Claude Code) |
+| 41 | La IA escribió la línea de «abonos registrados» del detalle con una multiplicación de booleanos, difícil de leer y de defender | Autorrevisión antes de correr las pruebas | Se reemplazó por la función `_contar` que ya usaba el resumen | otro: legibilidad | IA (Claude Code) |
+| 42 | Dos veces, un script de reemplazo con el salto de línea (barra invertida y n) mal escapado falló: la primera no encontró el texto y su `assert` detuvo todo antes de escribir; la segunda metió un salto de línea real en esta misma tabla | El script falló sin tocar el archivo; la tabla se revisó después de escribirla | Los dos cambios se hicieron con la herramienta de edición y se volvió a revisar el resultado | otro: proceso | IA (Claude Code) |
+| 43 | La interfaz pedía leer los movimientos de inventario y las ventas guardadas, pero ningún puerto lo permitía; leerlos con SQL desde la pantalla habría roto ADR-04 | Revisar el contrato antes de programar la pantalla | Métodos abstractos nuevos en los puertos con prueba en ROJO en `test_arquitectura`; registrado en `DECISIONES.md` | diseño | IA (Claude Code) |
 
 ### 7.3 Lo que no se verificó
 - Hasta la tarea 8, `ruff` no se ejecutó. Desde la tarea 9 se ejecuta en local (entorno virtual aparte, `ruff==0.16.9`) con las reglas del CI.
 - Semgrep se ejecutó en local (0 hallazgos); Trivy no (solo correrá en el CI).
 - TD-05 (Python 3.13) se probó simulando la entrada: en el equipo solo hay Python 3.12.
-- El pipeline de GitHub, los Pull Requests y sus revisiones **no existen todavía**: todo está en el repositorio local.
+- El repositorio ya está en GitHub (`yamidsneider/tiendas_sm`): la primera ejecución del CI, de ci-security y de la entrega continua
+  (release `v1.0.0`) salió en verde. La interfaz de 6 secciones (rama `app/pantallas`) **todavía no** tiene su Pull Request ni su CI.
+- Las 37 pruebas de pantallas se ejecutaron en local con pantalla; en el CI se saltan.
 - E-01 (venta de 5 productos en menos de 60 s) no se ha medido con personas.
 - La ventana del mensaje de base dañada (tarea 14) no se abrió a mano.
 

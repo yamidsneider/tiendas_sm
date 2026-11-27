@@ -7,3 +7,8 @@ coverage.xml
 *.jsonl
 *.jsonl.*
 tablero*.html
+# App de escritorio (opción B): entorno, construcción y .exe
+.venv/
+build/
+dist/
+TIENDAS_SM.spec

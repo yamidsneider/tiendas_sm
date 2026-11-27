@@ -2,42 +2,44 @@
 
 Solo dibuja y reenvía: cada botón o tecla llama a un método del presentador y muestra lo que devuelve.
 Atajos: F2 buscar, Enter agregar, F9 cobrar de contado, F4 vender a crédito, Supr quitar, Esc cerrar diálogo.
+Vive dentro de la ventana principal (menú lateral); si se crea sin contenedor, ocupa la ventana sola.
 """
 import tkinter as tk
-from tkinter import font as tkfont
 from tkinter import ttk
 
+from interfaz_tk.pantalla import Pantalla
+from interfaz_tk.tema import (COLOR_ERROR, COLOR_OK, FUENTE_NORMAL, FUENTE_TICKET, aplicar_tema, crear_tabla,
+                             llenar_tabla)
 from tiendas_sm.presentador import formato_pesos
 
 TITULO = "TIENDAS S.M — Punto de venta"
 ANCHO_MINIMO, ALTO_MINIMO = 1024, 600          # DDS §9.2
-FUENTE_TOTAL = ("Segoe UI", 28, "bold")
-FUENTE_NORMAL = ("Segoe UI", 11)
-COLOR_ERROR, COLOR_OK = "#b00020", "#1b5e20"
 CANTIDAD_INICIAL = "1"
-ESPACIO_EXTRA_DE_FILA = 8                       # píxeles sobre el alto de la letra, para que no se corten la g ni la p
-ANCHO_COLUMNA_PRODUCTO, ANCHO_COLUMNA = 220, 95
 
 
-class VentanaPuntoDeVenta:
-    def __init__(self, raiz, presentador):
+class VentanaPuntoDeVenta(Pantalla):
+    def __init__(self, raiz, presentador, contenedor=None):
+        if contenedor is None:                       # sola, sin menú: ella pone el título y el tema
+            raiz.title(TITULO)
+            raiz.minsize(ANCHO_MINIMO, ALTO_MINIMO)
+            aplicar_tema(raiz)
+        super().__init__(contenedor or raiz)
         self.raiz = raiz
         self.pv = presentador
         self.dialogo = None          # diálogo de cobro abierto (contado o crédito), si hay uno
         self.ventana_ticket = None
-        raiz.title(TITULO)
-        raiz.minsize(ANCHO_MINIMO, ALTO_MINIMO)
         self._construir()
         self._atajos()
-        self.refrescar()
+        self.mostrar()
+
+    def al_mostrar(self):
+        self.refrescar()             # al volver de otra sección, las existencias pudieron cambiar
         self.enfocar_busqueda()
 
     # ------------------------------------------------------------------ construcción
     def _construir(self):
-        alto_de_letra = tkfont.Font(font=FUENTE_NORMAL).metrics("linespace")
-        ttk.Style(self.raiz).configure("Treeview", font=FUENTE_NORMAL, rowheight=alto_de_letra + ESPACIO_EXTRA_DE_FILA)
-        izquierda = ttk.Frame(self.raiz, padding=12)
-        derecha = ttk.Frame(self.raiz, padding=12)
+        izquierda = ttk.Frame(self.marco, padding=(0, 6, 12, 0))
+        derecha = ttk.Frame(self.marco, padding=(6, 6, 0, 0))
         derecha.pack(side="right", fill="y")             # primero el panel de cobro: así nunca queda aplastado
         izquierda.pack(side="left", fill="both", expand=True)
         self._construir_busqueda(izquierda)
@@ -47,55 +49,48 @@ class VentanaPuntoDeVenta:
     def _construir_busqueda(self, padre):
         fila = ttk.Frame(padre)
         fila.pack(fill="x")
-        ttk.Label(fila, text="Buscar producto (F2):", font=FUENTE_NORMAL).pack(side="left")
+        ttk.Label(fila, text="Buscar producto (F2):").pack(side="left")
         self.texto_busqueda = tk.StringVar()
         self.campo_busqueda = ttk.Entry(fila, textvariable=self.texto_busqueda, width=18, font=FUENTE_NORMAL)
         self.campo_busqueda.pack(side="left", padx=6)
-        ttk.Label(fila, text="Cantidad:", font=FUENTE_NORMAL).pack(side="left")
+        ttk.Label(fila, text="Cantidad:").pack(side="left")
         self.cantidad = tk.StringVar(value=CANTIDAD_INICIAL)
         self.campo_cantidad = ttk.Entry(fila, textvariable=self.cantidad, width=5, font=FUENTE_NORMAL)
         self.campo_cantidad.pack(side="left", padx=6)
         ttk.Button(fila, text="Agregar", command=self.agregar_seleccionado).pack(side="left")
-        self.mensaje = ttk.Label(padre, text="", font=FUENTE_NORMAL)       # arriba, para que siempre se vea
+        self.mensaje = ttk.Label(padre, text="")       # arriba, para que siempre se vea
         self.mensaje.pack(fill="x", pady=(8, 0))
-        self.resultados = self._tabla(padre, "Resultados", ("Producto", "Precio", "Disponibles"), alto=4)
+        self.resultados = crear_tabla(padre, "Resultados", ("Producto", "Precio", "Disponibles"), alto=4)
         self.texto_busqueda.trace_add("write", lambda *_: self.actualizar_resultados())
 
     def _construir_carrito(self, padre):
-        self.carrito = self._tabla(padre, "Venta en curso", ("Producto", "Precio", "Cantidad", "Importe", "Disponibles"),
-                                   alto=7)
-
-    def _tabla(self, padre, titulo, columnas, alto):
-        marco = ttk.LabelFrame(padre, text=titulo, padding=6)
-        marco.pack(fill="both", expand=True, pady=(10, 0))
-        tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=alto, selectmode="browse")
-        for columna in columnas:
-            tabla.heading(columna, text=columna)
-            es_producto = columna == "Producto"
-            tabla.column(columna, anchor="w" if es_producto else "e",
-                         width=ANCHO_COLUMNA_PRODUCTO if es_producto else ANCHO_COLUMNA)
-        tabla.pack(fill="both", expand=True)
-        return tabla
+        self.carrito = crear_tabla(padre, "Venta en curso",
+                                   ("Producto", "Precio", "Cantidad", "Importe", "Disponibles"), alto=7)
 
     def _construir_panel_de_cobro(self, padre):
-        caja = ttk.LabelFrame(padre, text="TOTAL A COBRAR", padding=12)
+        marco_total = ttk.LabelFrame(padre, text="Total a cobrar", padding=(0, 4, 0, 0))
+        marco_total.pack(fill="x")
+        caja = ttk.Frame(marco_total, style="Tarjeta.TFrame", padding=16)     # tarjeta blanca como en el borrador
         caja.pack(fill="x")
-        self.etiqueta_total = ttk.Label(caja, text=formato_pesos(0), font=FUENTE_TOTAL)
+        self.etiqueta_total = ttk.Label(caja, text=formato_pesos(0), style="Total.TLabel")
         self.etiqueta_total.pack()
-        self.etiqueta_resumen = ttk.Label(caja, text="", font=FUENTE_NORMAL)
+        self.etiqueta_resumen = ttk.Label(caja, text="", style="TarjetaTenue.TLabel")
         self.etiqueta_resumen.pack()
-        self.boton_contado = ttk.Button(padre, text="Cobrar de contado (F9)", command=self.abrir_cobro_de_contado)
-        self.boton_credito = ttk.Button(padre, text="Vender a crédito (F4)", command=self.abrir_venta_a_credito)
+        self.boton_contado = ttk.Button(padre, text="Cobrar de contado (F9)", style="Primario.TButton",
+                                        command=self.abrir_cobro_de_contado)
+        self.boton_credito = ttk.Button(padre, text="Vender a crédito (F4)", style="Credito.TButton",
+                                        command=self.abrir_venta_a_credito)
         self.boton_quitar = ttk.Button(padre, text="Quitar producto (Supr)", command=self.quitar_seleccionado)
         self.boton_limpiar = ttk.Button(padre, text="Limpiar venta", command=self.limpiar)
         for boton in (self.boton_contado, self.boton_credito, self.boton_quitar, self.boton_limpiar):
             boton.pack(fill="x", pady=(10, 0), ipady=6)
 
     def _atajos(self):
-        self.raiz.bind("<F2>", lambda _: self.enfocar_busqueda())
-        self.raiz.bind("<F9>", lambda _: self.abrir_cobro_de_contado())
-        self.raiz.bind("<F4>", lambda _: self.abrir_venta_a_credito())
-        self.raiz.bind("<Delete>", lambda _: self.quitar_seleccionado())
+        """Las teclas van a toda la ventana, pero solo actúan con el punto de venta a la vista."""
+        self.raiz.bind("<F2>", self._si_activa(self.enfocar_busqueda))
+        self.raiz.bind("<F9>", self._si_activa(self.abrir_cobro_de_contado))
+        self.raiz.bind("<F4>", self._si_activa(self.abrir_venta_a_credito))
+        self.raiz.bind("<Delete>", self._si_activa(self.quitar_seleccionado))
         for campo in (self.campo_busqueda, self.campo_cantidad):
             campo.bind("<Return>", lambda _: self.agregar_seleccionado())
         self.resultados.bind("<Double-1>", lambda _: self.agregar_seleccionado())
@@ -106,10 +101,8 @@ class VentanaPuntoDeVenta:
         self.campo_busqueda.select_range(0, "end")
 
     def actualizar_resultados(self):
-        self.resultados.delete(*self.resultados.get_children())
-        for fila in self.pv.buscar(self.texto_busqueda.get()):
-            self.resultados.insert("", "end", iid=str(fila.id_producto),
-                                   values=(fila.nombre, formato_pesos(fila.precio), fila.disponibles))
+        llenar_tabla(self.resultados, [(fila.id_producto, (fila.nombre, formato_pesos(fila.precio), fila.disponibles))
+                                       for fila in self.pv.buscar(self.texto_busqueda.get())])
 
     def agregar_seleccionado(self):
         """Agrega el resultado elegido o, si no hay uno elegido, el primero de la lista."""
@@ -136,11 +129,9 @@ class VentanaPuntoDeVenta:
         self.refrescar()
 
     def refrescar(self):
-        self.carrito.delete(*self.carrito.get_children())
-        for linea in self.pv.lineas():
-            self.carrito.insert("", "end", iid=str(linea.id_producto),
-                                values=(linea.nombre, formato_pesos(linea.precio), linea.cantidad,
-                                        formato_pesos(linea.importe), linea.disponibles))
+        llenar_tabla(self.carrito, [(linea.id_producto, (linea.nombre, formato_pesos(linea.precio), linea.cantidad,
+                                                          formato_pesos(linea.importe), linea.disponibles))
+                                    for linea in self.pv.lineas()])
         self.etiqueta_total.config(text=formato_pesos(self.pv.total()))
         self.etiqueta_resumen.config(text=self.pv.resumen())
         estado = "normal" if self.pv.carrito else "disabled"     # DAD §10.2: no se cobra una venta vacía
@@ -182,7 +173,7 @@ class VentanaPuntoDeVenta:
     def mostrar_ticket(self, ticket):
         self.ventana_ticket = tk.Toplevel(self.raiz)
         self.ventana_ticket.title("Ticket de la venta")
-        texto = tk.Text(self.ventana_ticket, width=56, height=16, font=("Consolas", 11))
+        texto = tk.Text(self.ventana_ticket, width=56, height=16, font=FUENTE_TICKET)
         texto.insert("1.0", ticket)
         texto.config(state="disabled")
         texto.pack(padx=12, pady=12)
@@ -211,7 +202,8 @@ class _DialogoDeCobro:
         self.etiqueta_error.pack(anchor="w", pady=(10, 0))
         fila = ttk.Frame(self.cuerpo)
         fila.pack(fill="x", pady=(14, 0))
-        self.boton_confirmar = ttk.Button(fila, text="Confirmar venta", command=self.confirmar)
+        self.boton_confirmar = ttk.Button(fila, text="Confirmar venta", style="Primario.TButton",
+                                          command=self.confirmar)
         self.boton_confirmar.pack(side="left")
         ttk.Button(fila, text="Cancelar (Esc)", command=self.principal.cerrar_dialogo).pack(side="left", padx=8)
         self.ventana.bind("<Return>", lambda _: self.confirmar())

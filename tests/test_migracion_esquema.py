@@ -52,6 +52,20 @@ class PruebasDeMigracion(unittest.TestCase):
         self.assertEqual(columnas.count("tipo"), 1)
         base.conexion.close()
 
+    def test_agrega_el_costo_a_los_detalles_viejos_sin_perderlos(self):
+        """Fase 1 (reportes): detalles_venta recibe costo_unitario; las líneas viejas quedan en NULL (sin costo)."""
+        conexion = sqlite3.connect(self.ruta)
+        conexion.executescript("CREATE TABLE detalles_venta (id_detalle INTEGER PRIMARY KEY AUTOINCREMENT, "
+                               "id_venta INTEGER NOT NULL, numero_linea INTEGER NOT NULL, id_producto INTEGER NOT NULL, "
+                               "cantidad INTEGER NOT NULL, precio_unitario_venta INTEGER NOT NULL, subtotal_linea INTEGER NOT NULL);"
+                               "INSERT INTO detalles_venta (id_venta, numero_linea, id_producto, cantidad, "
+                               "precio_unitario_venta, subtotal_linea) VALUES (1, 1, 1, 2, 4000, 8000);")
+        conexion.close()
+        base = BaseDeDatos(self.ruta)
+        vieja = base.conexion.execute("SELECT subtotal_linea, costo_unitario FROM detalles_venta").fetchone()
+        self.assertEqual(tuple(vieja), (8000, None))
+        base.conexion.close()
+
     def test_despues_de_migrar_se_puede_vender_de_contado(self):
         app = Aplicacion(self.ruta)
         producto = app.productos.registrar_producto("Producto A", 1500, 2500, 5)

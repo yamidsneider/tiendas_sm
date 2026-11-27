@@ -32,6 +32,31 @@ class RepositorioDeVentas(ABC):
         """Número de ventas guardadas (lo usa Aplicacion.numero_de_ventas)."""
 
     @abstractmethod
+    def obtener(self, id_venta):
+        """Una venta guardada con sus detalles, o None si no existe (sección Ventas)."""
+
+    @abstractmethod
+    def listar(self, limite):
+        """Las últimas ventas, de la más reciente a la más vieja, con sus detalles (sección Ventas)."""
+
+    @abstractmethod
+    def unidades_devueltas(self, id_venta):
+        """Respuesta 1.5: {id_producto: unidades ya devueltas} de esa venta."""
+
+    @abstractmethod
+    def devoluciones_de_la_venta(self, id_venta):
+        """Las devoluciones (Devolucion) de esa venta, de la más vieja a la más nueva."""
+
+    @abstractmethod
+    def guardar_devolucion(self, devolucion, venta, cuenta, existencias):
+        """Guarda la devolución, el estado de la venta, la cuenta (si es fiado) y las existencias: todo o nada."""
+
+    @abstractmethod
+    def movimientos_de_cuenta(self, id_cliente):
+        """Fase 7: MovimientoDeCuenta (compras fiadas, abonos y devoluciones descontadas de la deuda) del cliente,
+        en orden de fecha; el saldo lo calcula ControlCredito."""
+
+    @abstractmethod
     def saldo_pendiente_del_cliente(self, id_cliente):
         """TD-13: suma de (monto original − abonos) de todas las cuentas del cliente (regla de calcular_saldo)."""
 
@@ -52,12 +77,124 @@ class PuertoDeProductos(ABC):
         ...
 
     @abstractmethod
+    def obtener_por_codigo(self, codigo):
+        """Respuesta 1.4: el producto con ese código de barras, o None."""
+
+    @abstractmethod
     def obtener_existencia(self, id_producto):
         ...
 
     @abstractmethod
     def guardar_existencia(self, existencia, tipo_movimiento, cantidad):
         ...
+
+    @abstractmethod
+    def guardar_salida_manual(self, existencia, cantidad, motivo, id_usuario, id_autorizo, costo_unitario):
+        """Fase 3: existencias y movimiento SALIDA_MANUAL (con motivo, quién, quién autorizó y costo), todo o nada."""
+
+    @abstractmethod
+    def listar_movimientos(self, limite):
+        """RF-04: los últimos movimientos de inventario (MovimientoDeInventario), del más reciente al más viejo."""
+
+    @abstractmethod
+    def guardar_lote(self, lote):
+        """RF-10: guarda un lote nuevo o su estado (activo). No toca las existencias."""
+
+    @abstractmethod
+    def obtener_lote(self, id_lote):
+        ...
+
+    @abstractmethod
+    def lotes_activos(self):
+        """Los lotes que siguen en la lista, del que vence primero al último (FEFO manual)."""
+
+
+class PuertoDeReportes(ABC):
+    """Fase 1 (reportes): totales de ventas de un rango de fechas [desde, hasta). Solo consulta, no guarda nada."""
+
+    @abstractmethod
+    def resumen_de_ventas(self, desde, hasta):
+        """ResumenDeVentas del rango: ventas por fecha de la venta, devoluciones y abonos por su propia fecha."""
+
+    @abstractmethod
+    def mas_vendidos(self, desde, hasta, limite):
+        """ProductoMasVendido con unidades netas (vendidas − devueltas) mayores a 0, de más a menos unidades."""
+
+
+class PuertoDeUsuarios(ABC):
+    """Fase 2 (CR-01): usuarios que pueden ingresar. Guarda la huella de la clave, nunca la clave."""
+
+    @abstractmethod
+    def guardar(self, usuario):
+        """Inserta (sin id) o actualiza nombre, rol, clave y activo. Un usuario repetido lanza ValueError."""
+
+    @abstractmethod
+    def obtener(self, id_usuario):
+        ...
+
+    @abstractmethod
+    def obtener_por_usuario(self, usuario):
+        """El usuario con ese nombre de ingreso (ya normalizado), o None."""
+
+    @abstractmethod
+    def listar(self):
+        """Todos, ordenados por nombre."""
+
+
+class PuertoDeCompras(ABC):
+    """Fase 8: proveedores y compras."""
+
+    @abstractmethod
+    def guardar_proveedor(self, proveedor):
+        ...
+
+    @abstractmethod
+    def obtener_proveedor(self, id_proveedor):
+        ...
+
+    @abstractmethod
+    def listar_proveedores(self):
+        """Ordenados por nombre."""
+
+    @abstractmethod
+    def guardar_compra(self, compra, existencias, productos, motivo):
+        """Compra, detalles, existencias, movimientos ENTRADA (con motivo) y precio de compra: todo o nada."""
+
+    @abstractmethod
+    def obtener_compra(self, id_compra):
+        ...
+
+    @abstractmethod
+    def listar_compras(self, limite):
+        """Las últimas compras, de la más reciente a la más vieja."""
+
+
+class PuertoDeConfiguracion(ABC):
+    """Fases 5 y 6: datos sueltos de la tienda guardados como texto (clave -> valor)."""
+
+    @abstractmethod
+    def obtener(self, clave, por_defecto=None):
+        ...
+
+    @abstractmethod
+    def guardar(self, clave, valor):
+        ...
+
+
+class PuertoDeCaja(ABC):
+    """Fase 4: turnos de caja. Como mucho uno abierto a la vez."""
+
+    @abstractmethod
+    def guardar(self, turno):
+        """Inserta (sin id) o actualiza el cierre del turno."""
+
+    @abstractmethod
+    def turno_abierto(self):
+        """El turno sin cerrar, o None."""
+
+    @abstractmethod
+    def listar_cerrados(self, limite):
+        """Los últimos turnos cerrados, del más reciente al más viejo."""
 
 
 class PuertoDeClientes(ABC):

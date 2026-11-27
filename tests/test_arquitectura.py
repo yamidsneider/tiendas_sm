@@ -45,6 +45,21 @@ class PruebasDeArquitectura(unittest.TestCase):
         from tiendas_sm.puertos import RepositorioDeVentas
         self.assertIn("saldo_pendiente_del_cliente", RepositorioDeVentas.__abstractmethods__)
 
+    def test_el_puerto_de_productos_declara_los_movimientos_que_usa_el_servicio(self):
+        """RF-04 (etapa 5 de la interfaz): ServicioDeProductos pide el historial al repositorio por el contrato."""
+        from tiendas_sm.puertos import PuertoDeProductos
+        self.assertIn("listar_movimientos", PuertoDeProductos.__abstractmethods__)
+
+    def test_el_puerto_de_ventas_declara_obtener_y_listar(self):
+        """Etapa 6 de la interfaz: la sección Ventas lee las ventas guardadas por el contrato (ADR-04)."""
+        from tiendas_sm.puertos import RepositorioDeVentas
+        self.assertLessEqual({"obtener", "listar"}, RepositorioDeVentas.__abstractmethods__)
+
+    def test_el_puerto_de_reportes_declara_las_consultas_del_servicio(self):
+        """Fase 1 (reportes): ServicioDeReportes pide los totales al repositorio por el contrato, sin SQL en el núcleo."""
+        from tiendas_sm.puertos import PuertoDeReportes
+        self.assertLessEqual({"resumen_de_ventas", "mas_vendidos"}, PuertoDeReportes.__abstractmethods__)
+
 
 if __name__ == "__main__":
     unittest.main()
