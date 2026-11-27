@@ -44,7 +44,7 @@ jobs:
           tiendas_sm interfaz_tk iniciar_tienda.py
       - name: Guardar el reporte (artefacto privado del repositorio, nunca público)
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reporte-semgrep-${{ github.sha }}
           path: reporte-semgrep.json
@@ -75,7 +75,7 @@ jobs:
           output: reporte-trivy.json
       - name: Guardar el reporte (artefacto privado del repositorio, nunca público)
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reporte-trivy-${{ github.sha }}
           path: reporte-trivy.json
