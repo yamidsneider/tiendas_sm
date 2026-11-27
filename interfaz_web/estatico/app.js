@@ -13,6 +13,7 @@ const ICONOS = {
   creditos: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>',
   reportes: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
   caja: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M7 4h10v3M8 15h3"/>',
+  tienda: '<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18M9 20v-6h6v6"/>',
   respaldos: '<ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/>',
   usuarios: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/><circle cx="12" cy="15.5" r="1.5"/>',
 };
@@ -26,6 +27,7 @@ const SECCIONES = [
   { id: 'creditos', titulo: 'Créditos y abonos', grupo: 'Clientes y crédito' },
   { id: 'reportes', titulo: 'Reportes', grupo: 'Administración', permiso: 'ver_reportes' },
   { id: 'respaldos', titulo: 'Respaldos', grupo: 'Administración', permiso: 'gestionar_respaldos' },
+  { id: 'tienda', titulo: 'Tienda', grupo: 'Administración', permiso: 'configurar_tienda' },
   { id: 'usuarios', titulo: 'Usuarios', grupo: 'Administración', permiso: 'gestionar_usuarios' },
 ];
 const MENSAJE_FALLA = 'No se pudo completar la operación. Intente de nuevo; si sigue fallando, cierre y abra la tienda.';
@@ -407,8 +409,12 @@ async function terminarDevolucion(r, id) {
 TABLAS.productos = async () => {
   const filas = (await llamar('productos', estado.busquedas.productos || '')).map(f => {
     const [nombre, compra, venta, disponibles] = f.valores;
-    return `<tr><td><b>${esc(nombre)}</b></td><td class="num">${esc(compra)}</td><td class="num"><b>${esc(venta)}</b></td><td class="num">${esc(disponibles)}</td>
-      <td>${puede('gestionar_productos') ? `<button class="btn btn-s btn-ch" data-accion="editar-producto" data-id="${esc(f.id)}">Editar</button>` : ''}</td></tr>`;
+    const estadoDelProducto = puede('configurar_tienda')
+      ? `<button class="btn btn-s btn-ch" data-accion="activar-producto" data-id="${esc(f.id)}" data-activo="${f.activo ? '' : '1'}">${f.activo ? 'Desactivar' : 'Activar'}</button>` : '';
+    return `<tr${f.activo ? '' : ' class="inactivo"'}><td><b>${esc(nombre)}</b> ${f.activo ? '' : insignia('i-gris', 'Inactivo')}</td>
+      <td class="num">${esc(compra)}</td><td class="num"><b>${esc(venta)}</b></td><td class="num">${esc(disponibles)}</td>
+      <td>${puede('gestionar_productos') ? `<button class="btn btn-s btn-ch" data-accion="editar-producto" data-id="${esc(f.id)}">Editar</button>` : ''}
+      ${estadoDelProducto}</td></tr>`;
   });
   return tabla(['Producto', '>Precio de compra', '>Precio de venta', '>Disponibles', ''], filas, 'No hay productos con esa búsqueda.');
 };
@@ -449,7 +455,7 @@ async function abrirEdicionDeProducto(id) {
 TABLAS.existencias = async () => {
   const filas = (await llamar('existencias', estado.busquedas.existencias || '')).map(f => {
     const [nombre, disponibles] = f.valores;
-    return `<tr><td><b>${esc(nombre)}</b> ${f.reponer ? insignia('i-av', 'Por reponer') : ''}</td><td class="num"><b>${esc(disponibles)}</b></td>
+    return `<tr${f.activo ? '' : ' class="inactivo"'}><td><b>${esc(nombre)}</b> ${f.reponer ? insignia('i-av', 'Por reponer') : ''}${f.activo ? '' : insignia('i-gris', 'Inactivo')}</td><td class="num"><b>${esc(disponibles)}</b></td>
       <td><button class="btn btn-s btn-ch" data-accion="nueva-entrada" data-id="${esc(f.id)}">+ Entrada</button>
       <button class="btn btn-s btn-ch" data-accion="nueva-salida" data-id="${esc(f.id)}">− Salida</button></td></tr>`;
   });
@@ -714,6 +720,24 @@ async function revisarCaja() {
   [{ texto: 'Contar de nuevo', accion: 'contar-caja' }, { texto: 'Cerrar caja', clase: 'btn-p', accion: 'confirmar-cierre', datos: ` data-contado="${esc(contado)}"` }]);
 }
 
+/* ------------------------------------------------------------------ datos de la tienda (fase 6, solo el jefe) */
+VISTAS.tienda = async () => {
+  const d = await llamar('datos_tienda');
+  const entrada = (id, valor, ejemplo = '') => `<input id="${id}" value="${esc(valor)}" placeholder="${esc(ejemplo)}">`;
+  return {
+    sub: 'Los datos que salen en el ticket de cada venta',
+    html: `<div class="tienda"><div class="tarjeta margen"><h3>Datos del ticket</h3>
+        ${campo('Nombre de la tienda', 't-nombre', entrada('t-nombre', d.nombre))}
+        <div class="dos">${campo('NIT (opcional)', 't-nit', entrada('t-nit', d.nit, 'Ej.: 900123456-7'))}
+        ${campo('Teléfono (opcional)', 't-telefono', entrada('t-telefono', d.telefono))}</div>
+        ${campo('Dirección (opcional)', 't-direccion', entrada('t-direccion', d.direccion))}
+        ${campo('Mensaje al final del ticket (opcional)', 't-mensaje', entrada('t-mensaje', d.mensaje, 'Ej.: Gracias por su compra'))}
+        <button class="btn btn-p" data-accion="guardar-tienda">Guardar datos</button></div>
+      <div class="tarjeta margen"><h3>Así empieza el ticket</h3>${papel(d.vista_previa)}
+        <div class="nota-pie">El ticket no es una factura: es un comprobante interno.</div></div></div>`,
+  };
+};
+
 /* ------------------------------------------------------------------ respaldos (fase 5, solo el jefe) */
 VISTAS.respaldos = async () => {
   const datos = await llamar('respaldos');
@@ -818,6 +842,11 @@ const ACCIONES = {
   'respaldar-ahora': async () => { const r = await llamar('respaldar_ahora'); aviso(r.mensaje, !r.exito); render(); },
   'guardar-carpeta': async () => { const r = await llamar('cambiar_carpeta_respaldos', val('r-carpeta')); aviso(r.mensaje, !r.exito); if (r.exito) render(); },
   'restaurar-respaldo': restaurarRespaldo,
+  'guardar-tienda': async () => {
+    const r = await llamar('guardar_datos_tienda', val('t-nombre'), val('t-nit'), val('t-direccion'), val('t-telefono'), val('t-mensaje'));
+    aviso(r.mensaje, !r.exito); if (r.exito) render();
+  },
+  'activar-producto': async el => { const r = await llamar('activar_producto', el.dataset.id, Boolean(el.dataset.activo)); aviso(r.mensaje, !r.exito); refrescarTabla(); },
   'revisar-caja': revisarCaja,
   'confirmar-cierre': el => guardar('cerrar_caja', el.dataset.contado),
   'guardar-salida': () => guardar('registrar_salida', val('s-producto'), val('s-cantidad'), val('s-motivo'), val('s-detalle'), val('s-jefe'), val('s-clave')),

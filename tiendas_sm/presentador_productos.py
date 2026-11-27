@@ -3,7 +3,7 @@
 No usa Tkinter. Convierte el texto del formulario a números y llama a ServicioDeProductos. Las reglas
 (nombre obligatorio, precios no negativos) las valida el dominio y su mensaje se muestra tal cual.
 Cambiar el precio no altera ventas anteriores: cada venta guardó su precio (HU-02).
-Pide el stock mínimo de cada producto (RF-12, TD-04; respuesta 4.1). No calcula ganancias ni borra productos (DT-08).
+Pide el stock mínimo de cada producto (RF-12, TD-04; respuesta 4.1). No calcula ganancias ni borra productos (DT-08); fase 6: los desactiva.
 """
 from collections import namedtuple
 
@@ -62,6 +62,21 @@ class PresentadorDeProductos:
         except ValueError as error:
             return Resultado(False, str(error))
         return Resultado(True, f"Producto actualizado: {producto.nombre}")
+
+    # ------------------------------------------------------------------ activar o desactivar (fase 6)
+    def inactivos(self):
+        """ids de los productos desactivados, para marcarlos «Inactivo» en la tabla."""
+        return {p.id_producto for p in self.app.productos.listar() if not p.activo}
+
+    def activar(self, id_producto, activo):
+        if id_producto is None:
+            return Resultado(False, MENSAJE_SIN_PRODUCTO)
+        try:
+            producto = self.app.productos.cambiar_estado(id_producto, activo)
+        except ValueError as error:
+            return Resultado(False, str(error))
+        estado = "activado" if producto.activo else "desactivado"
+        return Resultado(True, f"{producto.nombre} {estado}")
 
     def precio_actual(self, id_producto):
         producto = self.app.productos.obtener(id_producto)

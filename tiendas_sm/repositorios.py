@@ -4,8 +4,8 @@ from datetime import date, datetime
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
                                 Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote,
                                 ResumenDeVentas, ProductoMasVendido, TurnoDeCaja, Usuario)
-from tiendas_sm.puertos import (PuertoDeCaja, PuertoDeClientes, PuertoDeProductos, PuertoDeReportes, PuertoDeUsuarios,
-                                RepositorioDeVentas)
+from tiendas_sm.puertos import (PuertoDeCaja, PuertoDeClientes, PuertoDeConfiguracion, PuertoDeProductos,
+                                PuertoDeReportes, PuertoDeUsuarios, RepositorioDeVentas)
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
 __all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes",
@@ -34,20 +34,20 @@ class RepositorioDeProductos(PuertoDeProductos):
 
     def _insertar(self, producto):
         cursor = self.conexion.execute(
-            "INSERT INTO productos (nombre, precio_compra, precio_venta, stock_minimo, codigo, dias_aviso) "
-            "VALUES (?,?,?,?,?,?)",
+            "INSERT INTO productos (nombre, precio_compra, precio_venta, stock_minimo, codigo, dias_aviso, activo) "
+            "VALUES (?,?,?,?,?,?,?)",
             (producto.nombre, producto.precio_compra, producto.precio_venta, producto.stock_minimo,
-             producto.codigo or None, producto.dias_aviso))
+             producto.codigo or None, producto.dias_aviso, int(producto.activo)))
         producto.id_producto = cursor.lastrowid
         self.conexion.execute("INSERT INTO existencias (id_producto, cantidad_actual) VALUES (?, 0)",
                               (producto.id_producto,))
 
     def _actualizar(self, producto):
         self.conexion.execute(
-            "UPDATE productos SET nombre=?, precio_compra=?, precio_venta=?, stock_minimo=?, codigo=?, dias_aviso=? "
-            "WHERE id_producto=?",
+            "UPDATE productos SET nombre=?, precio_compra=?, precio_venta=?, stock_minimo=?, codigo=?, dias_aviso=?, "
+            "activo=? WHERE id_producto=?",
             (producto.nombre, producto.precio_compra, producto.precio_venta, producto.stock_minimo,
-             producto.codigo or None, producto.dias_aviso, producto.id_producto))
+             producto.codigo or None, producto.dias_aviso, int(producto.activo), producto.id_producto))
 
     def obtener(self, id_producto):
         fila = self.conexion.execute("SELECT * FROM productos WHERE id_producto=?", (id_producto,)).fetchone()
@@ -64,7 +64,8 @@ class RepositorioDeProductos(PuertoDeProductos):
     @staticmethod
     def _a_producto(fila):
         return Producto(fila["id_producto"], fila["nombre"], fila["precio_compra"],
-                        fila["precio_venta"], fila["stock_minimo"], fila["codigo"] or "", fila["dias_aviso"])
+                        fila["precio_venta"], fila["stock_minimo"], fila["codigo"] or "", fila["dias_aviso"],
+                        bool(fila["activo"]))
 
     def obtener_existencia(self, id_producto):
         fila = self.conexion.execute("SELECT * FROM existencias WHERE id_producto=?", (id_producto,)).fetchone()
@@ -419,7 +420,7 @@ class RepositorioDeUsuarios(PuertoDeUsuarios):
 
 
 # ---------------------------------------------------------------------- configuración (fase 5; la usará la fase 6)
-class RepositorioDeConfiguracion:
+class RepositorioDeConfiguracion(PuertoDeConfiguracion):
     """Pares clave/valor en texto (por ejemplo la carpeta de los respaldos). Es infraestructura: el núcleo no la usa."""
 
     def __init__(self, conexion):

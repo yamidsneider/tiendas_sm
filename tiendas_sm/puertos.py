@@ -136,6 +136,18 @@ class PuertoDeUsuarios(ABC):
         """Todos, ordenados por nombre."""
 
 
+class PuertoDeConfiguracion(ABC):
+    """Fases 5 y 6: datos sueltos de la tienda guardados como texto (clave -> valor)."""
+
+    @abstractmethod
+    def obtener(self, clave, por_defecto=None):
+        ...
+
+    @abstractmethod
+    def guardar(self, clave, valor):
+        ...
+
+
 class PuertoDeCaja(ABC):
     """Fase 4: turnos de caja. Como mucho uno abierto a la vez."""
 

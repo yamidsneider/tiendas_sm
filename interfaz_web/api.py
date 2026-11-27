@@ -26,6 +26,7 @@ from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
 from tiendas_sm.presentador_reportes import PresentadorDeReportes
 from tiendas_sm.presentador_respaldos import PresentadorDeRespaldos
+from tiendas_sm.presentador_tienda import PresentadorDeLaTienda
 from tiendas_sm.presentador_usuarios import PresentadorDeUsuarios
 from tiendas_sm.presentador_ventas import PresentadorDeVentas
 
@@ -91,6 +92,7 @@ class ApiDeLaTienda:
         self._reportes = PresentadorDeReportes(app)
         self._caja = PresentadorDeCaja(app)
         self._respaldos = PresentadorDeRespaldos(app)
+        self._tienda = PresentadorDeLaTienda(app)
 
     # ------------------------------------------------------------------ ingreso (fase 2): libres, sin permiso
     def estado_sesion(self):
@@ -139,6 +141,20 @@ class ApiDeLaTienda:
                 resultado["mensaje"] += self._respaldos.respaldar_si_hay_carpeta()
             return resultado
         return self._ejecutar(cerrar)
+
+    # ------------------------------------------------------------------ datos de la tienda y productos (fase 6)
+    @requiere(Permiso.CONFIGURAR_TIENDA)
+    def datos_tienda(self):
+        return self._ejecutar(self._tienda.datos)
+
+    @requiere(Permiso.CONFIGURAR_TIENDA)
+    def guardar_datos_tienda(self, nombre, nit, direccion, telefono, mensaje):
+        return self._ejecutar(lambda: _resultado(self._tienda.guardar(str(nombre), str(nit), str(direccion),
+                                                                      str(telefono), str(mensaje))))
+
+    @requiere(Permiso.CONFIGURAR_TIENDA)
+    def activar_producto(self, id_producto, activo):
+        return self._ejecutar(lambda: _resultado(self._productos.activar(_id(id_producto), bool(activo))))
 
     # ------------------------------------------------------------------ respaldos (fase 5): solo el jefe
     @requiere(Permiso.GESTIONAR_RESPALDOS)
@@ -278,7 +294,11 @@ class ApiDeLaTienda:
     # ------------------------------------------------------------------ productos (HU-01, HU-02)
     @requiere(Permiso.CONSULTAR)
     def productos(self, texto=""):
-        return self._ejecutar(lambda: _filas(self._productos.tabla(str(texto))))
+        """Filas de productos; «activo» es False en los desactivados (fase 6)."""
+        def consultar():
+            inactivos = self._productos.inactivos()
+            return [{**fila, "activo": fila["id"] not in inactivos} for fila in _filas(self._productos.tabla(str(texto)))]
+        return self._ejecutar(consultar)
 
     @requiere(Permiso.GESTIONAR_PRODUCTOS)
     def registrar_producto(self, nombre, compra, venta, cantidad, minimo="0", codigo="", aviso="0"):
@@ -313,7 +333,9 @@ class ApiDeLaTienda:
         """Filas de existencias; «reponer» marca las que llegaron a su stock mínimo (RF-12)."""
         def consultar():
             reponer = {id_producto for id_producto, _ in self._existencias.por_reponer()}
-            return [{**fila, "reponer": fila["id"] in reponer} for fila in _filas(self._existencias.tabla(str(texto)))]
+            inactivos = self._productos.inactivos()                      # fase 6: se marcan «Inactivo»
+            return [{**fila, "reponer": fila["id"] in reponer, "activo": fila["id"] not in inactivos}
+                    for fila in _filas(self._existencias.tabla(str(texto)))]
         return self._ejecutar(consultar)
 
     @requiere(Permiso.CONSULTAR)

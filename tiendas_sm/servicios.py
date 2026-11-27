@@ -1,10 +1,11 @@
+import textwrap
 from collections import namedtuple
 from datetime import datetime, timedelta
 from enum import Enum
 
 from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion, Lote,
                                 CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS, Rol, TurnoDeCaja,
-                                Usuario, normalizar_usuario)
+                                Usuario, DatosDeLaTienda, normalizar_usuario)
 from tiendas_sm.validaciones import exigir_mayor_a_cero, exigir_no_negativo
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
@@ -59,8 +60,15 @@ class ServicioDeProductos:
         minimo = actual.stock_minimo if stock_minimo is None else stock_minimo
         codigo = actual.codigo if codigo is None else codigo
         aviso = actual.dias_aviso if dias_aviso is None else dias_aviso
-        producto = Producto(id_producto, nombre, precio_compra, precio_venta, minimo, codigo, aviso)
+        producto = Producto(id_producto, nombre, precio_compra, precio_venta, minimo, codigo, aviso, actual.activo)
         self._exigir_codigo_libre(producto)
+        self.repo_productos.guardar(producto)
+        return producto
+
+    def cambiar_estado(self, id_producto, activo):
+        """Fase 6: desactivar (no se vende más) o volver a activar. Nunca se borra: conserva su historia (DT-08)."""
+        producto = self._exigir_producto(id_producto)
+        producto.activo = bool(activo)
         self.repo_productos.guardar(producto)
         return producto
 
@@ -313,6 +321,7 @@ class ServicioDeVentas:
         pedido = {}
         for linea in map(LineaDeVenta._make, lineas):
             producto = self._obtener_producto(linea.id_producto)
+            producto.exigir_activo()                          # fase 6: aunque ya estuviera en el carrito
             cantidad_total = pedido.get(producto.id_producto, (producto, 0))[1] + linea.cantidad
             pedido[producto.id_producto] = (producto, cantidad_total)
             if not self.control_inventario.hay_disponible(producto, cantidad_total):
@@ -362,6 +371,39 @@ class ServicioDeReportes:
         desde, hasta = rango_del_periodo(Periodo(periodo), ahora or datetime.now())
         return ReporteDeVentas(desde, hasta, self.repo_reportes.resumen_de_ventas(desde, hasta),
                                self.repo_reportes.mas_vendidos(desde, hasta, MAS_VENDIDOS_A_MOSTRAR))
+
+
+# ---------------------------------------------------------------------- datos de la tienda (fase 6)
+ANCHO_DEL_TICKET = 42                     # impresora térmica de 80 mm (respuesta 1.3)
+CAMPOS_DE_LA_TIENDA = DatosDeLaTienda._fields
+
+
+class ServicioDeLaTienda:
+    """Nombre, NIT, dirección, teléfono y mensaje del ticket, guardados en la configuración (*preliminar*)."""
+
+    def __init__(self, repo_configuracion):
+        self.repo_configuracion = repo_configuracion
+
+    def datos(self):
+        por_defecto = DatosDeLaTienda()
+        return DatosDeLaTienda(*(self.repo_configuracion.obtener(f"tienda_{campo}", getattr(por_defecto, campo))
+                                 for campo in CAMPOS_DE_LA_TIENDA))
+
+    def guardar(self, nombre, nit, direccion, telefono, mensaje):
+        datos = DatosDeLaTienda.validados(nombre, nit, direccion, telefono, mensaje)
+        for campo in CAMPOS_DE_LA_TIENDA:
+            self.repo_configuracion.guardar(f"tienda_{campo}", getattr(datos, campo))
+        return datos
+
+    def encabezado_del_ticket(self):
+        """Solo lo que esté lleno, partido a 42 caracteres por renglón."""
+        datos = self.datos()
+        partes = [datos.nombre, f"NIT: {datos.nit}" if datos.nit else "", datos.direccion,
+                  f"Tel: {datos.telefono}" if datos.telefono else ""]
+        return [renglon for parte in partes if parte for renglon in textwrap.wrap(parte, ANCHO_DEL_TICKET)]
+
+    def mensaje_del_ticket(self):
+        return textwrap.wrap(self.datos().mensaje, ANCHO_DEL_TICKET)
 
 
 # ---------------------------------------------------------------------- caja (fase 4)

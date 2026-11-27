@@ -5,7 +5,8 @@ from tiendas_sm.repositorios import (RepositorioDeCaja, RepositorioDeConfiguraci
 from tiendas_sm.respaldo import ServicioDeRespaldos
 from tiendas_sm.telemetria import VentasObservadas
 from tiendas_sm.servicios import (ServicioDeProductos, ServicioDeClientes, ControlInventario, ControlCredito,
-                                  ServicioDeCaja, ServicioDeReportes, ServicioDeUsuarios, ServicioDeVentas)
+                                  ServicioDeCaja, ServicioDeLaTienda, ServicioDeReportes, ServicioDeUsuarios,
+                                  ServicioDeVentas)
 
 
 class Aplicacion:
@@ -26,8 +27,9 @@ class Aplicacion:
         repo_reportes = RepositorioDeReportesSqlite(self.conexion)
         self.reportes = ServicioDeReportes(repo_reportes)                               # fase 1: solo consulta
         self.caja = ServicioDeCaja(RepositorioDeCaja(self.conexion), repo_reportes)    # fase 4
-        self.respaldos = ServicioDeRespaldos(self.conexion, RepositorioDeConfiguracion(self.conexion),  # fase 5
-                                             carpeta_de_respaldos)
+        configuracion = RepositorioDeConfiguracion(self.conexion)
+        self.respaldos = ServicioDeRespaldos(self.conexion, configuracion, carpeta_de_respaldos)   # fase 5
+        self.tienda = ServicioDeLaTienda(configuracion)                                       # fase 6
         self.usuarios = ServicioDeUsuarios(RepositorioDeUsuarios(self.conexion))         # fase 2: CR-01
         if telemetria is not None:                            # FPI-29: observabilidad opcional (ADR-13)
             self.ventas = VentasObservadas(self.ventas, telemetria)

@@ -88,6 +88,7 @@ COLUMNAS_NUEVAS_DE_PRODUCTOS = (
     ("codigo", "TEXT"),
     ("stock_minimo", "INTEGER NOT NULL DEFAULT 0"),
     ("dias_aviso", "INTEGER NOT NULL DEFAULT 0"),     # RF-13: días de aviso de vencimiento, uno por producto
+    ("activo", "INTEGER NOT NULL DEFAULT 1"),         # fase 6: los productos viejos quedan activos
 )
 # Respuesta 1.5: lo que se descontó de la deuda por devoluciones (0 en las cuentas viejas).
 COLUMNAS_NUEVAS_DE_CUENTAS = (("valor_devuelto", "INTEGER NOT NULL DEFAULT 0"),)

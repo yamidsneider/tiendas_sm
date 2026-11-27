@@ -5,6 +5,7 @@ sistema arranque y registre una venta de humo, incluido su movimiento SALIDA_VEN
 paquete con zipfile (igual que git archive, solo la carpeta tiendas_sm) en una carpeta temporal. No abre Tkinter.
 """
 import hashlib
+import os
 import subprocess
 import sys
 import tempfile
@@ -34,8 +35,10 @@ class PruebasDelHealthcheck(unittest.TestCase):
 
     def ejecutar(self, *argumentos):
         # S603: se ejecuta el mismo Python con un script del repositorio y rutas de esta prueba.
+        # El hijo escribe en UTF-8 y se lee en UTF-8, sin importar la consola (en Windows cambia según la terminal).
+        entorno = {**os.environ, "PYTHONIOENCODING": "utf-8"}
         return subprocess.run([sys.executable, str(SCRIPT), *argumentos],  # noqa: S603
-                              capture_output=True, text=True, encoding="utf-8", timeout=120)
+                              capture_output=True, text=True, encoding="utf-8", timeout=120, env=entorno)
 
     def guardar_suma(self, contenido_suma):
         ruta = Path(self.carpeta.name) / "paquete.sha256"

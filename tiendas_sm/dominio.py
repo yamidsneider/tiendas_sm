@@ -56,6 +56,7 @@ class Permiso(str, Enum):
     REGISTRAR_SALIDA = "registrar_salida"          # fase 3: sin él, la salida pide la clave del jefe
     MANEJAR_CAJA = "manejar_caja"                  # fase 4: abrir y cerrar el turno de caja
     GESTIONAR_RESPALDOS = "gestionar_respaldos"    # fase 5: carpeta, respaldar ahora y restaurar
+    CONFIGURAR_TIENDA = "configurar_tienda"        # fase 6: datos del ticket y activar/desactivar productos
     DEVOLVER = "devolver"                        # devolver productos o anular una venta
     GESTIONAR_PRODUCTOS = "gestionar_productos"    # crear, editar y cambiar precios
     GESTIONAR_CLIENTES = "gestionar_clientes"      # crear y editar (cupo y plazo del fiado)
@@ -153,9 +154,12 @@ def texto_del_motivo(motivo, detalle):
 
 
 class Producto:
-    def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0, codigo="", dias_aviso=0):
+    def __init__(self, id_producto, nombre, precio_compra, precio_venta, stock_minimo=0, codigo="", dias_aviso=0,
+                 activo=True):
         """codigo: código de barras opcional (respuesta 1.4); vacío si el producto no tiene.
-        dias_aviso: con cuántos días de anticipación avisar que un lote de este producto va a vencer (RF-13)."""
+        dias_aviso: con cuántos días de anticipación avisar que un lote de este producto va a vencer (RF-13).
+        activo (fase 6): un producto desactivado no se vende, pero no se borra (DT-08) y conserva su historia."""
+        self.activo = activo
         exigir_texto_obligatorio(nombre, "El nombre es obligatorio")
         if precio_compra < 0 or precio_venta < 0:
             raise ValueError("Los precios no pueden ser negativos")
@@ -175,8 +179,31 @@ class Producto:
         self.precio_venta = nuevo_precio
 
     def necesita_reponer(self, disponibles):
-        """RF-12: avisa cuando quedan el stock mínimo o menos. Un mínimo de 0 quiere decir «sin aviso»."""
-        return self.stock_minimo > 0 and disponibles <= self.stock_minimo
+        """RF-12: avisa cuando quedan el stock mínimo o menos. Un mínimo de 0 quiere decir «sin aviso».
+        Fase 6: un producto desactivado ya no se repone."""
+        return self.activo and self.stock_minimo > 0 and disponibles <= self.stock_minimo
+
+    def exigir_activo(self):
+        if not self.activo:
+            raise ValueError(f"{self.nombre} está desactivado: no se puede vender")
+
+
+# ---------------------------------------------------------------------- datos de la tienda (fase 6, *preliminar*)
+NOMBRE_POR_DEFECTO = "TIENDAS S.M"
+
+
+class DatosDeLaTienda(namedtuple("DatosDeLaTienda", "nombre nit direccion telefono mensaje",
+                                 defaults=(NOMBRE_POR_DEFECTO, "", "", "", ""))):
+    """Lo que sale en el ticket. Solo el nombre es obligatorio; el teléfono, con las mismas reglas del cliente."""
+    __slots__ = ()
+
+    @classmethod
+    def validados(cls, nombre, nit, direccion, telefono, mensaje):
+        exigir_texto_obligatorio(nombre, "Escribe el nombre de la tienda")
+        telefono = (telefono or "").strip()
+        exigir_solo_caracteres(telefono, CARACTERES_DEL_TELEFONO,
+                               "El teléfono solo puede tener números, espacios, + y -")
+        return cls(nombre.strip(), (nit or "").strip(), (direccion or "").strip(), telefono, (mensaje or "").strip())
 
 
 class Lote:
