@@ -66,6 +66,19 @@ CREATE TABLE IF NOT EXISTS turnos_caja (
     base INTEGER NOT NULL, abierto_en TEXT NOT NULL, id_usuario_abre INTEGER REFERENCES usuarios(id_usuario),
     cerrado_en TEXT, id_usuario_cierra INTEGER REFERENCES usuarios(id_usuario),
     efectivo_esperado INTEGER, efectivo_contado INTEGER);
+CREATE TABLE IF NOT EXISTS proveedores (
+    id_proveedor INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL, telefono TEXT NOT NULL DEFAULT '', nit TEXT NOT NULL DEFAULT '');
+CREATE TABLE IF NOT EXISTS compras (
+    id_compra INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_proveedor INTEGER NOT NULL REFERENCES proveedores(id_proveedor),
+    id_usuario INTEGER REFERENCES usuarios(id_usuario),
+    fecha TEXT NOT NULL, factura TEXT NOT NULL DEFAULT '', total INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS detalles_compra (
+    id_detalle INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_compra INTEGER NOT NULL REFERENCES compras(id_compra),
+    id_producto INTEGER NOT NULL REFERENCES productos(id_producto),
+    cantidad INTEGER NOT NULL, costo_unitario INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS configuracion (
     clave TEXT PRIMARY KEY, valor TEXT NOT NULL);
 """

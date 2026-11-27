@@ -9,6 +9,7 @@ const ICONOS = {
   ventas: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
   productos: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
   existencias: '<path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/>',
+  compras: '<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
   clientes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.8 3 2.5 3.5 5.2"/>',
   creditos: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>',
   reportes: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
@@ -23,6 +24,7 @@ const SECCIONES = [
   { id: 'caja', titulo: 'Caja', grupo: 'Operación', permiso: 'manejar_caja' },
   { id: 'productos', titulo: 'Productos', grupo: 'Inventario' },
   { id: 'existencias', titulo: 'Existencias', grupo: 'Inventario' },
+  { id: 'compras', titulo: 'Compras', grupo: 'Inventario', permiso: 'gestionar_compras' },
   { id: 'clientes', titulo: 'Clientes', grupo: 'Clientes y crédito' },
   { id: 'creditos', titulo: 'Créditos y abonos', grupo: 'Clientes y crédito' },
   { id: 'reportes', titulo: 'Reportes', grupo: 'Administración', permiso: 'ver_reportes' },
@@ -550,6 +552,65 @@ async function abrirSalida(id) {
   if ($('s-cantidad') && id) $('s-cantidad').focus();
 }
 
+/* ------------------------------------------------------------------ compras (fase 8, solo el jefe) */
+const RENGLONES_INICIALES = 3;
+
+VISTAS.compras = async () => {
+  const proveedores = (await llamar('proveedores')).map(f => {
+    const [nombre, telefono, nit] = f.valores;
+    return `<tr><td><b>${esc(nombre)}</b></td><td>${esc(telefono)}</td><td>${esc(nit)}</td></tr>`;
+  });
+  const compras = (await llamar('compras')).map(f => {
+    const [fecha, proveedor, factura, productos, total] = f.valores;
+    return `<tr><td>${esc(fecha)}</td><td><b>${esc(proveedor)}</b></td><td>${esc(factura)}</td><td>${esc(productos)}</td>
+      <td class="num"><b>${esc(total)}</b></td><td><button class="btn btn-s btn-ch" data-accion="ver-compra" data-id="${esc(f.id)}">Ver</button></td></tr>`;
+  });
+  return {
+    sub: 'Lo que se le compra a cada proveedor: sube las existencias y actualiza el precio de compra',
+    acciones: `<button class="btn btn-o" data-accion="nuevo-proveedor">+ Nuevo proveedor</button>
+      <button class="btn btn-p" data-accion="nueva-compra">+ Registrar compra</button>`,
+    html: `<div class="tabla-caja"><div class="cab-tabla"><h3>Últimas compras</h3></div>
+        ${tabla(['Fecha', 'Proveedor', 'Factura', 'Productos', '>Total', ''], compras, 'Todavía no hay compras registradas.')}
+        <div class="nota-pie">Se asume que cada compra se paga de una vez. El último costo pasa a ser el precio de compra del producto.</div></div>
+      <div class="tabla-caja"><div class="cab-tabla"><h3>Proveedores</h3></div>
+        ${tabla(['Proveedor', 'Teléfono', 'NIT'], proveedores, 'Todavía no hay proveedores.')}</div>`,
+  };
+};
+
+function abrirNuevoProveedor() {
+  abrirModal('Nuevo proveedor', `${campo('Nombre', 'p-nombre', '<input id="p-nombre">')}
+    <div class="dos">${campo('Teléfono (opcional)', 'p-telefono', '<input id="p-telefono">')}
+    ${campo('NIT (opcional)', 'p-nit', '<input id="p-nit">')}</div>`, botonesGuardar('Guardar proveedor', 'guardar-proveedor'));
+}
+
+function renglonDeCompra(opciones) {
+  return `<tr class="renglon-compra"><td><select data-campo="producto" data-cambio="costo-actual">${opciones}</select></td>
+    <td><input class="cant" type="number" min="1" data-campo="cantidad" aria-label="Cantidad"></td>
+    <td><input class="cant" type="number" min="0" data-campo="costo" aria-label="Costo unitario"></td></tr>`;
+}
+
+async function abrirCompra() {
+  const proveedores = await llamar('proveedores');
+  if (!proveedores.length) { aviso('Primero registre un proveedor.', true); return; }
+  const productos = (await llamar('productos', '')).filter(f => f.activo);
+  estado.costos = Object.fromEntries(productos.map(f => [String(f.id), f.valores[1]]));
+  estado.opcionesDeCompra = '<option value="">Elija el producto</option>' +
+    productos.map(f => `<option value="${esc(f.id)}">${esc(f.valores[0])}</option>`).join('');
+  const opcionesProveedor = proveedores.map(f => `<option value="${esc(f.id)}">${esc(f.valores[0])}</option>`).join('');
+  const renglones = Array.from({ length: RENGLONES_INICIALES }, () => renglonDeCompra(estado.opcionesDeCompra)).join('');
+  abrirModal('Registrar compra', `<div class="dos">${campo('Proveedor', 'k-proveedor', `<select id="k-proveedor">${opcionesProveedor}</select>`)}
+    ${campo('Factura del proveedor (opcional)', 'k-factura', '<input id="k-factura">')}</div>
+    <table><thead><tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Costo c/u</th></tr></thead><tbody id="k-renglones">${renglones}</tbody></table>
+    <button class="btn btn-s btn-ch" data-accion="otro-renglon">+ Otro producto</button>
+    <div class="nota-pie">Los renglones vacíos no cuentan. Al elegir el producto se muestra su costo actual.</div>`,
+  botonesGuardar('Registrar compra', 'guardar-compra'));
+}
+
+function renglonesDeCompra() {
+  return [...document.querySelectorAll('#k-renglones .renglon-compra')].map(tr => Object.fromEntries(
+    [...tr.querySelectorAll('[data-campo]')].map(c => [c.dataset.campo, c.value])));
+}
+
 /* ------------------------------------------------------------------ clientes (HU-05, RF-07) */
 TABLAS.clientes = async () => {
   const filas = (await llamar('clientes', estado.busquedas.clientes || '')).map(f => {
@@ -843,6 +904,12 @@ const ACCIONES = {
   'respaldar-ahora': async () => { const r = await llamar('respaldar_ahora'); aviso(r.mensaje, !r.exito); render(); },
   'guardar-carpeta': async () => { const r = await llamar('cambiar_carpeta_respaldos', val('r-carpeta')); aviso(r.mensaje, !r.exito); if (r.exito) render(); },
   'restaurar-respaldo': restaurarRespaldo,
+  'nuevo-proveedor': abrirNuevoProveedor,
+  'guardar-proveedor': () => guardar('registrar_proveedor', val('p-nombre'), val('p-telefono'), val('p-nit')),
+  'nueva-compra': abrirCompra,
+  'otro-renglon': () => $('k-renglones').insertAdjacentHTML('beforeend', renglonDeCompra(estado.opcionesDeCompra)),
+  'guardar-compra': () => guardar('registrar_compra', val('k-proveedor'), val('k-factura'), renglonesDeCompra()),
+  'ver-compra': async el => mostrarTicket(`Compra #${el.dataset.id}`, await llamar('detalle_compra', el.dataset.id)),
   'guardar-tienda': async () => {
     const r = await llamar('guardar_datos_tienda', val('t-nombre'), val('t-nit'), val('t-direccion'), val('t-telefono'), val('t-mensaje'));
     aviso(r.mensaje, !r.exito); if (r.exito) render();
@@ -880,7 +947,13 @@ const ENTRADAS = {
   'cobro-recibido': actualizarCobro,
   filtro: el => { estado.busquedas[seccion] = el.value; refrescarTabla(); },
 };
-const CAMBIOS = { 'cobro-cliente': actualizarCobro };
+const CAMBIOS = {
+  'cobro-cliente': actualizarCobro,
+  'costo-actual': el => {                     // fase 8: muestra el costo actual como guía en el renglón
+    const costo = el.closest('tr').querySelector('[data-campo="costo"]');
+    costo.placeholder = estado.costos[el.value] || '';
+  },
+};
 
 document.addEventListener('click', ev => {
   const el = ev.target.closest('[data-accion]');

@@ -351,3 +351,13 @@ quedó después de cada uno; al final los totales, el saldo actual y si tiene cu
 `ControlCredito.estado_de_cuenta`, que suma el saldo; el texto lo arma `PresentadorDeClientes`. Solo lee. Lo ven jefe y
 empleado (`Permiso.CONSULTAR`), igual que el detalle del cliente. *Limitación:* las columnas de valor y saldo son de 8
 caracteres: montos de 10 millones o más desbordan el renglón (no es lo normal en el fiado de una tienda de barrio).
+
+**Fase 8: proveedores y compras (CR-02, respuesta 5.3; *preliminar*: el desarrollador pidió hacerla sin respuesta del
+propietario sobre cuentas por pagar, 26 de noviembre de 2026).**
+*Qué hace:* sección **Compras** (grupo Inventario, solo el jefe: `Permiso.GESTIONAR_COMPRAS`). Proveedores con nombre
+(obligatorio), teléfono y NIT. Una compra lleva proveedor, factura del proveedor (opcional) y renglones de producto, cantidad
+y costo unitario. En una transacción (RNF-04): tablas `compras` y `detalles_compra`, suben las existencias, queda un movimiento
+ENTRADA con el motivo «Compra #n a <proveedor>» y el costo, y el **último costo pasa a ser el precio de compra** del producto
+(el precio de venta no se toca). Reportes suma «Compras de mercancía» del periodo.
+*Supuestos por confirmar:* la compra se paga de una vez (**no hay cuentas por pagar** a proveedores); un producto desactivado
+no se compra (hay que activarlo antes); el empleado sigue registrando entradas sueltas sin proveedor (HU-03).

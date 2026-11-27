@@ -141,6 +141,34 @@ class PuertoDeUsuarios(ABC):
         """Todos, ordenados por nombre."""
 
 
+class PuertoDeCompras(ABC):
+    """Fase 8: proveedores y compras."""
+
+    @abstractmethod
+    def guardar_proveedor(self, proveedor):
+        ...
+
+    @abstractmethod
+    def obtener_proveedor(self, id_proveedor):
+        ...
+
+    @abstractmethod
+    def listar_proveedores(self):
+        """Ordenados por nombre."""
+
+    @abstractmethod
+    def guardar_compra(self, compra, existencias, productos, motivo):
+        """Compra, detalles, existencias, movimientos ENTRADA (con motivo) y precio de compra: todo o nada."""
+
+    @abstractmethod
+    def obtener_compra(self, id_compra):
+        ...
+
+    @abstractmethod
+    def listar_compras(self, limite):
+        """Las últimas compras, de la más reciente a la más vieja."""
+
+
 class PuertoDeConfiguracion(ABC):
     """Fases 5 y 6: datos sueltos de la tienda guardados como texto (clave -> valor)."""
 
