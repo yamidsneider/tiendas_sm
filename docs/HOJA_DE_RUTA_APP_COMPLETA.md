@@ -17,7 +17,7 @@ no se asume: se programa la opción más prudente, se deja como *preliminar* y s
 | 4 | **Caja**: abrir turno con base, cerrar con arqueo (esperado contra contado) | Lo más usado al final del día; reusa reportes y usuarios | Hecha (`feature/caja`): base del día, turno que sobrevive a cerrar la app, revisar y contar de nuevo |
 | 5 | **Respaldo fuera del PC y restaurar desde la app** (5.2: respaldo al cerrar turno) | Hoy los respaldos quedan en el mismo disco | Hecha (`feature/respaldos-en-carpeta`): carpeta visible del PC (respuesta del desarrollador), al cerrar app y caja, restaurar |
 | 6 | **Configuración de la tienda** (nombre, NIT, dirección en el ticket) y **desactivar productos** | Detalles que pide una tienda real; bajo riesgo | Hecha (`feature/tienda-y-productos-inactivos`): preliminar, sin respuesta del propietario |
-| 7 | **Estado de cuenta del cliente** para imprimir (compras y abonos) | Ayuda a cobrar el fiado | Pendiente |
+| 7 | **Estado de cuenta del cliente** para imprimir (compras y abonos) | Ayuda a cobrar el fiado | Hecha (`feature/estado-de-cuenta`): en Clientes, con imprimir |
 | 8 | **Proveedores y compras** (CR-02, 5.3) | Ampliación grande; necesita aprobación del propietario | Pendiente |
 | 9 | **Lotes ligados al inventario** (DT-01) | Hoy los lotes son solo aviso; cambia cómo se descuenta | Pendiente |
 

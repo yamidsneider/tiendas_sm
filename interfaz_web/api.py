@@ -395,6 +395,11 @@ class ApiDeLaTienda:
     def detalle_cliente(self, id_cliente):
         return self._ejecutar(lambda: self._clientes.detalle(_id(id_cliente)))
 
+    @requiere(Permiso.CONSULTAR)
+    def estado_de_cuenta(self, id_cliente):
+        """Fase 7: texto listo para mostrar e imprimir (80 mm)."""
+        return self._ejecutar(lambda: self._clientes.estado_de_cuenta(_id(id_cliente)))
+
     @requiere(Permiso.GESTIONAR_CLIENTES)
     def datos_cliente(self, id_cliente):
         """Lo guardado, para llenar el formulario de Editar cliente; None si no existe."""
