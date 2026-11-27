@@ -18,7 +18,7 @@ no se asume: se programa la opción más prudente, se deja como *preliminar* y s
 | 5 | **Respaldo fuera del PC y restaurar desde la app** (5.2: respaldo al cerrar turno) | Hoy los respaldos quedan en el mismo disco | Hecha (`feature/respaldos-en-carpeta`): carpeta visible del PC (respuesta del desarrollador), al cerrar app y caja, restaurar |
 | 6 | **Configuración de la tienda** (nombre, NIT, dirección en el ticket) y **desactivar productos** | Detalles que pide una tienda real; bajo riesgo | Hecha (`feature/tienda-y-productos-inactivos`): preliminar, sin respuesta del propietario |
 | 7 | **Estado de cuenta del cliente** para imprimir (compras y abonos) | Ayuda a cobrar el fiado | Hecha (`feature/estado-de-cuenta`): en Clientes, con imprimir |
-| 8 | **Proveedores y compras** (CR-02, 5.3) | Ampliación grande; necesita aprobación del propietario | Pendiente |
+| 8 | **Proveedores y compras** (CR-02, 5.3) | Ampliación grande; necesita aprobación del propietario | Hecha (`feature/proveedores-y-compras`): preliminar, sin cuentas por pagar |
 | 9 | **Lotes ligados al inventario** (DT-01) | Hoy los lotes son solo aviso; cambia cómo se descuenta | Pendiente |
 
 **Fuera de esta ruta** (solo si se pide): categorías, facturación electrónica DIAN, varias cajas en red.
@@ -33,7 +33,7 @@ no se asume: se programa la opción más prudente, se deja como *preliminar* y s
 - **Fase 4:** *respondido:* base distinta cada día; se abre al iniciar el día y se cierra cuando haga falta; si falta o
   sobra se muestra y se puede contar de nuevo. *Falta confirmar:* si los abonos llegan en efectivo o por transferencia.
 - **Fase 5:** *respondido:* en una carpeta del mismo PC.
-- **Fase 8:** ¿lleva cuentas por pagar a proveedores o solo quiere registrar lo que compra?
+- **Fase 8:** *falta confirmar:* ¿lleva cuentas por pagar a proveedores? Hoy se asume que cada compra se paga de una vez.
 
 ## Cierre del proyecto (en paralelo, no son funciones)
 Medir E-01/RNF-01 con personas · PR de `app/web` a `main` · actualizar README y `ESTADO_Y_PENDIENTES.md` (cifras de pruebas viejas).

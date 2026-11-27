@@ -31,7 +31,8 @@ class BaseDeCompras(unittest.TestCase):
         return self.app.cantidad_en_inventario(producto.id_producto)
 
     def comprar(self, lineas=None, factura="F-001"):
-        lineas = lineas or [(self.arroz.id_producto, 10, 1100), (self.panela.id_producto, 4, 900)]
+        if lineas is None:                                    # [] es una compra vacía, no «la de siempre»
+            lineas = [(self.arroz.id_producto, 10, 1100), (self.panela.id_producto, 4, 900)]
         return self.app.compras.registrar_compra(self.proveedor.id_proveedor, lineas, self.jefe.id_usuario, factura)
 
 

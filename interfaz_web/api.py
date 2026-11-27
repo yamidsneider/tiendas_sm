@@ -21,6 +21,7 @@ from tiendas_sm.dominio import Permiso
 from tiendas_sm.presentador import PresentadorPuntoDeVenta, formato_pesos
 from tiendas_sm.presentador_caja import PresentadorDeCaja
 from tiendas_sm.presentador_clientes import PresentadorDeClientes
+from tiendas_sm.presentador_compras import PresentadorDeCompras
 from tiendas_sm.presentador_creditos import PresentadorDeCreditos
 from tiendas_sm.presentador_existencias import PresentadorDeExistencias
 from tiendas_sm.presentador_productos import PresentadorDeProductos
@@ -93,6 +94,7 @@ class ApiDeLaTienda:
         self._caja = PresentadorDeCaja(app)
         self._respaldos = PresentadorDeRespaldos(app)
         self._tienda = PresentadorDeLaTienda(app)
+        self._compras = PresentadorDeCompras(app)
 
     # ------------------------------------------------------------------ ingreso (fase 2): libres, sin permiso
     def estado_sesion(self):
@@ -141,6 +143,32 @@ class ApiDeLaTienda:
                 resultado["mensaje"] += self._respaldos.respaldar_si_hay_carpeta()
             return resultado
         return self._ejecutar(cerrar)
+
+    # ------------------------------------------------------------------ proveedores y compras (fase 8): solo el jefe
+    @requiere(Permiso.GESTIONAR_COMPRAS)
+    def proveedores(self):
+        return self._ejecutar(lambda: _filas(self._compras.proveedores()))
+
+    @requiere(Permiso.GESTIONAR_COMPRAS)
+    def registrar_proveedor(self, nombre, telefono="", nit=""):
+        return self._ejecutar(lambda: _resultado(self._compras.registrar_proveedor(str(nombre), str(telefono),
+                                                                                   str(nit))))
+
+    @requiere(Permiso.GESTIONAR_COMPRAS)
+    def compras(self):
+        return self._ejecutar(lambda: _filas(self._compras.compras()))
+
+    @requiere(Permiso.GESTIONAR_COMPRAS)
+    def detalle_compra(self, id_compra):
+        return self._ejecutar(lambda: self._compras.detalle(_id(id_compra)))
+
+    @requiere(Permiso.GESTIONAR_COMPRAS)
+    def registrar_compra(self, id_proveedor, factura, renglones):
+        """renglones llega de JavaScript como [{producto, cantidad, costo}] (texto)."""
+        quien = self._usuarios.sesion.usuario
+        filas = [dict(r) for r in (renglones or [])]
+        return self._ejecutar(lambda: _resultado(self._compras.registrar(str(id_proveedor), str(factura), filas,
+                                                                         quien)))
 
     # ------------------------------------------------------------------ datos de la tienda y productos (fase 6)
     @requiere(Permiso.CONFIGURAR_TIENDA)

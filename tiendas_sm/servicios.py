@@ -5,7 +5,8 @@ from enum import Enum
 
 from tiendas_sm.dominio import (Producto, Cliente, Venta, CuentaPorCobrar, StockInsuficiente, Devolucion, Lote,
                                 CreditoNoPermitido, TipoVenta, EstadoVenta, PLAZO_POR_DEFECTO_DIAS, Rol, TurnoDeCaja,
-                                Usuario, DatosDeLaTienda, SIGNO_DEL_MOVIMIENTO_DE_CUENTA, normalizar_usuario)
+                                Usuario, DatosDeLaTienda, SIGNO_DEL_MOVIMIENTO_DE_CUENTA, normalizar_usuario,
+                                Proveedor, Compra)
 from tiendas_sm.validaciones import exigir_mayor_a_cero, exigir_no_negativo
 
 LineaDeVenta = namedtuple("LineaDeVenta", "id_producto cantidad")
@@ -380,6 +381,59 @@ class ServicioDeReportes:
         desde, hasta = rango_del_periodo(Periodo(periodo), ahora or datetime.now())
         return ReporteDeVentas(desde, hasta, self.repo_reportes.resumen_de_ventas(desde, hasta),
                                self.repo_reportes.mas_vendidos(desde, hasta, MAS_VENDIDOS_A_MOSTRAR))
+
+
+# ---------------------------------------------------------------------- proveedores y compras (fase 8)
+COMPRAS_A_MOSTRAR = 50
+
+
+class ServicioDeCompras:
+    """*Preliminar:* la compra sube existencias y deja el último costo como precio de compra. Sin cuentas por pagar."""
+
+    def __init__(self, repo_compras, repo_productos):
+        self.repo_compras = repo_compras
+        self.repo_productos = repo_productos
+
+    def registrar_proveedor(self, nombre, telefono="", nit=""):
+        return self.repo_compras.guardar_proveedor(Proveedor(None, nombre, telefono, nit))
+
+    def listar_proveedores(self):
+        return self.repo_compras.listar_proveedores()
+
+    def obtener_proveedor(self, id_proveedor):
+        return self.repo_compras.obtener_proveedor(id_proveedor)
+
+    def registrar_compra(self, id_proveedor, lineas, id_usuario, factura=""):
+        """lineas: (id_producto, cantidad, costo_unitario). Se valida todo antes de guardar (todo o nada)."""
+        proveedor = self.repo_compras.obtener_proveedor(id_proveedor)
+        if proveedor is None:
+            raise ValueError("Elige un proveedor de la lista")
+        compra = Compra(None, proveedor.id_proveedor, id_usuario, factura)
+        existencias, productos = {}, {}
+        for id_producto, cantidad, costo in lineas:
+            producto = productos.get(id_producto) or self._producto_que_se_puede_comprar(id_producto)
+            compra.agregar(id_producto, cantidad, costo)
+            existencia = existencias.get(id_producto) or self.repo_productos.obtener_existencia(id_producto)
+            existencia.aumentar(cantidad)
+            producto.precio_compra = costo                          # el último costo manda
+            existencias[id_producto], productos[id_producto] = existencia, producto
+        compra.exigir_lineas()
+        return self.repo_compras.guardar_compra(compra, list(existencias.values()), list(productos.values()),
+                                                lambda id_compra: f"Compra #{id_compra} a {proveedor.nombre}")
+
+    def _producto_que_se_puede_comprar(self, id_producto):
+        producto = self.repo_productos.obtener(id_producto)
+        if producto is None:
+            raise ValueError("Elige un producto de la lista")
+        if not producto.activo:
+            raise ValueError(f"{producto.nombre} está desactivado: actívelo antes de comprarlo")
+        return producto
+
+    def obtener_compra(self, id_compra):
+        return self.repo_compras.obtener_compra(id_compra)
+
+    def listar_compras(self, limite=COMPRAS_A_MOSTRAR):
+        return self.repo_compras.listar_compras(limite)
 
 
 # ---------------------------------------------------------------------- datos de la tienda (fase 6)

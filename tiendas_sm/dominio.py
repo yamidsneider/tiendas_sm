@@ -57,6 +57,7 @@ class Permiso(str, Enum):
     MANEJAR_CAJA = "manejar_caja"                  # fase 4: abrir y cerrar el turno de caja
     GESTIONAR_RESPALDOS = "gestionar_respaldos"    # fase 5: carpeta, respaldar ahora y restaurar
     CONFIGURAR_TIENDA = "configurar_tienda"        # fase 6: datos del ticket y activar/desactivar productos
+    GESTIONAR_COMPRAS = "gestionar_compras"        # fase 8: proveedores y compras (costos)
     DEVOLVER = "devolver"                        # devolver productos o anular una venta
     GESTIONAR_PRODUCTOS = "gestionar_productos"    # crear, editar y cambiar precios
     GESTIONAR_CLIENTES = "gestionar_clientes"      # crear y editar (cupo y plazo del fiado)
@@ -186,6 +187,46 @@ class Producto:
     def exigir_activo(self):
         if not self.activo:
             raise ValueError(f"{self.nombre} está desactivado: no se puede vender")
+
+
+# ---------------------------------------------------------------------- proveedores y compras (fase 8, *preliminar*)
+class Proveedor:
+    def __init__(self, id_proveedor, nombre, telefono="", nit=""):
+        exigir_texto_obligatorio(nombre, "Escribe el nombre del proveedor")
+        telefono = (telefono or "").strip()
+        exigir_solo_caracteres(telefono, CARACTERES_DEL_TELEFONO,
+                               "El teléfono solo puede tener números, espacios, + y -")
+        self.id_proveedor = id_proveedor
+        self.nombre = nombre.strip()
+        self.telefono = telefono
+        self.nit = (nit or "").strip()
+
+
+LineaDeCompra = namedtuple("LineaDeCompra", "id_producto cantidad costo_unitario")
+
+
+class Compra:
+    """Mercancía que llega de un proveedor. Se asume pagada de una vez (no hay cuentas por pagar)."""
+
+    def __init__(self, id_compra, id_proveedor, id_usuario, factura="", fecha=None):
+        self.id_compra = id_compra
+        self.id_proveedor = id_proveedor
+        self.id_usuario = id_usuario
+        self.factura = (factura or "").strip()
+        self.fecha = fecha or datetime.now()
+        self.lineas = []
+
+    def agregar(self, id_producto, cantidad, costo_unitario):
+        exigir_mayor_a_cero(cantidad)
+        exigir_no_negativo(costo_unitario, "El costo no puede ser negativo")
+        self.lineas.append(LineaDeCompra(id_producto, cantidad, costo_unitario))
+
+    def exigir_lineas(self):
+        if not self.lineas:
+            raise ValueError("Agregue al menos un producto a la compra")
+
+    def total(self):
+        return sum(linea.cantidad * linea.costo_unitario for linea in self.lineas)
 
 
 # ---------------------------------------------------------------------- datos de la tienda (fase 6, *preliminar*)
@@ -365,7 +406,7 @@ class Venta:
 # alguna venta del periodo es de antes de guardar el costo (se usó el precio de compra actual).
 class ResumenDeVentas(namedtuple("ResumenDeVentas", "numero_de_ventas vendido devuelto efectivo_devuelto efectivo "
                                                     "transferencia credito abonos ganancia ganancia_estimada "
-                                                    "salidas_al_costo", defaults=(0,))):
+                                                    "salidas_al_costo compras", defaults=(0, 0))):
     """salidas_al_costo (fase 3): lo que costó la mercancía que salió sin venderse (dañada, vencida…)."""
     __slots__ = ()
 

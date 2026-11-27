@@ -3,13 +3,15 @@ from datetime import date, datetime
 
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
                                 Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote,
-                                ResumenDeVentas, ProductoMasVendido, TurnoDeCaja, Usuario, MovimientoDeCuenta)
-from tiendas_sm.puertos import (PuertoDeCaja, PuertoDeClientes, PuertoDeConfiguracion, PuertoDeProductos,
+                                ResumenDeVentas, ProductoMasVendido, TurnoDeCaja, Usuario, MovimientoDeCuenta,
+                                Proveedor, Compra)
+from tiendas_sm.puertos import (PuertoDeCaja, PuertoDeClientes, PuertoDeCompras, PuertoDeConfiguracion,
+                                PuertoDeProductos,
                                 PuertoDeReportes, PuertoDeUsuarios, RepositorioDeVentas)
 
 # RepositorioDeVentas se reexporta desde puertos.py: las pruebas y otros módulos lo siguen importando de aquí.
 __all__ = ["RepositorioDeVentas", "RepositorioDeVentasSqlite", "RepositorioDeProductos", "RepositorioDeClientes",
-           "RepositorioDeReportesSqlite", "RepositorioDeUsuarios", "RepositorioDeCaja"]
+           "RepositorioDeReportesSqlite", "RepositorioDeUsuarios", "RepositorioDeCaja", "RepositorioDeCompras"]
 
 MOVIMIENTO_SALIDA_VENTA = "SALIDA_VENTA"
 MOVIMIENTO_DEVOLUCION = "DEVOLUCION"
@@ -348,6 +350,7 @@ SQL_TOTALES_DE_VENTAS = (
 SQL_TOTALES_DE_DEVOLUCIONES = ("SELECT COALESCE(SUM(valor), 0), COALESCE(SUM(efectivo_devuelto), 0) "
                                "FROM devoluciones WHERE fecha >= ? AND fecha < ?")
 SQL_TOTAL_DE_ABONOS = "SELECT COALESCE(SUM(valor), 0) FROM abonos WHERE fecha >= ? AND fecha < ?"
+SQL_TOTAL_DE_COMPRAS = "SELECT COALESCE(SUM(total), 0) FROM compras WHERE fecha >= ? AND fecha < ?"   # fase 8
 SQL_SALIDAS_AL_COSTO = ("SELECT COALESCE(SUM(cantidad * COALESCE(costo_unitario, 0)), 0) FROM movimientos_inventario "
                         "WHERE tipo = 'SALIDA_MANUAL' AND fecha >= ? AND fecha < ?")
 # Ganancia de lo vendido: precio de venta − costo guardado (o el precio de compra actual si la línea es vieja).
@@ -389,9 +392,10 @@ class RepositorioDeReportesSqlite(PuertoDeReportes):
         ganancia, estimada = self.conexion.execute(SQL_GANANCIA_VENDIDA, rango).fetchone()
         ganancia_devuelta = self.conexion.execute(SQL_GANANCIA_DEVUELTA, rango).fetchone()[0]
         salidas = self.conexion.execute(SQL_SALIDAS_AL_COSTO, rango).fetchone()[0]
+        compras = self.conexion.execute(SQL_TOTAL_DE_COMPRAS, rango).fetchone()[0]
         return ResumenDeVentas(ventas["numero"], ventas["vendido"], devuelto, efectivo_devuelto, ventas["efectivo"],
                                ventas["transferencia"], ventas["credito"], abonos, ganancia - ganancia_devuelta,
-                               bool(estimada), salidas)
+                               bool(estimada), salidas, compras)
 
     def mas_vendidos(self, desde, hasta, limite):
         rango = (desde.isoformat(), hasta.isoformat())
@@ -493,3 +497,65 @@ class RepositorioDeCaja(PuertoDeCaja):
         return TurnoDeCaja(fila["id_turno"], fila["base"], datetime.fromisoformat(fila["abierto_en"]),
                            fila["id_usuario_abre"], _fecha_o_nada(fila["cerrado_en"]), fila["id_usuario_cierra"],
                            fila["efectivo_esperado"], fila["efectivo_contado"])
+
+
+# ---------------------------------------------------------------------- proveedores y compras (fase 8)
+class RepositorioDeCompras(PuertoDeCompras):
+    def __init__(self, conexion):
+        self.conexion = conexion
+
+    def guardar_proveedor(self, proveedor):
+        with self.conexion:
+            cursor = self.conexion.execute("INSERT INTO proveedores (nombre, telefono, nit) VALUES (?,?,?)",
+                                           (proveedor.nombre, proveedor.telefono, proveedor.nit))
+        proveedor.id_proveedor = cursor.lastrowid
+        return proveedor
+
+    def obtener_proveedor(self, id_proveedor):
+        fila = self.conexion.execute("SELECT * FROM proveedores WHERE id_proveedor=?", (id_proveedor,)).fetchone()
+        return Proveedor(fila["id_proveedor"], fila["nombre"], fila["telefono"], fila["nit"]) if fila else None
+
+    def listar_proveedores(self):
+        filas = self.conexion.execute("SELECT * FROM proveedores ORDER BY nombre COLLATE NOCASE").fetchall()
+        return [Proveedor(f["id_proveedor"], f["nombre"], f["telefono"], f["nit"]) for f in filas]
+
+    def guardar_compra(self, compra, existencias, productos, motivo):
+        """RNF-04: si algo falla, no queda nada a medias. motivo es una función id_compra -> texto del movimiento."""
+        fecha = compra.fecha.isoformat()
+        with self.conexion:
+            cursor = self.conexion.execute(
+                "INSERT INTO compras (id_proveedor, id_usuario, fecha, factura, total) VALUES (?,?,?,?,?)",
+                (compra.id_proveedor, compra.id_usuario, fecha, compra.factura, compra.total()))
+            compra.id_compra = cursor.lastrowid
+            for linea in compra.lineas:
+                self.conexion.execute(
+                    "INSERT INTO detalles_compra (id_compra, id_producto, cantidad, costo_unitario) VALUES (?,?,?,?)",
+                    (compra.id_compra, linea.id_producto, linea.cantidad, linea.costo_unitario))
+                self.conexion.execute(
+                    "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, fecha, motivo, id_usuario, "
+                    "costo_unitario) VALUES (?, 'ENTRADA', ?, ?, ?, ?, ?)",
+                    (linea.id_producto, linea.cantidad, fecha, motivo(compra.id_compra), compra.id_usuario,
+                     linea.costo_unitario))
+            for existencia in existencias:
+                self.conexion.execute("UPDATE existencias SET cantidad_actual=? WHERE id_producto=?",
+                                      (existencia.cantidad_actual, existencia.id_producto))
+            for producto in productos:
+                self.conexion.execute("UPDATE productos SET precio_compra=? WHERE id_producto=?",
+                                      (producto.precio_compra, producto.id_producto))
+        return compra
+
+    def obtener_compra(self, id_compra):
+        fila = self.conexion.execute("SELECT * FROM compras WHERE id_compra=?", (id_compra,)).fetchone()
+        return self._a_compra(fila) if fila else None
+
+    def listar_compras(self, limite):
+        filas = self.conexion.execute("SELECT * FROM compras ORDER BY id_compra DESC LIMIT ?", (limite,)).fetchall()
+        return [self._a_compra(fila) for fila in filas]
+
+    def _a_compra(self, fila):
+        compra = Compra(fila["id_compra"], fila["id_proveedor"], fila["id_usuario"], fila["factura"],
+                        datetime.fromisoformat(fila["fecha"]))
+        for linea in self.conexion.execute("SELECT * FROM detalles_compra WHERE id_compra=? ORDER BY id_detalle",
+                                           (compra.id_compra,)):
+            compra.agregar(linea["id_producto"], linea["cantidad"], linea["costo_unitario"])
+        return compra
