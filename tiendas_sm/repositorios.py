@@ -4,7 +4,7 @@ from datetime import date, datetime
 from tiendas_sm.dominio import (Producto, Existencia, Cliente, CuentaPorCobrar, EstadoCuenta, MovimientoDeInventario,
                                 Venta, DetalleVenta, TipoVenta, EstadoVenta, FormaDePago, Devolucion, Lote,
                                 ResumenDeVentas, ProductoMasVendido, TurnoDeCaja, Usuario, MovimientoDeCuenta,
-                                Proveedor, Compra)
+                                Proveedor, Compra, tomar_fefo)
 from tiendas_sm.puertos import (PuertoDeCaja, PuertoDeClientes, PuertoDeCompras, PuertoDeConfiguracion,
                                 PuertoDeProductos,
                                 PuertoDeReportes, PuertoDeUsuarios, RepositorioDeVentas)
@@ -20,6 +20,22 @@ MOVIMIENTO_SALIDA_MANUAL = "SALIDA_MANUAL"      # fase 3
 
 def _ahora():
     return datetime.now().isoformat()
+
+
+def _fila_a_lote(fila):
+    return Lote(fila["id_lote"], fila["id_producto"], fila["numero"], date.fromisoformat(fila["fecha_vencimiento"]),
+                fila["cantidad"], bool(fila["activo"]), fila["saldo"])
+
+
+def _descontar_de_lotes(conexion, id_producto, cantidad):
+    """Fase 9: dentro de la misma transacción que la venta o la salida, descuenta FEFO de los lotes del producto
+    (la regla está en el dominio: tomar_fefo). Lo que no alcance sale de las unidades sin lote."""
+    filas = conexion.execute("SELECT * FROM lotes WHERE id_producto=? AND activo=1 AND saldo > 0",
+                             (id_producto,)).fetchall()
+    lotes = [_fila_a_lote(fila) for fila in filas]
+    tomar_fefo(lotes, cantidad)
+    for lote in lotes:
+        conexion.execute("UPDATE lotes SET saldo=?, activo=? WHERE id_lote=?", (lote.saldo, int(lote.activo), lote.id_lote))
 
 
 class RepositorioDeProductos(PuertoDeProductos):
@@ -92,6 +108,7 @@ class RepositorioDeProductos(PuertoDeProductos):
                 "costo_unitario) VALUES (?,?,?,?,?,?,?,?)",
                 (existencia.id_producto, MOVIMIENTO_SALIDA_MANUAL, cantidad, _ahora(), motivo, id_usuario, id_autorizo,
                  costo_unitario))
+            _descontar_de_lotes(self.conexion, existencia.id_producto, cantidad)    # fase 9: FEFO
 
     def listar_movimientos(self, limite):
         filas = self.conexion.execute(
@@ -103,11 +120,14 @@ class RepositorioDeProductos(PuertoDeProductos):
         with self.conexion:
             if lote.id_lote is None:
                 cursor = self.conexion.execute(
-                    "INSERT INTO lotes (id_producto, numero, fecha_vencimiento, cantidad, activo) VALUES (?,?,?,?,?)",
-                    (lote.id_producto, lote.numero, lote.fecha_vencimiento.isoformat(), lote.cantidad, int(lote.activo)))
+                    "INSERT INTO lotes (id_producto, numero, fecha_vencimiento, cantidad, activo, saldo) "
+                    "VALUES (?,?,?,?,?,?)",
+                    (lote.id_producto, lote.numero, lote.fecha_vencimiento.isoformat(), lote.cantidad, int(lote.activo),
+                     lote.saldo))
                 lote.id_lote = cursor.lastrowid
             else:
-                self.conexion.execute("UPDATE lotes SET activo=? WHERE id_lote=?", (int(lote.activo), lote.id_lote))
+                self.conexion.execute("UPDATE lotes SET activo=?, saldo=? WHERE id_lote=?",
+                                      (int(lote.activo), lote.saldo, lote.id_lote))
         return lote.id_lote
 
     def obtener_lote(self, id_lote):
@@ -121,8 +141,7 @@ class RepositorioDeProductos(PuertoDeProductos):
 
     @staticmethod
     def _a_lote(fila):
-        return Lote(fila["id_lote"], fila["id_producto"], fila["numero"], date.fromisoformat(fila["fecha_vencimiento"]),
-                    fila["cantidad"], bool(fila["activo"]))
+        return _fila_a_lote(fila)
 
 
 class RepositorioDeClientes(PuertoDeClientes):
@@ -171,6 +190,8 @@ class RepositorioDeVentasSqlite(RepositorioDeVentas):
                 self._insertar_cuenta(venta, cuenta)
             self._actualizar_existencias(existencias)
             self._insertar_salidas(venta)
+            for id_producto, cantidad in venta.unidades_por_producto().items():      # fase 9: FEFO
+                _descontar_de_lotes(self.conexion, id_producto, cantidad)
 
     def _insertar_venta(self, venta):
         forma_pago = venta.forma_pago.value if venta.forma_pago else None

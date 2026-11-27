@@ -248,12 +248,13 @@ class DatosDeLaTienda(namedtuple("DatosDeLaTienda", "nombre nit direccion telefo
 
 
 class Lote:
-    """RF-10 y RF-13: un lote que llegó con su fecha de vencimiento. Es solo un registro para avisar: NO está
-    ligado a las existencias (decisión del grupo B). La cantidad es informativa (lo que traía el lote)."""
+    """RF-10 y RF-13: un lote que llegó con su fecha de vencimiento. Fase 9 (cambia la decisión del grupo B): está
+    ligado al inventario. cantidad = con cuánto llegó; saldo = cuántas unidades le quedan. En 0 sale de la lista."""
     VENCIDO, POR_VENCER, AL_DIA = "Vencido", "Por vencer", "Al día"
 
-    def __init__(self, id_lote, id_producto, numero, fecha_vencimiento, cantidad, activo=True):
+    def __init__(self, id_lote, id_producto, numero, fecha_vencimiento, cantidad, activo=True, saldo=None):
         exigir_mayor_a_cero(cantidad)
+        self.saldo = cantidad if saldo is None else saldo
         self.id_lote = id_lote
         self.id_producto = id_producto
         self.numero = (numero or "").strip()
@@ -272,10 +273,33 @@ class Lote:
         return self.POR_VENCER if dias <= dias_aviso else self.AL_DIA
 
     def retirar(self):
-        """«Ya no está»: se vendió, se botó o se devolvió al proveedor. Sale de la lista de alertas."""
+        """«Ya no está». Fase 9: solo sin unidades (lo vendido sale solo; lo dañado o vencido, con una salida)."""
         if not self.activo:
             raise ValueError("Ese lote ya no está en la lista")
+        if self.saldo > 0:
+            unidades = "le queda 1 unidad: véndala o regístrela" if self.saldo == 1 else \
+                f"le quedan {self.saldo} unidades: véndalas o regístrelas"
+            raise ValueError(f"Al lote {self.numero or 'sin número'} {unidades} como salida")
         self.activo = False
+
+    def tomar(self, cantidad):
+        """Saca hasta «cantidad» de este lote y dice cuántas sacó. Si queda en 0, sale de la lista."""
+        tomado = min(self.saldo, cantidad)
+        self.saldo -= tomado
+        if self.saldo == 0:
+            self.activo = False
+        return tomado
+
+
+def tomar_fefo(lotes, cantidad):
+    """Fase 9 (respuesta del desarrollador): descuenta primero del lote que vence antes. Devuelve lo que faltó,
+    que sale de las unidades sin lote."""
+    falta = cantidad
+    for lote in sorted((l for l in lotes if l.activo and l.saldo > 0), key=lambda l: (l.fecha_vencimiento, l.id_lote or 0)):
+        if falta == 0:
+            break
+        falta -= lote.tomar(falta)
+    return falta
 
 
 class Existencia:

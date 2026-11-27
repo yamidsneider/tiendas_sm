@@ -19,7 +19,7 @@ no se asume: se programa la opción más prudente, se deja como *preliminar* y s
 | 6 | **Configuración de la tienda** (nombre, NIT, dirección en el ticket) y **desactivar productos** | Detalles que pide una tienda real; bajo riesgo | Hecha (`feature/tienda-y-productos-inactivos`): preliminar, sin respuesta del propietario |
 | 7 | **Estado de cuenta del cliente** para imprimir (compras y abonos) | Ayuda a cobrar el fiado | Hecha (`feature/estado-de-cuenta`): en Clientes, con imprimir |
 | 8 | **Proveedores y compras** (CR-02, 5.3) | Ampliación grande; necesita aprobación del propietario | Hecha (`feature/proveedores-y-compras`): preliminar, sin cuentas por pagar |
-| 9 | **Lotes ligados al inventario** (DT-01) | Hoy los lotes son solo aviso; cambia cómo se descuenta | Pendiente |
+| 9 | **Lotes ligados al inventario** (DT-01) | Hoy los lotes son solo aviso; cambia cómo se descuenta | Hecha (`feature/lotes-fefo`): FEFO al vender; lo sin lote se asigna a mano |
 
 **Fuera de esta ruta** (solo si se pide): categorías, facturación electrónica DIAN, varias cajas en red.
 

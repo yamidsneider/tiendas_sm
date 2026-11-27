@@ -173,16 +173,18 @@ class PruebasDeLaMigracion(unittest.TestCase):
             leche = app.productos.registrar_producto("Leche ficticia", 2000, 2800, 10)
             app.conexion.close()
             conexion = sqlite3.connect(ruta)                       # como la base de antes: lotes sin saldo
-            conexion.executescript(f"""
+            conexion.executescript("""
                 ALTER TABLE lotes RENAME TO lotes_nuevos;
                 CREATE TABLE lotes (id_lote INTEGER PRIMARY KEY AUTOINCREMENT, id_producto INTEGER NOT NULL,
                     numero TEXT NOT NULL DEFAULT '', fecha_vencimiento TEXT NOT NULL, cantidad INTEGER NOT NULL,
                     activo INTEGER NOT NULL DEFAULT 1);
-                DROP TABLE lotes_nuevos;
-                INSERT INTO lotes (id_producto, numero, fecha_vencimiento, cantidad) VALUES
-                    ({leche.id_producto}, 'TARDE', '{dentro_de(30).isoformat()}', 8),
-                    ({leche.id_producto}, 'PRONTO', '{dentro_de(2).isoformat()}', 6),
-                    ({leche.id_producto}, 'SOBRA', '{dentro_de(60).isoformat()}', 5);""")
+                DROP TABLE lotes_nuevos;""")
+            with conexion:
+                conexion.executemany(
+                    "INSERT INTO lotes (id_producto, numero, fecha_vencimiento, cantidad) VALUES (?,?,?,?)",
+                    [(leche.id_producto, "TARDE", dentro_de(30).isoformat(), 8),
+                     (leche.id_producto, "PRONTO", dentro_de(2).isoformat(), 6),
+                     (leche.id_producto, "SOBRA", dentro_de(60).isoformat(), 5)])
             conexion.close()
             app = Aplicacion(ruta)
             saldos = {lote.numero: lote.saldo for lote in app.productos.lotes_activos()}

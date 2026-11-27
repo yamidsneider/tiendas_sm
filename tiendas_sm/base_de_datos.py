@@ -118,6 +118,9 @@ COLUMNAS_NUEVAS_DE_MOVIMIENTOS = (
 INDICE_DEL_CODIGO = "CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)"
 
 
+# Fase 9: saldo de cada lote (unidades que le quedan). En una base vieja queda NULL y se reparte al abrir.
+COLUMNAS_NUEVAS_DE_LOTES = (("saldo", "INTEGER"),)
+
 COLUMNAS_NUEVAS = (
     ("ventas", COLUMNAS_NUEVAS_DE_VENTAS),
     ("clientes", COLUMNAS_NUEVAS_DE_CLIENTES),
@@ -125,6 +128,7 @@ COLUMNAS_NUEVAS = (
     ("cuentas_por_cobrar", COLUMNAS_NUEVAS_DE_CUENTAS),
     ("detalles_venta", COLUMNAS_NUEVAS_DE_DETALLES),
     ("movimientos_inventario", COLUMNAS_NUEVAS_DE_MOVIMIENTOS),
+    ("lotes", COLUMNAS_NUEVAS_DE_LOTES),
 )
 
 
@@ -136,6 +140,27 @@ def preparar_esquema(conexion):
         _agregar_columnas(conexion, tabla, columnas)
     with conexion:
         conexion.execute(INDICE_DEL_CODIGO)                     # después de la migración: la columna ya existe
+    _repartir_saldos_de_lotes_viejos(conexion)
+
+
+def _repartir_saldos_de_lotes_viejos(conexion):
+    """Fase 9: los lotes de antes (saldo NULL) reciben saldo por orden de vencimiento, hasta donde alcancen las
+    existencias del producto; los que no alcanzan quedan en 0 y salen de la lista. Lo demás queda «sin lote».
+    Solo toca lotes con saldo NULL, así que abrir la base otra vez no repite el reparto."""
+    productos = [fila[0] for fila in conexion.execute("SELECT DISTINCT id_producto FROM lotes WHERE saldo IS NULL")]
+    with conexion:
+        for id_producto in productos:
+            existencia = conexion.execute("SELECT COALESCE(SUM(cantidad_actual), 0) FROM existencias WHERE id_producto=?",
+                                          (id_producto,)).fetchone()[0]
+            asignado = conexion.execute("SELECT COALESCE(SUM(saldo), 0) FROM lotes WHERE id_producto=? AND activo=1 "
+                                        "AND saldo IS NOT NULL", (id_producto,)).fetchone()[0]
+            restante = max(existencia - asignado, 0)
+            viejos = conexion.execute("SELECT id_lote, cantidad, activo FROM lotes WHERE id_producto=? AND saldo IS NULL "
+                                      "ORDER BY fecha_vencimiento, id_lote", (id_producto,)).fetchall()
+            for id_lote, cantidad, activo in viejos:
+                saldo = min(cantidad, restante) if activo else 0
+                restante -= saldo
+                conexion.execute("UPDATE lotes SET saldo=?, activo=? WHERE id_lote=?", (saldo, int(saldo > 0), id_lote))
 
 
 def _agregar_columnas(conexion, tabla, columnas):
