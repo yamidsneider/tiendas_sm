@@ -33,17 +33,20 @@ def _plural(cantidad, singular, plural):
     return f"{cantidad} {singular if cantidad == 1 else plural}"
 
 
-def armar_ticket(venta, nombre_de_producto, pie):
+def armar_ticket(venta, nombre_de_producto, pie, encabezado=("TIENDAS S.M",), mensaje=()):
     """DDS §10.3: número, fecha y hora, líneas, total y forma de pago. Se arma desde la venta guardada.
 
     nombre_de_producto es una función id_producto -> nombre; pie son las líneas finales (forma de pago, etc.).
     La usan el punto de venta (al cobrar) y la sección Ventas (para ver el ticket de una venta pasada).
+    Fase 6: encabezado (nombre, NIT, dirección, teléfono) y mensaje final salen de los datos de la tienda.
     """
-    lineas = ["TIENDAS S.M", "Comprobante interno (no es factura)",
+    lineas = [*encabezado, "Comprobante interno (no es factura)",
               f"Venta #{venta.id_venta} · {venta.fecha:%Y-%m-%d %H:%M}", ""]
     for detalle in venta.detalles:
         lineas += _lineas_del_producto(detalle, nombre_de_producto(detalle.id_producto))
     lineas += ["", f"TOTAL: {formato_pesos(venta.total)}", *pie]
+    if mensaje:
+        lineas += ["", *mensaje]
     return "\n".join(lineas)
 
 
@@ -91,6 +94,7 @@ class PresentadorPuntoDeVenta:
         por_codigo = self.app.productos.buscar_por_codigo(texto)
         encontrados = ([por_codigo] if por_codigo else
                        [p for p in self.app.productos.listar() if buscado in p.nombre.lower()])
+        encontrados = [p for p in encontrados if p.activo]          # fase 6: los desactivados no se venden
         return [FilaDeProducto(p.id_producto, p.nombre, p.precio_venta, self.app.cantidad_en_inventario(p.id_producto))
                 for p in encontrados]
 
@@ -203,7 +207,8 @@ class PresentadorPuntoDeVenta:
             return None, MENSAJE_FALLA_AL_GUARDAR
 
     def _cerrar(self, venta, mensaje, pie):
-        ticket = armar_ticket(venta, lambda id_producto: self._producto(id_producto).nombre, pie)
+        ticket = armar_ticket(venta, lambda id_producto: self._producto(id_producto).nombre, pie,
+                              self.app.tienda.encabezado_del_ticket(), self.app.tienda.mensaje_del_ticket())
         self.limpiar()
         return Resultado(True, mensaje, ticket)
 

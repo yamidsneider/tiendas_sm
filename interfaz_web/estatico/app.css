@@ -197,3 +197,6 @@ td.num{white-space:nowrap}
 /* fase 4: abrir caja */
 .caja-form{max-width:420px}
 .caja-form .btn-p{width:100%;margin-top:6px}
+/* fase 6: datos de la tienda y productos inactivos */
+.tienda{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start}
+tr.inactivo td{color:var(--tenue)}

@@ -329,3 +329,16 @@ base abierta, migra el esquema (`preparar_esquema`, por si es de una versión vi
 *Limitaciones:* la copia queda en el mismo PC: si el disco se daña, se pierden la base y los respaldos (riesgo aceptado por
 el desarrollador). Si Documentos está en OneDrive, la carpeta por defecto puede no ser la que se ve en el Explorador: el jefe
 puede elegir otra. Restaurar un respaldo de antes de elegir carpeta vuelve a la carpeta por defecto.
+
+**Fase 6: datos de la tienda en el ticket y desactivar productos (*preliminar*: decisión del desarrollador sin respuesta del
+propietario, 26 de noviembre de 2026).**
+*Datos de la tienda:* sección **Tienda** (solo el jefe, `Permiso.CONFIGURAR_TIENDA`) con nombre (obligatorio, por defecto
+«TIENDAS S.M»), NIT, dirección, teléfono (mismas reglas del teléfono del cliente) y un mensaje al pie. Se guardan en la tabla
+`configuracion` (fase 5) por medio de `PuertoDeConfiguracion` y `ServicioDeLaTienda`. El ticket de 80 mm los usa arriba (solo
+lo que esté lleno, partido a 42 caracteres) y el mensaje al final; también los tickets de ventas pasadas. Sigue diciendo
+«Comprobante interno (no es factura)».
+*Desactivar productos:* columna `productos.activo` (migración: los viejos quedan activos). Un producto desactivado no aparece
+en el punto de venta (ni por nombre ni por código de barras) y no se puede vender aunque ya estuviera en el carrito
+(`Producto.exigir_activo` en `ServicioDeVentas`); sale de «Por reponer»; sigue en Productos y Existencias marcado «Inactivo»
+y conserva su historia en ventas y reportes. No se borra (DT-08). Editarlo no lo reactiva. Lo hace solo el jefe.
+*Por confirmar con el propietario:* qué datos quiere en el ticket y si un producto inactivo debe esconderse también de Existencias.

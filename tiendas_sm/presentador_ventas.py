@@ -39,7 +39,8 @@ class PresentadorDeVentas:
         venta = self.app.ventas.obtener(id_venta)
         if venta is None:
             return ""
-        return armar_ticket(venta, self._nombre_de_producto, self._pie(venta) + self._devoluciones(venta))
+        return armar_ticket(venta, self._nombre_de_producto, self._pie(venta) + self._devoluciones(venta),
+                            self.app.tienda.encabezado_del_ticket(), self.app.tienda.mensaje_del_ticket())
 
     # ------------------------------------------------------------------ devoluciones (respuesta 1.5)
     def estados(self):

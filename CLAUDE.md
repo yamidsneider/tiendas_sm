@@ -55,7 +55,7 @@ medir_calidad.py · medir_complejidad.py · medir_cobertura.py · correr_regresi
 
 ## Comandos
 ```
-python -m unittest discover -s tests -v          # debe dar OK (525 pruebas)
+python -m unittest discover -s tests -v          # debe dar OK (542 pruebas)
 python medir_cobertura.py --minimo 90            # cobertura de líneas (hoy ≈ 98,8 %)
 python correr_regresion.py tiendas_sm/servicios.py   # pruebas relacionadas con un archivo
 python demo_en_vivo.py --sin-pausas              # demostración narrada del flujo crítico

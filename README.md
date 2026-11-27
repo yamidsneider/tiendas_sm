@@ -38,7 +38,7 @@ Desde esta carpeta:
 
     python -m unittest discover -s tests -v
 
-Resultado esperado: 525 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
+Resultado esperado: 542 pruebas, `OK`. Las mismas pruebas se ejecutan solas en cada Pull Request (ver `docs/CI.md`);
 allí las 37 pruebas de pantallas se saltan porque el servidor no tiene pantalla.
 
 ## Estructura
