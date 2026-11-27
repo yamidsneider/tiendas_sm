@@ -1,9 +1,9 @@
-"""Lotes con fecha de vencimiento como registro de alerta (RF-10, RF-13; respuestas del propietario, grupo B).
+"""Lotes con fecha de vencimiento y sus avisos (RF-10, RF-13; respuestas del propietario, grupo B).
 
-Decisión del desarrollador: el lote NO está ligado al inventario. Es una nota de qué lote llegó, cuándo vence y
-cuántas unidades traía (solo informativa). Registrar o quitar un lote no cambia las existencias. Cada producto
-tiene sus días de aviso (se piden al crear el producto, como el stock mínimo). La lista sale ordenada por
-vencimiento para vender primero lo que vence antes (FEFO manual). «Ya no está» saca el lote de la lista.
+Fase 9 (cambia la decisión del grupo B): el lote ya está ligado al inventario (ver test_lotes_fefo.py). Registrar un
+lote es asignárselo a unidades que estaban sin lote: no cambia las existencias, pero no puede pasar de lo que hay
+sin lote. Cada producto tiene sus días de aviso. La lista sale ordenada por vencimiento. Un lote que se vende
+completo sale solo de la lista; «Ya no está» solo con el lote sin unidades.
 Se escribieron antes del código. Datos ficticios.
 """
 import sqlite3
@@ -53,25 +53,25 @@ class PruebasDelServicio(unittest.TestCase):
         self.queso = self.app.productos.registrar_producto("Queso ficticio", 5000, 7000, 4, dias_aviso=3)
 
     def test_registrar_un_lote_no_cambia_las_existencias(self):
-        self.app.productos.registrar_lote(self.leche.id_producto, "L-100", dentro_de(10), 24)
+        self.app.productos.registrar_lote(self.leche.id_producto, "L-100", dentro_de(10), 6)
         self.assertEqual(self.app.cantidad_en_inventario(self.leche.id_producto), 10)
         self.assertEqual(len(self.app.productos.movimientos()), 2)           # solo las 2 entradas iniciales
 
     def test_la_lista_sale_ordenada_por_vencimiento(self):
-        self.app.productos.registrar_lote(self.leche.id_producto, "L-B", dentro_de(20), 6)
+        self.app.productos.registrar_lote(self.leche.id_producto, "L-B", dentro_de(20), 4)
         self.app.productos.registrar_lote(self.queso.id_producto, "L-A", dentro_de(2), 2)
         self.app.productos.registrar_lote(self.leche.id_producto, "L-C", dentro_de(9), 6)
         self.assertEqual([lote.numero for lote in self.app.productos.lotes_activos()], ["L-A", "L-C", "L-B"])
 
-    def test_ya_no_esta_lo_saca_de_la_lista_sin_tocar_existencias(self):
-        lote = self.app.productos.registrar_lote(self.leche.id_producto, "L-1", dentro_de(1), 6)
-        self.app.productos.retirar_lote(lote.id_lote)
+    def test_el_lote_vendido_completo_sale_solo_de_la_lista(self):
+        self.app.productos.registrar_lote(self.leche.id_producto, "L-1", dentro_de(1), 6)
+        self.app.ventas.registrar_venta_de_contado([(self.leche.id_producto, 6)], 6 * 2800)
         self.assertEqual(self.app.productos.lotes_activos(), [])
-        self.assertEqual(self.app.cantidad_en_inventario(self.leche.id_producto), 10)
+        self.assertEqual(self.app.cantidad_en_inventario(self.leche.id_producto), 4)
 
-    def test_retirar_dos_veces_se_rechaza(self):
+    def test_retirar_un_lote_que_ya_salio_se_rechaza(self):
         lote = self.app.productos.registrar_lote(self.leche.id_producto, "L-1", dentro_de(1), 6)
-        self.app.productos.retirar_lote(lote.id_lote)
+        self.app.ventas.registrar_venta_de_contado([(self.leche.id_producto, 6)], 6 * 2800)
         with self.assertRaises(ValueError) as error:
             self.app.productos.retirar_lote(lote.id_lote)
         self.assertEqual(str(error.exception), "Ese lote ya no está en la lista")
@@ -96,11 +96,11 @@ class PruebasDelPresentador(unittest.TestCase):
 
     def test_registrar_lote_desde_el_formulario(self):
         fecha = dentro_de(3)
-        resultado = self.existencias.registrar_lote(self.leche.id_producto, " L-7 ", fecha.isoformat(), "12")
+        resultado = self.existencias.registrar_lote(self.leche.id_producto, " L-7 ", fecha.isoformat(), "8")
         self.assertTrue(resultado.exito, resultado.mensaje)
         self.assertEqual(resultado.mensaje, f"Lote L-7 de Leche ficticia registrado. Vence el {fecha:%d/%m/%Y}")
         self.assertEqual(self.existencias.lotes(), [
-            (1, ("Leche ficticia", "L-7", f"{fecha:%d/%m/%Y}", 12, "Por vencer", "Faltan 3 días"))])
+            (1, ("Leche ficticia", "L-7", f"{fecha:%d/%m/%Y}", 8, "Por vencer", "Faltan 3 días"))])
 
     def test_textos_de_los_dias(self):
         for numero, dias in (("L-1", -2), ("L-2", 0), ("L-3", 1)):
@@ -129,10 +129,10 @@ class PruebasDelPresentador(unittest.TestCase):
         self.app.productos.registrar_lote(self.leche.id_producto, "L-3", dentro_de(30), 1)
         self.assertEqual(self.existencias.cuantos_en_alerta(), 2)
 
-    def test_ya_no_esta(self):
+    def test_ya_no_esta_con_unidades_se_rechaza(self):
         self.app.productos.registrar_lote(self.leche.id_producto, "L-1", dentro_de(1), 1)
-        self.assertEqual(self.existencias.retirar_lote(1).mensaje, "Lote L-1 de Leche ficticia quitado de la lista")
-        self.assertFalse(self.existencias.retirar_lote(1).exito)
+        self.assertEqual(self.existencias.retirar_lote(1).mensaje,
+                         "Al lote L-1 le queda 1 unidad: véndala o regístrela como salida")
 
     def test_el_formulario_del_producto_pide_los_dias_de_aviso(self):
         productos = PresentadorDeProductos(self.app)
@@ -148,14 +148,13 @@ class PruebasDeLaApi(unittest.TestCase):
     def test_registrar_listar_y_quitar(self):
         app = Aplicacion()
         api = api_con_jefe(app)
-        respuesta = api.registrar_producto("Leche ficticia", "2000", "2800", "0", "0", "", "5")
+        respuesta = api.registrar_producto("Leche ficticia", "2000", "2800", "6", "0", "", "5")
         self.assertTrue(respuesta["exito"], respuesta["mensaje"])
         self.assertEqual(api.datos_producto(1)["aviso"], "5")
         self.assertTrue(api.registrar_lote("1", "L-1", dentro_de(2).isoformat(), "6")["exito"])
         lotes = api.lotes()
         self.assertEqual((lotes["alerta"], lotes["filas"][0]["valores"][4]), (1, "Por vencer"))
-        self.assertTrue(api.retirar_lote(lotes["filas"][0]["id"])["exito"])
-        self.assertEqual(api.lotes()["filas"], [])
+        self.assertFalse(api.retirar_lote(lotes["filas"][0]["id"])["exito"])     # le quedan 6 unidades
 
 
 class PruebasDeLaMigracion(unittest.TestCase):
