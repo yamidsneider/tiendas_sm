@@ -362,7 +362,9 @@ class ApiDeLaTienda:
         def consultar():
             reponer = {id_producto for id_producto, _ in self._existencias.por_reponer()}
             inactivos = self._productos.inactivos()                      # fase 6: se marcan «Inactivo»
-            return [{**fila, "reponer": fila["id"] in reponer, "activo": fila["id"] not in inactivos}
+            sin_lote = self._existencias.sin_lote()                      # fase 9
+            return [{**fila, "reponer": fila["id"] in reponer, "activo": fila["id"] not in inactivos,
+                     "sin_lote": sin_lote.get(fila["id"], 0)}
                     for fila in _filas(self._existencias.tabla(str(texto)))]
         return self._ejecutar(consultar)
 
@@ -386,8 +388,10 @@ class ApiDeLaTienda:
             _id(id_producto), cantidad, str(motivo), str(detalle), quien, str(jefe), str(clave_jefe))))
 
     @requiere(Permiso.REGISTRAR_ENTRADA)
-    def registrar_entrada(self, id_producto, cantidad):
-        return self._ejecutar(lambda: _resultado(self._existencias.registrar_entrada(_id(id_producto), cantidad)))
+    def registrar_entrada(self, id_producto, cantidad, numero_de_lote="", fecha=""):
+        """Fase 9: con fecha de vencimiento la entrada queda como lote."""
+        return self._ejecutar(lambda: _resultado(self._existencias.registrar_entrada(
+            _id(id_producto), cantidad, str(numero_de_lote or ""), str(fecha or ""))))
 
     # ------------------------------------------------------------------ lotes por vencer (RF-10, RF-13)
     @requiere(Permiso.CONSULTAR)

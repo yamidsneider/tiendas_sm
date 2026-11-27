@@ -457,8 +457,9 @@ async function abrirEdicionDeProducto(id) {
 TABLAS.existencias = async () => {
   const filas = (await llamar('existencias', estado.busquedas.existencias || '')).map(f => {
     const [nombre, disponibles] = f.valores;
-    return `<tr${f.activo ? '' : ' class="inactivo"'}><td><b>${esc(nombre)}</b> ${f.reponer ? insignia('i-av', 'Por reponer') : ''}${f.activo ? '' : insignia('i-gris', 'Inactivo')}</td><td class="num"><b>${esc(disponibles)}</b></td>
+    return `<tr${f.activo ? '' : ' class="inactivo"'}><td><b>${esc(nombre)}</b> ${f.reponer ? insignia('i-av', 'Por reponer') : ''}${f.activo ? '' : insignia('i-gris', 'Inactivo')}${f.sin_lote ? insignia('i-info', `${f.sin_lote} sin lote`) : ''}</td><td class="num"><b>${esc(disponibles)}</b></td>
       <td><button class="btn btn-s btn-ch" data-accion="nueva-entrada" data-id="${esc(f.id)}">+ Entrada</button>
+      ${f.sin_lote ? `<button class="btn btn-s btn-ch" data-accion="nuevo-lote" data-id="${esc(f.id)}">Asignar lote</button>` : ''}
       <button class="btn btn-s btn-ch" data-accion="nueva-salida" data-id="${esc(f.id)}">− Salida</button></td></tr>`;
   });
   return tabla(['Producto', '>Disponibles', ''], filas, 'No hay productos con esa búsqueda.');
@@ -482,27 +483,29 @@ const CLASE_DEL_LOTE = { 'Vencido': 'i-mal', 'Por vencer': 'i-av', 'Al día': 'i
 async function panelDeLotes() {
   const lotes = await llamar('lotes');
   const filas = lotes.filas.map(f => {
-    const [producto, numero, vence, cantidad, estadoLote, falta] = f.valores;
-    return `<tr><td><b>${esc(producto)}</b><div class="sec">Lote ${esc(numero)} · ${esc(cantidad)} u.</div></td><td>${esc(vence)}<div class="sec">${esc(falta)}</div></td>
-      <td>${insignia(CLASE_DEL_LOTE[estadoLote] || 'i-gris', estadoLote)}</td>
-      <td><button class="btn btn-s btn-ch" data-accion="retirar-lote" data-id="${esc(f.id)}">Ya no está</button></td></tr>`;
+    const [producto, numero, vence, quedan, estadoLote, falta] = f.valores;
+    return `<tr><td><b>${esc(producto)}</b><div class="sec">Lote ${esc(numero)} · quedan ${esc(quedan)} u.</div></td><td>${esc(vence)}<div class="sec">${esc(falta)}</div></td>
+      <td>${insignia(CLASE_DEL_LOTE[estadoLote] || 'i-gris', estadoLote)}</td></tr>`;
   });
   return `<div class="tabla-caja"><div class="cab-tabla"><h3>Lotes por vencer${lotes.alerta ? ` (${lotes.alerta} en alerta)` : ''}</h3>
-    <button class="btn btn-s btn-ch" data-accion="nuevo-lote">+ Registrar lote</button></div>
-    ${tabla(['Producto', 'Vence', 'Estado', ''], filas, 'No hay lotes registrados.')}
-    <div class="nota-pie">Ordenados por fecha: venda primero los de arriba. Es solo un aviso, no cambia las existencias. «Ya no está» lo quita de la lista.</div></div>`;
+    <button class="btn btn-s btn-ch" data-accion="nuevo-lote" data-id="">+ Asignar lote</button></div>
+    ${tabla(['Producto', 'Vence', 'Estado'], filas, 'No hay lotes registrados.')}
+    <div class="nota-pie">Al vender se descuenta primero el lote que vence antes. Un lote que se acaba sale solo de la lista;
+    lo dañado o vencido se saca con «− Salida».</div></div>`;
 }
 
-async function abrirLote() {
-  const productos = await llamar('existencias', '');
-  if (!productos.length) { aviso('Primero registra un producto en la sección Productos.', true); return; }
-  const opciones = productos.map(f => `<option value="${esc(f.id)}">${esc(f.valores[0])}</option>`).join('');
-  abrirModal('Registrar lote', `${campo('Producto', 'l-producto', `<select id="l-producto">${opciones}</select>`)}
+/* Fase 9: asignarle un lote a unidades que estaban sin lote (no cambia las existencias). */
+async function abrirLote(id) {
+  const productos = (await llamar('existencias', '')).filter(f => f.sin_lote > 0);
+  if (!productos.length) { aviso('No hay unidades sin lote: todo lo que hay ya tiene lote.', true); return; }
+  const elegido = productos.find(f => String(f.id) === String(id)) || productos[0];
+  const opciones = productos.map(f => `<option value="${esc(f.id)}"${f === elegido ? ' selected' : ''}>${esc(f.valores[0])} (${esc(f.sin_lote)} sin lote)</option>`).join('');
+  abrirModal('Asignar lote', `${campo('Producto', 'l-producto', `<select id="l-producto">${opciones}</select>`)}
     <div class="dos">${campo('Número de lote (opcional)', 'l-numero', '<input id="l-numero" placeholder="Ej.: L-2045">')}
-    ${campo('Unidades del lote', 'l-cantidad', '<input id="l-cantidad" type="number" min="1" value="1">')}</div>
+    ${campo('Unidades del lote', 'l-cantidad', `<input id="l-cantidad" type="number" min="1" value="${esc(elegido.sin_lote)}">`)}</div>
     ${campo('Fecha de vencimiento', 'l-fecha', '<input id="l-fecha" type="date">')}
-    <div class="nota-pie">El lote no suma ni resta existencias: para eso está «Registrar entrada».</div>`,
-  botonesGuardar('Registrar lote', 'guardar-lote'));
+    <div class="nota-pie">Toma unidades que estaban sin lote; las existencias no cambian.</div>`,
+  botonesGuardar('Asignar lote', 'guardar-lote'));
 }
 
 VISTAS.existencias = async () => {
@@ -528,7 +531,10 @@ async function abrirEntrada(id) {
   if (!productos.length) { aviso('Primero registra un producto en la sección Productos.', true); return; }
   const opciones = productos.map(f => `<option value="${esc(f.id)}"${String(f.id) === String(id) ? ' selected' : ''}>${esc(f.valores[0])} (hay ${esc(f.valores[1])})</option>`).join('');
   abrirModal('Registrar entrada de mercancía', `${campo('Producto', 'e-producto', `<select id="e-producto">${opciones}</select>`)}
-    ${campo('Cantidad que entra', 'e-cantidad', '<input id="e-cantidad" type="number" min="1" value="1">')}`,
+    ${campo('Cantidad que entra', 'e-cantidad', '<input id="e-cantidad" type="number" min="1" value="1">')}
+    <div class="dos">${campo('Lote (opcional)', 'e-lote', '<input id="e-lote" placeholder="Ej.: L-2045">')}
+    ${campo('Vence (si tiene fecha)', 'e-fecha', '<input id="e-fecha" type="date">')}</div>
+    <div class="nota-pie">Con fecha de vencimiento entra como lote. Sin fecha queda «sin lote» y se le asigna después.</div>`,
   botonesGuardar('Registrar entrada', 'guardar-entrada'));
   if ($('e-cantidad') && id) $('e-cantidad').focus();
 }
@@ -897,7 +903,7 @@ const ACCIONES = {
   'editar-producto': el => abrirEdicionDeProducto(el.dataset.id),
   'guardar-edicion-producto': el => guardar('editar_producto', el.dataset.id, val('f-nombre'), val('f-compra'), val('f-venta'), val('f-minimo'), val('f-codigo'), val('f-aviso')),
   'nueva-entrada': el => abrirEntrada(el.dataset.id),
-  'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad')),
+  'guardar-entrada': () => guardar('registrar_entrada', val('e-producto'), val('e-cantidad'), val('e-lote'), val('e-fecha')),
   'nueva-salida': el => abrirSalida(el.dataset.id),
   'abrir-caja': async () => { const r = await llamar('abrir_caja', val('c-base')); aviso(r.mensaje, !r.exito); if (r.exito) render(); },
   'contar-caja': abrirConteo,
@@ -918,7 +924,7 @@ const ACCIONES = {
   'revisar-caja': revisarCaja,
   'confirmar-cierre': el => guardar('cerrar_caja', el.dataset.contado),
   'guardar-salida': () => guardar('registrar_salida', val('s-producto'), val('s-cantidad'), val('s-motivo'), val('s-detalle'), val('s-jefe'), val('s-clave')),
-  'nuevo-lote': abrirLote,
+  'nuevo-lote': el => abrirLote(el.dataset.id),
   'guardar-lote': () => guardar('registrar_lote', val('l-producto'), val('l-numero'), val('l-fecha'), val('l-cantidad')),
   'retirar-lote': async el => { const r = await llamar('retirar_lote', el.dataset.id); aviso(r.mensaje, !r.exito); render(); },
   'nuevo-cliente': abrirNuevoCliente,

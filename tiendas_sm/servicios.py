@@ -73,13 +73,23 @@ class ServicioDeProductos:
         self.repo_productos.guardar(producto)
         return producto
 
-    def registrar_entrada(self, id_producto, cantidad):
+    def registrar_entrada(self, id_producto, cantidad, numero_de_lote="", fecha_vencimiento=None):
+        """Fase 9: con fecha de vencimiento, lo que entra queda de una vez como lote; sin fecha, queda «sin lote»."""
         existencia = self.repo_productos.obtener_existencia(id_producto)
         if existencia is None:
             raise ValueError("El producto no existe")
+        lote = Lote(None, id_producto, numero_de_lote, fecha_vencimiento, cantidad) if fecha_vencimiento else None
         existencia.aumentar(cantidad)
         self.repo_productos.guardar_existencia(existencia, "ENTRADA", cantidad)
+        if lote is not None:
+            self.repo_productos.guardar_lote(lote)
         return existencia
+
+    def unidades_sin_lote(self, id_producto):
+        """Fase 9: existencias menos lo que tienen los lotes activos del producto."""
+        existencia = self.repo_productos.obtener_existencia(id_producto)
+        en_lotes = sum(l.saldo for l in self.repo_productos.lotes_activos() if l.id_producto == id_producto)
+        return max(existencia.cantidad_actual - en_lotes, 0) if existencia else 0
 
     def registrar_salida(self, id_producto, cantidad, motivo, id_usuario, id_autorizo):
         """Fase 3 (respuesta 4.4): mercancía que sale sin venderse. motivo ya viene armado (texto_del_motivo).
@@ -103,10 +113,15 @@ class ServicioDeProductos:
             raise ValueError("El producto no existe")
         return producto
 
-    # Lotes (RF-10, RF-13): solo un registro para avisar del vencimiento. No cambian las existencias.
+    # Lotes (RF-10, RF-13). Fase 9: ligados al inventario; se venden primero los que vencen antes (FEFO).
     def registrar_lote(self, id_producto, numero, fecha_vencimiento, cantidad):
-        self._exigir_producto(id_producto)
+        """Fase 9: asignarle un lote a unidades que estaban sin lote (no cambia las existencias)."""
+        producto = self._exigir_producto(id_producto)
         lote = Lote(None, id_producto, numero, fecha_vencimiento, cantidad)
+        sin_lote = self.unidades_sin_lote(id_producto)
+        if cantidad > sin_lote:
+            unidades = "1 unidad" if sin_lote == 1 else f"{sin_lote} unidades"
+            raise ValueError(f"Solo hay {unidades} sin lote de {producto.nombre}")
         self.repo_productos.guardar_lote(lote)
         return lote
 

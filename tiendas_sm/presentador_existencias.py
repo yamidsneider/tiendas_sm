@@ -70,16 +70,25 @@ class PresentadorDeExistencias:
         producto = self.app.productos.obtener(id_producto)
         return producto.nombre if producto else ""
 
-    def registrar_entrada(self, id_producto, cantidad_texto):
+    def registrar_entrada(self, id_producto, cantidad_texto, numero_de_lote="", fecha_texto=""):
+        """Fase 9: si se escribe la fecha de vencimiento, lo que entra queda como lote; si no, «sin lote»."""
         if id_producto is None:
             return Resultado(False, MENSAJE_SIN_PRODUCTO)
         try:
             cantidad = a_entero(cantidad_texto, "La cantidad")
-            existencia = self.app.productos.registrar_entrada(id_producto, cantidad)
+            fecha = _leer_fecha(fecha_texto) if str(fecha_texto or "").strip() else None
+            existencia = self.app.productos.registrar_entrada(id_producto, cantidad, numero_de_lote, fecha)
         except ValueError as error:
             return Resultado(False, str(error))
-        return Resultado(True, f"Entrada de {_unidades(cantidad)} de {self.nombre(id_producto)}. "
+        lote = (f", en el lote {(numero_de_lote or '').strip() or SIN_NUMERO.lower()} (vence el {fecha:{FORMATO_FECHA}})"
+                if fecha else "")
+        return Resultado(True, f"Entrada de {_unidades(cantidad)} de {self.nombre(id_producto)}{lote}. "
                                f"Ahora hay {existencia.cantidad_disponible()}")
+
+    def sin_lote(self):
+        """Fase 9: {id_producto: unidades sin lote} de los productos que tienen alguna."""
+        unidades = {p.id_producto: self.app.productos.unidades_sin_lote(p.id_producto) for p in self.app.productos.listar()}
+        return {id_producto: n for id_producto, n in unidades.items() if n > 0}
 
     # ------------------------------------------------------------------ salida manual (fase 3, respuesta 4.4)
     @staticmethod
@@ -110,7 +119,7 @@ class PresentadorDeExistencias:
         for lote in self.app.productos.lotes_activos():
             producto = productos[lote.id_producto]
             filas.append((lote.id_lote, (producto.nombre, lote.numero or SIN_NUMERO,
-                                         f"{lote.fecha_vencimiento:{FORMATO_FECHA}}", lote.cantidad,
+                                         f"{lote.fecha_vencimiento:{FORMATO_FECHA}}", lote.saldo,
                                          lote.estado(hoy, producto.dias_aviso),
                                          _texto_de_los_dias(lote.dias_para_vencer(hoy)))))
         return filas

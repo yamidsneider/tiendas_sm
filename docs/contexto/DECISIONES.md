@@ -361,3 +361,19 @@ ENTRADA con el motivo «Compra #n a <proveedor>» y el costo, y el **último cos
 (el precio de venta no se toca). Reportes suma «Compras de mercancía» del periodo.
 *Supuestos por confirmar:* la compra se paga de una vez (**no hay cuentas por pagar** a proveedores); un producto desactivado
 no se compra (hay que activarlo antes); el empleado sigue registrando entradas sueltas sin proveedor (HU-03).
+
+**Fase 9: lotes ligados al inventario con FEFO (DT-01; *cambia la decisión del grupo B*; aprobada por el desarrollador,
+26 de noviembre de 2026).**
+*Respuestas del desarrollador:* al vender se descuenta primero el lote que vence antes (FEFO); a la mercancía que entra sin
+lote se le asigna uno manualmente.
+*Qué cambia:* cada lote tiene `saldo` (unidades que le quedan; columna nueva con migración) además de la cantidad con que
+llegó. «Sin lote» = existencias − saldos de los lotes activos. La venta y la salida manual descuentan con la regla del
+dominio `tomar_fefo` dentro de la misma transacción (el repositorio la aplica, así `guardar_transaccion` no cambia de firma);
+si los lotes no alcanzan, el resto sale de lo sin lote. Un lote en 0 sale solo de la lista. «Asignar lote» (antes «Registrar
+lote») toma unidades sin lote y no puede pasar de ellas. Una entrada con fecha de vencimiento entra como lote. «Ya no está»
+solo se acepta con el lote en 0 (lo dañado o vencido se saca con «− Salida», que también es FEFO). Se ajustaron las pruebas
+viejas de `test_lotes.py` que registraban lotes más grandes que el stock.
+*Migración:* en una base vieja los lotes reciben saldo por orden de vencimiento hasta donde alcancen las existencias; los que
+no alcanzan quedan en 0. Lo demás queda «sin lote» para asignarlo a mano.
+*Preliminar:* las compras (fase 8), las entradas sin fecha y las devoluciones quedan «sin lote» (no se sabe de qué lote
+volvió lo devuelto); lo sin lote se vende al final, después de todos los lotes.
